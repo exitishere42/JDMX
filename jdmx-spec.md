@@ -18,18 +18,36 @@
 
 ---
 
-## 2. Die 4 Haupt-Tabs der Benutzeroberfläche
+## 2. Die 4 Haupt-Tabs & Permanenter Global-Header
 
-Die Web-Anwendung (`src/main/resources/public/`) ist in vier dedizierte Tabs gegliedert:
+Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über allen Ansichten sichtbaren Global-Header** sowie vier dedizierte Tabs:
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  [ jdmx ]   Grand Master: [████████░░] 80%   [● BLACKOUT]   Universe: 1 [v]  │
-├───────────────┬───────────────────┬──────────────────────┬───────────────────┤
-│ [1] FADER     │ [2] 2D STAGE      │ [3] LIVE MATRIX      │ [4] INPUT / OUTPUT│
-│     & UNIVERSE│     & FIXTURES    │     (3x25 CONSOLE)   │     (ARTNET/MIDI) │
-└───────────────┴───────────────────┴──────────────────────┴───────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ [ jdmx ]  Grand Master: [████████░░] 80%  [● BLACKOUT]  [■ STOP ALL]  [Traffic: ▄▆█ 40Hz]   │
+├─────────────────┬───────────────────┬──────────────────────┬────────────────────────────────┤
+│ [1] FADER       │ [2] 2D STAGE      │ [3] LIVE MATRIX      │ [4] INPUT / OUTPUT             │
+│     & UNIVERSE  │     & FIXTURES    │     (3x25 CONSOLE)   │     (ARTNET/MIDI & TRAFFIC)    │
+└─────────────────┴───────────────────┴──────────────────────┴────────────────────────────────┘
 ```
+
+### Permanenter Global-Header (Immer verfügbar)
+1. **Grand Master Fader:** Skaliert lineare Gesamthelligkeit (0–100%) ausschließlich für Dimmer/Shutter.
+2. **Globaler Blackout-Button (`● BLACKOUT`):** Schaltet sofort alle Dimmer/Shutter aus (Pan/Tilt bleibt unangetastet).
+3. **Globaler Haupt-Stop-Button (`■ STOP ALL / RELEASE ALL`):**
+   - **Das Anti-QLC+-Feature:** Im Gegensatz zu QLC+ (wo Fader Desk, 2D-Monitor und Virtual Console jeweils separate, versteckte Override- und Stop-Buttons haben) stoppt dieser eine Button **sofort alles**:
+     - Beendet alle aktiven Chaser, FX-Engines, Fades und Szenen.
+     - Deaktiviert alle aktiven Tasten in der 3×25 Live-Matrix.
+     - Setzt alle manuellen Fader-Overrides zurück.
+     - Bringt das gesamte Universum in einen definierten Ruhezustand (keine "feststeckenden" Kanäle mehr).
+4. **DMX-Traffic Live-Balkendiagramm (wie in DMXControl):**
+   - Permanente Miniaturanzeige im Header und Detailanzeige in Tab 4.
+   - Zeigt in Echtzeit als Balken:
+     - **Frame-Rate (Hz / FPS):** Z. B. 30 Hz – 44 Hz Soll/Ist.
+     - **DMX-Bus-Traffic & Aktivität:** Wieviele Kanäle ändern sich gerade, Leitungs-Durchsatz und Paket-Verkehr.
+   - Farbcodiert: Grün (optimaler DMX-Fluss, 30–44 Hz), Gelb (erhöhte Latenz), Rot (Buffer-Drop/Stillstand).
+
+---
 
 ### Tab 1: Fader Desk & Universum (Kanal-Ebene)
 - **Zweck:** Diagnostik, Einleuchten, Testen und manuelles Eingreifen auf DMX-Kanal-Ebene.
@@ -96,6 +114,12 @@ Die Web-Anwendung (`src/main/resources/public/`) ist in vier dedizierte Tabs geg
       - Beliebige Slots in der 3×25 Live Matrix
   - **MIDI Feedback (Option):**
     - Sendet Note-On/Off-Befehle zurück an Controller mit LED-Tasten (z. B. Launchpad / APC Mini), um aktive Cues leuchten zu lassen.
+- **DMX Traffic Monitor (Diagnose wie in DMXControl):**
+  - Großes Echtzeit-Balkendiagramm zur Bus-Diagnose:
+    - **Framerate-Verlauf (Hz / FPS):** Soll-Wert (z. B. 40 Hz) vs. Ist-Wert.
+    - **Kanalaktivitäts-Balken:** Balkendiagramm der 512 Kanäle, das anzeigt, auf welchen Adressen aktuell Aktivität/Änderung stattfindet.
+    - **Paket-Zähler:** Ausgegebene Pakete pro Sekunde (PPS) und Gesamtzähler.
+    - **Frame-Time / DMX-Timing:** Messung der Frame-Generierungszeit in Millisekunden (Soll: < 25 ms bei 40 Hz).
 
 ---
 
@@ -119,6 +143,21 @@ Die Web-Anwendung (`src/main/resources/public/`) ist in vier dedizierte Tabs geg
 - Die Engine berechnet Positionen intern als 16-Bit Integer (`0 .. 65535`) und teilt sie beim Frame-Export auf:
   - `Coarse = (value >> 8) & 0xFF`
   - `Fine   = value & 0xFF`
+
+### 3.4 Globaler Release & Stop-All Engine Mechanismus
+- Die DMX-Engine besitzt eine zentrale, thread-sichere Methode `stopAll()`:
+  - **Sofortiger Abbruch:** Alle laufenden Chaser-Threads, Fading-Tasks und FX-Generatoren werden unverzüglich beendet (`cancel(true)`).
+  - **Matrix-Deaktivierung:** Alle Buttons in der 3×25 Live-Matrix werden auf `active = false` gesetzt.
+  - **Release aller Overrides:** Manuelle Fader-Haltungen (Manual Overrides) im Fader Desk und in der 2D-Ansicht werden freigegeben.
+  - **Reset des Ausgabepuffers:** Dimmer-Kanäle werden auf 0 gesetzt. Pan/Tilt-Werte fahren sanft oder verharren auf definierter Park-/Home-Position.
+  - **Verhindert Zustandskonflikte:** Löst das bekannte QLC+-Problem, bei dem man getrennte Stop-Buttons für Simple Desk, Chaser und Virtual Console suchen musste.
+
+### 3.5 DMX-Traffic Messung & Frame-Timing
+- Die `DmxEngine` erfasst kontinuierlich Diagnose-Metriken im Sendeloop:
+  - **FPS-Counter:** Exakte Messung der tatsächlich erreichten Bildwiederholrate (Frames pro Sekunde).
+  - **Frame-Time Tracker:** Zeitspanne in Nanosekunden/Millisekunden pro DMX-Zyklus (Renderzeit + I/O-Übertragungszeit).
+  - **Delta-Analyzer:** Vergleicht Frame $N$ mit Frame $N-1$ und zählt veränderte DMX-Kanäle (`changedChannelsCount`).
+  - **Bus-Auslastungsfaktor:** Berechnet das Verhältnis von aktiven Daten zu Leerlaufzeiten für das Balkendiagramm.
 
 ---
 
@@ -272,6 +311,21 @@ public record MidiMapping(
 ) {}
 ```
 
+#### `DmxTrafficStats.java`
+```java
+package de.exit.jdmx.model;
+
+public record DmxTrafficStats(
+    int fps,                 // Aktuelle Ausgaberate in Hz / FPS
+    int targetFps,           // Soll-Frequenz (Standard: 40 Hz)
+    long packetsSentTotal,   // Gesamtzahl gesendeter Frames
+    int activeChannelsCount, // Kanäle mit DMX-Wert > 0
+    int changedChannelsCount,// Im aktuellen Zyklus veränderte Kanäle
+    double busLoadPercent,   // DMX-Busauslastung (0.0 - 100.0%)
+    double frameTimeMs       // Berechnungs- und Übertragungszeit in ms
+) {}
+```
+
 ---
 
 ## 6. REST-API & SSE Schnittstellen
@@ -283,6 +337,8 @@ public record MidiMapping(
 | `POST`| `/api/universes/{id}/channels`| Setzt mehrere Kanäle | `{ "values": { "1": 255, "2": 128 } }` |
 | `POST`| `/api/universes/{id}/master`  | Setzt Grand Master | `{ "value": 255 }` |
 | `POST`| `/api/universes/{id}/blackout`| Schaltet Blackout ein/aus | `{ "blackout": true/false }` |
+| `POST`| `/api/engine/stop-all`        | **Globaler Release & Stop:** Stoppt alle Chaser, Fades, löst Overrides & Matrix | 200 OK |
+| `GET` | `/api/engine/traffic`         | DMX-Traffic-Statistiken (FPS, Bus-Last, Packets/s) | `DmxTrafficStats` |
 | `GET` | `/api/fixtures` | Liste aller Fixtures | `List<Fixture>` |
 | `POST`| `/api/fixtures` | Legt Fixture an (mit Kollisionsprüfung) | `Fixture` |
 | `DELETE`| `/api/fixtures/{id}` | Löscht Fixture | 204 No Content |
@@ -298,7 +354,7 @@ public record MidiMapping(
 | `GET` | `/api/io/midi/mappings` | Aktuelle MIDI-Zuweisungen | `List<MidiMapping>` |
 | `POST`| `/api/io/midi/mappings` | Speichert MIDI-Zuweisung | `MidiMapping` |
 | `POST`| `/api/io/midi/learn` | Startet MIDI-Learn-Modus | `{ "targetType": "MATRIX_BUTTON", ... }` |
-| `GET` | `/api/live/stream` | **SSE-Stream:** Sendet `universe-update`, `master-update`, `matrix-update`, `midi-event` | EventStream (`text/event-stream`) |
+| `GET` | `/api/live/stream` | **SSE-Stream:** Sendet `universe-update`, `master-update`, `matrix-update`, `traffic-update`, `midi-event` | EventStream (`text/event-stream`) |
 
 ---
 
