@@ -33,3 +33,9 @@ data/*.mv.db
 data/*.trace.db
 logs/
 *.log
+
+### Local Agent Configuration (keep out of public GitHub repo) ###
+AGENTS.md
+GEMINI.md
+.agents/
+.gemini/
