@@ -4,6 +4,7 @@
 > Dieses Dokument ist deine verbindliche Spezifikation und Arbeitsanweisung.
 > Arbeite die Roadmap strikt Phase für Phase ab.
 > Führe nach jedem Schritt die definierten Verifikations-Befehle aus. Weiche nicht eigenmächtig von Tech-Stack, Paketstruktur oder Architektur ab.
+> **Git-Regel:** Nach jedem großen Meilenstein / Phasenabschluss ist verbindlich ein aussagekräftiger Git-Commit und `git push` auf `origin main` durchzuführen.
 
 ---
 
