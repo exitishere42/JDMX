@@ -35,5 +35,5 @@
 
 ## 4. Master-Spezifikation
 - Die vollständige funktionale Spezifikation, das Datenmodell, die Schnittstellen und die phasenweise Roadmap befinden sich in:
-  👉 **[`INSTRUCTION.md`](./INSTRUCTION.md)**
-- Arbeite die Phasen in `INSTRUCTION.md` strikt nacheinander ab. Beginne erst nach expliziter Freigabe durch den Nutzer.
+  👉 **[`jdmx-spec.md`](./jdmx-spec.md)**
+- Arbeite die Phasen in `jdmx-spec.md` strikt nacheinander ab. Beginne erst nach expliziter Freigabe durch den Nutzer.
