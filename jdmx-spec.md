@@ -2,21 +2,18 @@
 
 > **Verbindliche Master-Spezifikation für die Software-Entwicklung**  
 > Basierend auf den Anforderungen für den Vereins- und Bühnenbetrieb mit statischem Licht (Dimmer/PARs) und bewegtem Licht (Moving Heads, Scanner).  
-> Konzeptionell angelehnt an die bewährte Trennung von QLC+ (Fader Desk, 2D Stage, Virtual Console, Timeline & I/O Matrix).
+> Konzeptionell angelehnt an die bewährte Trennung von QLC+ (Fader Desk, 2D Stage, Virtual Console, Timeline & I/O Matrix) in Kombination mit der modernen **KaSo 2.0 Dark Mode Ästhetik**.
 >
 > ### 🛑 Eiserne Leitplanken für das Projekt:
-> 1. **STRIKTE MVC-ARCHITEKTUR (100% BACKEND-LOGIK):**
->    - **Sämtliche Logik gehört ins Backend:** DMX-Berechnungen, HTP/LTP-Merging, Fades, Überblendungen, Chaser/FX-Engines, Audio-Sync, Grand Master/Blackout/Stop-All, Adresskollisionen und Treiber-Kommunikation laufen **ausschließlich im Java-Backend**.
->    - **Frontend ist reine View & Event-Dispatcher:** Das Web-Frontend stellt empfangene SSE-Zustände rein visuell dar und schickt Benutzerinteraktionen sofort per REST-Call an das Backend. **Keine Geschäftslogik, DMX-Berechnungen oder Timer im Browser.**
-> 2. **LÜCKENLOSE DOKUMENTATION (BACKEND & FRONTEND):**
->    - **Backend:** 100% **JavaDoc** auf allen Klassen, Interfaces, Records, Enums, Feldern und Methoden (`@param`, `@return`, `@throws`, Threading-Garantien, Architektur-Begründung).
->    - **Frontend:** 100% **JSDoc** auf allen JavaScript-Modulen, Funktionen, UI-Klassen und Event-Handlern.
-> 3. **OPENAPI 3.0 SPEZIFIKATION:**
->    - Sämtliche REST-Endpunkte, SSE-Streams, Daten-Schemas und Fehlercodes werden formal nach OpenAPI 3.0 Standard in [`docs/openapi.yaml`](./docs/openapi.yaml) gepflegt (Swagger-kompatibel).
-> 4. **LEBENDIGES ANFORDERUNGSMANAGEMENT (LIVING REQUIREMENTS):**
+> 1. **STRIKTE MVC-ARCHITEKTUR (100% KERNLOGIK):**
+>    - **Sämtliche Logik gehört in den Core & Service-Layer:** DMX-Berechnungen, HTP/LTP-Merging, Fades, Überblendungen, Chaser/FX-Engines, Audio-Sync, Grand Master/Blackout/Stop-All, Adresskollisionen und Treiber-Kommunikation laufen **ausschließlich im Java-Kern (`de.exit.jdmx.core` / `service`)**.
+>    - **JavaFX ist reine View & Event-Dispatcher:** Die JavaFX-Benutzeroberfläche (`de.exit.jdmx.ui`) visualisiert lediglich den aktuellen Zustand (Observable Properties / Events) und leitet Benutzerinteraktionen (Slider, Buttons, XY-Pad) unverzüglich als Service-Aufrufe weiter. **Keine DMX-Geschäftslogik, DMX-Berechnungen oder Timing-Steuerung in UI-Controllern.**
+> 2. **LÜCKENLOSE DOKUMENTATION (BACKEND & JAVAFX UI):**
+>    - **JavaDoc:** 100% **JavaDoc** auf allen Klassen, Interfaces, Records, Enums, Feldern und Methoden (`@param`, `@return`, `@throws`, Threading-Garantien, Architektur-Begründung) im Core sowie in allen JavaFX UI-Klassen.
+> 3. **LEBENDIGES ANFORDERUNGSMANAGEMENT (LIVING REQUIREMENTS):**
 >    - Anforderungen werden von Beginn an strukturiert dokumentiert (siehe Abschnitt 8).
 >    - Neu aufkommende oder sich ändernde Anforderungen während der Entwicklung werden **sofort schriftlich festgehalten**, der bestehende Teil wird angepasst und im Anforderungs-Changelog dokumentiert.
-> 5. **STRIKTES TEST-DRIVEN DEVELOPMENT (TDD):**
+> 4. **STRIKTES TEST-DRIVEN DEVELOPMENT (TDD):**
 >    - Tests ZUERST mit JUnit 5 vor der Implementierung. Vor jedem Compile/Build zwingend `mvn test` (100% grün).
 
 ---
@@ -24,25 +21,25 @@
 ## 1. Vision & Einsatzszenario
 
 - **Ziel:**  
-  Ein modularer, latenzarmer DMX-512 Controller in Java 21 LTS mit integriertem Web-Frontend (Javalin 6).
+  Ein modularer, latenzarmer DMX-512 Controller in Java 21 LTS mit direkt integrierter, nativer **JavaFX 21 Desktop-Oberfläche** (kein Web-Browser, kein Javalin, kein REST/SSE-Overhead).
 - **Kontext:**  
   Ausstattung für Vereinsräume, Säle und Bühnen. Typisches Rigging: **U-Traverse, die auf eine Wand gerichtet ist**, bestückt mit statischen Scheinwerfern und Moving Lights.
 - **Benutzergruppen:**  
   - *Lichttechniker:* Detailkontrolle über Fader, 16-Bit Pan/Tilt, DMX-Adressierung und Fixture-Profile.
-  - *Vereinsmitglieder / DJs / Theke:* Einfache Live-Bedienung über ein 3×25-Button-Raster (Cues, Farben, Intensitäten, Chaser) via Browser/Tablet.
+  - *Vereinsmitglieder / DJs / Theke:* Einfache Live-Bedienung über ein tastendes/rastendes 3×16-Pad-Raster (Cues, Farben, Intensitäten, Chaser) direkt am Touchscreen/Monitor.
 
 ---
 
 ## 2. Die 5 Haupt-Tabs & Permanenter Global-Header
 
-Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über allen Ansichten sichtbaren Global-Header** sowie fünf dedizierte Tabs:
+Die JavaFX Desktop-Anwendung besitzt einen **permanent über allen Ansichten sichtbaren Global-Header** (`HeaderBar.java`) sowie fünf dedizierte Arbeitsbereiche (Workspaces / Tabs):
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ [ jdmx ]  Grand Master: [████████░░] 80%  [● BLACKOUT]  [■ STOP ALL]  [Traffic: ▄▆█ 40Hz]               │
 ├─────────────────┬───────────────────┬──────────────────────┬──────────────────────┬─────────────────────┤
 │ [1] 2D STAGE    │ [2] FADER         │ [3] LIVE MATRIX      │ [4] TIMELINE         │ [5] INPUT / OUTPUT  │
-│     & FIXTURES  │     & UNIVERSE    │     (3x25 CONSOLE)   │     (AUDIO & SHOW)   │     (ARTNET/MIDI)   │
+│     & FIXTURES  │     & UNIVERSE    │     (3x16 CONSOLE)   │     (AUDIO & SHOW)   │     (ARTNET/MIDI)   │
 └─────────────────┴───────────────────┴──────────────────────┴──────────────────────┴─────────────────────┘
 ```
 
@@ -189,53 +186,62 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
 
 ```mermaid
 flowchart TD
-    subgraph Browser ["Web-Frontend (View / UI-Controller)"]
-        UI["5 Tabs & Global Header (HTML5 / CSS / Lucide)"]
-        EV["Event-Dispatcher (REST Fetch)"]
-        SSE_C["SSE Client (EventSource)"]
+    subgraph UI ["JavaFX Desktop UI (View & Presentation)"]
+        FX_MAIN["MainView & HeaderBar (Master, Blackout, STOP ALL)"]
+        FX_TABS["5 Workspace Tabs (Stage, Fader, 3x16 Matrix, Timeline, I/O)"]
+        FX_CANVAS["High-Perf Canvas (2D Stage & 512 Universe Heatmap)"]
+        FX_EV["JavaFX Event Handler & Action Listeners"]
     end
 
-    subgraph Backend ["Java 21 Backend (100% Geschäfts- & DMX-Logik)"]
-        API["Javalin REST Controller"]
-        SSE_H["DmxSseHandler (Echtzeit-Stream)"]
-        SVC["Services (DmxService, SceneService, TimelineService, MidiService)"]
-        CORE["DmxUniverse & Engine (HTP/LTP, 16-Bit, StopAll)"]
-        REPO["JDBC Repositories (H2 / ANSI-SQL)"]
+    subgraph ServiceLayer ["Service Layer (Application Controller)"]
+        SVC_DMX["DmxService (Fader, Master, Blackout, Overrides)"]
+        SVC_SCENE["SceneService (Fade-Rampen, HTP/LTP)"]
+        SVC_MATRIX["MatrixService (3x16 Pads, Flash, Toggle)"]
+        SVC_TIME["TimelineService (Show-Ablauf, Audio-Sync)"]
+        SVC_IO["IOService (Art-Net, USB-DMX, MIDI-Learn)"]
+    end
+
+    subgraph CoreEngine ["DMX Core Engine (100% Signal- & Berechnungslogik)"]
+        CORE["DmxUniverse & Engine (HTP/LTP, 16-Bit, StopAll, 40Hz Ticker)"]
         DRV["DMX Output Drivers (Art-Net / DMX2USB / Sim)"]
         MIDI["MIDI Subsystem (javax.sound.midi)"]
-        AUDIO["Audio Output Engine (Soundkarte / PA)"]
+        AUDIO["Audio Engine (Direct Soundcard Output / PA)"]
     end
 
-    UI -->|Benutzeraktion| EV
-    EV -->|HTTP POST/PUT/DELETE| API
-    API --> SVC
-    SVC --> CORE
-    SVC --> REPO
-    CORE -->|DMX Frames| DRV
-    CORE -->|Delta / Stats| SSE_H
-    SSE_H -->|SSE Events| SSE_C
-    SSE_C -->|State Updates| UI
-    MIDI -->|Note / CC| SVC
-    SVC -->|Audio Sync| AUDIO
+    subgraph DataLayer ["Persistence Layer"]
+        REPO["JDBC Repositories (HikariCP / H2 / ANSI-SQL)"]
+        DB[(H2 Database ./data/jdmx_db)]
+    end
+
+    FX_TABS --> FX_EV
+    FX_MAIN --> FX_EV
+    FX_EV -->|Direkter Service-Aufruf| ServiceLayer
+    ServiceLayer --> CoreEngine
+    ServiceLayer --> DataLayer
+    REPO --> DB
+    CORE -->|DMX Frames 40Hz| DRV
+    MIDI -->|Note / CC Events| SVC_IO
+    SVC_TIME -->|Audio Stream| AUDIO
+    CORE -->|Observable State / Platform.runLater| UI
 ```
 
 ### 3.1 Das MVC-Prinzip im Detail
-- **Model (Backend):**
+- **Model (Datenmodell & Zustand):**
   - Repräsentiert die gesamte Datenhaltung und den Systemzustand.
-  - Klassen: `DmxUniverse`, `Fixture`, `Scene`, `MatrixButton`, `TimelineShow`, `MidiMapping`, `UniverseState`.
+  - Klassen: `DmxUniverse`, `Fixture`, `Scene`, `MatrixPad`, `TimelineShow`, `MidiMapping`, `DmxTrafficStats`.
   - Vollständige Validierungs- und Integritätsregeln liegen hier (z. B. Adresskollisionen, Grenzwerte).
-- **Controller (Backend):**
-  - Javalin REST Controller (`DmxApiController`, `FixtureApiController`, `SceneApiController`, etc.) und Services.
-  - Führen Berechnungen aus: HTP/LTP-Merging, Master-Skalierung, Pan/Tilt Limitering, Fading-Kurven, Stop-All Release.
-- **View (Frontend):**
-  - Rein reaktive Visualisierung (`src/main/resources/public/`).
-  - Zeigt empfangene Werte unverzüglich im DOM / Canvas an.
-  - Berechnet **keine** DMX-Werte, **keine** Überblendungen und **keine** Kollisionen vor.
+- **Controller / Services:**
+  - `DmxService`, `FixtureService`, `SceneService`, `MatrixService`, `TimelineService`, `IOService`.
+  - Führen alle Berechnungen aus: HTP/LTP-Merging, Master-Skalierung, Pan/Tilt Limitierung, Fading-Kurven, Stop-All Release.
+  - Entkopplung über Hintergrund-Threads / Virtuelle Threads.
+- **View (JavaFX Benutzeroberfläche):**
+  - Rein reaktive Visualisierung (`de.exit.jdmx.ui`).
+  - Zeigt Werte unverzüglich auf Canvas, Slidern und Buttons an (`Platform.runLater()`).
+  - Berechnet **keine** DMX-Werte, **keine** Überblendungen und **keine** Adresskollisionen vor.
 
 ### 3.2 Dokumentations- & Schnittstellen-Standards
-- **JavaDoc (Backend):** 100% Abdeckung aller Klassen, Records, Interfaces, Enums, Felder und Methoden.
-- **JSDoc (Frontend):** Jedes Frontend-Modul und jede JavaScript-Funktion wird mit strukturiertem JSDoc dokumentiert.
-- **OpenAPI 3.0 Spezifikation:** Bereitstellung von [`docs/openapi.yaml`](./docs/openapi.yaml). Standardisiert alle Endpunkte, Payloads, Schemas und SSE-Events.
+- **JavaDoc:** 100% Abdeckung aller Klassen, Records, Interfaces, Enums, Felder und Methoden im gesamten Projekt (Backend & UI).
+- **Onboarding & Architektur:** Verbindliche Leitfäden `docs/ONBOARDING.md`, `docs/ARCHITECTURE.md` und `docs/REQUIREMENTS.md`.
 
 ---
 
@@ -280,34 +286,54 @@ flowchart TD
 
 - **Java-Version:** Java 21 LTS (Records, Virtual Threads, Pattern Matching).
 - **Build-Tool:** **Apache Maven** (`pom.xml`) – Strikte Richtlinie, kein Gradle.
-- **Web-Framework:** **Javalin 6.x** (embedded Jetty).
+- **GUI-Framework:** **OpenJFX 21 LTS** (`javafx-controls`, `javafx-graphics`, `javafx-base`, `javafx-media`).
+- **Plugins:** `javafx-maven-plugin` (0.0.8), `exec-maven-plugin` (3.5.0), `maven-shade-plugin` (Fat-JAR).
 - **JSON:** **Jackson 2.18+** (`jackson-databind`, `jackson-datatype-jsr310`).
 - **Persistenz:** **H2 Database** (`./data/jdmx_db.mv.db`) via JDBC und HikariCP. Sauberes ANSI-SQL für spätere Postgres/MySQL-Portierbarkeit.
 - **Serielle Schnittstelle (USB-DMX):** `com.fazecast:jSerialComm:2.11.0`.
 - **MIDI-Schnittstelle:** Java SE Standard `javax.sound.midi`.
 - **Logging:** SLF4J mit `slf4j-simple`.
-- **Frontend:** HTML5, CSS3 Studio Dark Theme (ohne Node/NPM-Zwang), Lucide-Icons, Canvas 2D, SSE.
+- **UI & Icons:** JavaFX CSS Dark Theme (KaSo 2.0 Design Tokens), Lucide-Icons (via JavaFX `SVGPath`), Canvas 2D.
 - **Testing:** **JUnit 5 (Jupiter)** + Mockito / AssertJ.
 
 ### Dateistruktur
 ```text
 jdmx/
-├── pom.xml                                   # Maven Build-Deskriptor
+├── pom.xml                                   # Maven Build-Deskriptor (JavaFX 21, HikariCP, H2, Shade)
 ├── .gitignore                                # Excludes für target/, data/, AGENTS.md
 ├── jdmx-spec.md                              # Master-Spezifikation (dieses Dokument)
+├── INSTRUCTION.md                            # Arbeitsanweisung für Agenten
 ├── README.md                                 # Projekt-Übersicht & Schnellstart
 ├── docs/                                     # Vollständige Dokumentations-Artefakte
 │   ├── ARCHITECTURE.md                       # Tiefenarchitektur & Timing-Details
 │   ├── ONBOARDING.md                         # Entwickler-Einarbeitungsleitfaden
-│   ├── REQUIREMENTS.md                       # Strukturierter Anforderungskatalog
-│   └── openapi.yaml                          # OpenAPI 3.0 REST- & SSE-Spezifikation
+│   └── REQUIREMENTS.md                       # Strukturierter Anforderungskatalog (Living Requirements)
 ├── data/                                     # H2-Datenbankdateien
 └── src/
     ├── main/
-    │   ├── java/de/exit/jdmx/                # 100% Geschäftslogik & Services
+    │   ├── java/de/exit/jdmx/
+    │   │   ├── Main.java                     # Launcher ohne Application-Extends (Fat-JAR)
+    │   │   ├── App.java                      # JavaFX Application Einstiegspunkt
+    │   │   ├── config/                       # AppConfig & DatabaseConfig
+    │   │   ├── core/                         # DmxUniverse, DmxEngine, Drivers (ArtNet, USB, Sim)
+    │   │   ├── model/                        # Records & Enums (Fixture, Scene, MatrixPad, etc.)
+    │   │   ├── repository/                   # JDBC Repositories für H2/ANSI-SQL
+    │   │   ├── service/                      # DmxService, FixtureService, MatrixService, etc.
+    │   │   └── ui/                           # JavaFX Views, Tabs, HeaderBar & LucideIcon
+    │   │       ├── MainView.java
+    │   │       ├── HeaderBar.java
+    │   │       ├── icons/LucideIcon.java
+    │   │       └── tabs/
+    │   │           ├── StageTab.java         # 2D Stage Rigging & Inspector
+    │   │           ├── FaderUniverseTab.java # 512 Canvas Heatmap & Fader Desk
+    │   │           ├── LiveMatrixTab.java    # 3x16 Pad Desk (KaSo 2.0 Dark Mode)
+    │   │           ├── TimelineTab.java      # FL Studio Playlist & Audio Engine
+    │   │           └── DiagnosticsTab.java   # Art-Net, USB, MIDI & Traffic Monitor
     │   └── resources/
     │       ├── application.properties
-    │       └── public/                       # Reine View & Assets (HTML/CSS/JS/Lucide)
+    │       └── de/exit/jdmx/styles/
+    │           ├── dark-theme.css            # KaSo 2.0 Dark Tokens
+    │           └── components.css            # Fader, Matrix-Pads, Badges
     └── test/java/de/exit/jdmx/               # TDD Unit- & Integrationstests
 ```
 
@@ -487,38 +513,40 @@ public record TimelineBlock(
 
 ---
 
-## 7. REST-API & SSE Schnittstellen
+## 7. Java Service- & Controller-Schnittstellen (Core API)
 
-| Methode | Pfad | Beschreibung | Payload / Rückgabe |
+Anstelle einer fehleranfälligen Netzwerk- und Web-Schicht greift die JavaFX-Benutzeroberfläche direkt über typsichere Java-Services auf das Backend zu. Zustandsänderungen werden thread-sicher über JavaFX Properties bzw. Event-Listener synchronisiert.
+
+### 7.1 Service-Methoden
+
+| Service | Methode | Beschreibung | Parameter / Rückgabe |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/universes/{id}` | Zustand des Universums | `UniverseState` (512 Werte, Master, Blackout) |
-| `POST`| `/api/universes/{id}/channel` | Setzt einzelnen Kanal | `{ "channel": 1, "value": 255 }` |
-| `POST`| `/api/universes/{id}/channels`| Setzt mehrere Kanäle | `{ "values": { "1": 255, "2": 128 } }` |
-| `POST`| `/api/universes/{id}/master`  | Setzt Grand Master | `{ "value": 255 }` |
-| `POST`| `/api/universes/{id}/blackout`| Schaltet Blackout ein/aus | `{ "blackout": true/false }` |
-| `POST`| `/api/engine/stop-all`        | **Globaler Release & Stop:** Stoppt alle Chaser, Fades, löst Overrides & Matrix | 200 OK |
-| `GET` | `/api/engine/traffic`         | DMX-Traffic-Statistiken (FPS, Bus-Last, Packets/s) | `DmxTrafficStats` |
-| `GET` | `/api/fixtures` | Liste aller Fixtures | `List<Fixture>` |
-| `POST`| `/api/fixtures` | Legt Fixture an (mit Kollisionsprüfung) | `Fixture` |
-| `DELETE`| `/api/fixtures/{id}` | Löscht Fixture | 204 No Content |
-| `GET` | `/api/scenes` | Liste aller Szenen | `List<Scene>` |
-| `POST`| `/api/scenes` | Speichert aktuelle Werte als Szene | `Scene` (inkl. `scope`) |
-| `POST`| `/api/scenes/{id}/recall` | Aktiviert Szene mit Überblendung | 200 OK |
-| `GET` | `/api/matrix/buttons` | Alle 75 Tasten der 3×25 Matrix | `List<MatrixButton>` |
-| `PUT` | `/api/matrix/buttons/{row}/{col}` | Konfiguriert einen Button | `MatrixButton` |
-| `POST`| `/api/matrix/buttons/{row}/{col}/trigger` | Triggert einen Button (Klick/Flash) | `{ "action": "press" / "release" }` |
-| `GET` | `/api/timeline/shows` | Liste gespeicherter Shows | `List<TimelineShow>` |
-| `POST`| `/api/timeline/shows` | Erstellt/aktualisiert eine Show | `TimelineShow` |
-| `POST`| `/api/timeline/shows/{id}/audio` | Lädt Audiodatei (MP3/WAV) hoch | Multipart Audio |
-| `GET` | `/api/timeline/shows/{id}/audio` | Audio-Stream für PA / Browser-Ausgabe | Audio Stream (`audio/mpeg`) |
-| `POST`| `/api/timeline/control` | Transport-Steuerung (Play/Pause/Stop/Seek) | `{ "action": "play", "positionMs": 1500 }` |
-| `GET` | `/api/io/config` | Aktuelle Treiber- und MIDI-Konfiguration | `IOConfig` |
-| `POST`| `/api/io/driver` | Ändert DMX-Treiber (Art-Net, USB, Sim) | `DriverConfig` |
-| `GET` | `/api/io/midi/devices` | Liste gefundener MIDI-Hardware-Ports | `List<String>` |
-| `GET` | `/api/io/midi/mappings` | Aktuelle MIDI-Zuweisungen | `List<MidiMapping>` |
-| `POST`| `/api/io/midi/mappings` | Speichert MIDI-Zuweisung | `MidiMapping` |
-| `POST`| `/api/io/midi/learn` | Startet MIDI-Learn-Modus | `{ "targetType": "MATRIX_BUTTON", ... }` |
-| `GET` | `/api/live/stream` | **SSE-Stream:** Sendet `universe-update`, `master-update`, `matrix-update`, `traffic-update`, `timeline-tick`, `midi-event` | EventStream (`text/event-stream`) |
+| `DmxService` | `setChannel(universe, channel, value)` | Setzt einzelnen Kanalwert (0–255) | `(int, int, int) -> void` |
+| `DmxService` | `setChannels(universe, Map<Integer, Integer>)` | Setzt mehrere Kanalwerte atomar | `(int, Map<Integer, Integer>) -> void` |
+| `DmxService` | `setGrandMaster(universe, value)` | Skaliert Dimmer-Ausgabe (0–255) | `(int, int) -> void` |
+| `DmxService` | `setBlackout(universe, active)` | Aktiviert/deaktiviert Blackout | `(int, boolean) -> void` |
+| `DmxService` | `stopAll()` | **Globaler Stop:** Stoppt alle Fades/Chaser, löst Matrix & Overrides | `() -> void` |
+| `DmxService` | `getUniverse(universe)` | Liefert das Datenmodell des Universums | `(int) -> DmxUniverse` |
+| `DmxService` | `getTrafficStats()` | Liefert Live-Bus-Diagnose (FPS, Pakete, Last) | `() -> DmxTrafficStats` |
+| `FixtureService` | `getAllFixtures()` | Liste aller konfigurierten Fixtures | `() -> List<Fixture>` |
+| `FixtureService` | `saveFixture(fixture)` | Speichert Fixture (mit Kollisionsprüfung) | `(Fixture) -> Fixture` |
+| `FixtureService` | `deleteFixture(id)` | Löscht Fixture | `(String) -> void` |
+| `SceneService` | `getAllScenes()` | Liste aller gespeicherten Szenen | `() -> List<Scene>` |
+| `SceneService` | `saveScene(scene)` | Speichert Szene mit Scope | `(Scene) -> Scene` |
+| `SceneService` | `recallScene(id, fadeTimeMs)` | Aktiviert Szene mit Überblendung | `(String, int) -> void` |
+| `MatrixService` | `getPads(page)` | Liefert alle 48 Pads der Seite (1–4) | `(int) -> List<MatrixPad>` |
+| `MatrixService` | `savePad(pad)` | Konfiguriert Pad (Modus, Farbe, Szene) | `(MatrixPad) -> MatrixPad` |
+| `MatrixService` | `triggerPadPress(page, index)` | Feuert Pad (tastend bei Flash, rastend bei Toggle) | `(int, int) -> void` |
+| `MatrixService` | `triggerPadRelease(page, index)` | Schaltet Pad ab (bei Flash-Modus) | `(int, int) -> void` |
+| `TimelineService`| `getShows()` | Liste aller Timeline-Shows | `() -> List<TimelineShow>` |
+| `TimelineService`| `play()` / `pause()` / `stop()` | Audio- und DMX-Transportsteuerung | `() -> void` |
+| `TimelineService`| `seek(positionMs)` | Springt zu Timecode synchron mit Audio | `(long) -> void` |
+| `IOService` | `setDriver(driver)` | Aktiviert Ausgabetreiber (Art-Net, USB, Sim) | `(DmxOutputDriver) -> void` |
+| `IOService` | `startMidiLearn(targetType, targetId)` | Startet MIDI-Learn für Controller | `(MidiTargetType, String) -> void` |
+
+### 7.2 Thread-Sicherheit & JavaFX UI-Events
+- Alle Backend-Services laufen thread-sicher (Concurrent Data Structures, Lock-freie Puffer).
+- DMX-Frame-Ticker und Audio-Events benachrichtigen die Benutzeroberfläche über entkoppelte Listener, die Änderungen über `Platform.runLater()` sicher an den JavaFX Application Thread übergeben.
 
 ---
 
@@ -528,10 +556,9 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 
 | ID | Kategorie | Titel / Beschreibung | Priorität | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **REQ-ARCH-01** | Architektur | **Strikte MVC-Trennung:** 100% aller Berechnungen und Logik im Backend; Frontend ist reine View & Event-Dispatcher. | MUST | Definiert |
-| **REQ-DOC-01** | Dokumentation | **Lückenloses JavaDoc & JSDoc:** Jede Klasse/Methode im Backend und jedes Modul/Funktion im Frontend muss dokumentiert sein. | MUST | Definiert |
-| **REQ-DOC-02** | Dokumentation | **OpenAPI 3.0 Spezifikation:** REST- und SSE-API müssen standardkonform in `docs/openapi.yaml` vorliegen. | MUST | Definiert |
-| **REQ-DOC-03** | Dokumentation | **Living Requirements:** Kontinuierliche Pflege und Fortschreibung von Anforderungen und Spezifikation bei Änderungen. | MUST | Definiert |
+| **REQ-ARCH-01** | Architektur | **Strikte MVC-Trennung:** 100% aller Berechnungen und Logik im Core/Service-Layer; JavaFX UI ist reine View & Event-Dispatcher. | MUST | Definiert |
+| **REQ-DOC-01** | Dokumentation | **Lückenloses JavaDoc:** Jede Klasse/Methode im Core und in der JavaFX UI muss präzise mit JavaDoc dokumentiert sein. | MUST | Definiert |
+| **REQ-DOC-02** | Dokumentation | **Living Requirements:** Kontinuierliche Pflege und Fortschreibung von Anforderungen und Spezifikation bei Änderungen. | MUST | Definiert |
 | **REQ-TEST-01** | Qualität | **Striktes TDD mit JUnit 5:** Tests werden zuerst geschrieben; `mvn test` muss vor jedem Compile zu 100% grün sein. | MUST | Definiert |
 | **REQ-CORE-01** | DMX Core | 512-Kanal Universe Frame-Buffer mit Thread-Sicherheit. | MUST | Definiert |
 | **REQ-CORE-02** | DMX Core | **HTP/LTP Merging:** HTP für Dimmer/Shutter, LTP für Pan/Tilt/Farben. | MUST | Definiert |
@@ -542,32 +569,41 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 | **REQ-IO-01** | I/O Treiber | **Art-Net UDP Driver:** Port 6454, OpCode 0x5000, Broadcast/Unicast. | MUST | Definiert |
 | **REQ-IO-02** | I/O Treiber | **DMX2USB Driver:** Serielle FTDI/Enttec-Kommunikation via `jSerialComm`. | MUST | Definiert |
 | **REQ-IO-03** | I/O Treiber | **Native Java MIDI & Learn:** Erkennung von Controllern, Note/CC Zuweisung, MIDI-Feedback. | MUST | Definiert |
-| **REQ-UI-01** | Frontend | **5 Haupt-Tabs:** 2D Stage & Fixtures, Fader & Universum, 3x25 Matrix, Timeline, Input/Output. | MUST | Definiert |
-| **REQ-UI-02** | Frontend | **Permanenter Global-Header:** Master, Blackout, STOP ALL, DMX-Traffic Balken. | MUST | Definiert |
-| **REQ-UI-03** | Frontend | **Design-Leitlinie:** Studio Dark Theme, 100% Lucide-Icons, absolutes Emoji-Verbot. | MUST | Definiert |
-| **REQ-TIME-01** | Timeline | **Synchrone Audio-Ausgabe:** Direktes Abspielen über Computer-Soundkarte / Hallen-PA synchron zu DMX-Lichtspuren. | MUST | Definiert |
+| **REQ-UI-01** | UI/UX | **5 Haupt-Tabs in JavaFX:** 2D Stage & Fixtures, Fader & Universum, 3x16 Matrix, Timeline, Input/Output. | MUST | Definiert |
+| **REQ-UI-02** | UI/UX | **Permanenter Global-Header:** Master, Blackout, STOP ALL, DMX-Traffic Balken. | MUST | Definiert |
+| **REQ-UI-03** | UI/UX | **KaSo 2.0 Dark Mode Ästhetik:** Flache Volltonfarben, gestrichelte leere Kacheln, Pill-Badges, 100% Lucide-Icons (JavaFX SVGPath), absolutes Emoji-Verbot. | MUST | Definiert |
+| **REQ-TIME-01** | Timeline | **Synchrone Audio-Ausgabe:** Direktes Abspielen über Computer-Soundkarte / Hallen-PA synchron zu DMX-Lichtspuren via JavaFX Media / Java Sound. | MUST | Definiert |
 | **REQ-TIME-02** | Timeline | **Wellenform & Scrubbing:** Visuelle Audio-Waveform mit ziehbarem Playhead. | MUST | Definiert |
 | **REQ-DB-01** | Persistenz | H2 Database mit HikariCP und ANSI-SQL Repositories (Postgres-ready). | MUST | Definiert |
+
+---
 
 ### 8.1 Anforderungs-Changelog (Historie von Änderungen)
 - **2026-09-17:** Initiale Spezifikation erstellt (Core, Fixtures, H2, REST/SSE, Web-Dashboard).
 - **2026-09-17:** Erweiterung um 4-Tab-UI, U-Traversen 2D-Stage, 3x25 Live-Matrix, MIDI, DMX2USB und Partial Cues.
 - **2026-09-17:** Hinzufügen des globalen STOP ALL Release-Buttons und der DMX-Traffic-Bar (wie in DMXControl).
 - **2026-09-18:** Erweiterung um Tab 4 (Timeline & synchrone Audio-Wiedergabe über Soundkarte/PA).
-- **2026-09-18:** Verankerung von **Strikter MVC-Architektur (100% Backend-Logik)**, **JSDoc-Frontend-Dokumentation**, **OpenAPI 3.0 Spezifikation (`docs/openapi.yaml`)** und **Living Requirements Management**.
-- **2026-09-18:** Tausch der Tab-Reihenfolge: Tab 1 ist nun **2D Stage & Fixtures** (primäre visuelle Arbeitsfläche nach QLC+-Vorbild), Tab 2 ist **Fader & Universum**.
+- **2026-09-18:** Verfeinerung Tab 3: Exakt 3×16 Pads (48 Pads pro Seite, Seiten 1–4), scrollfrei, Flash-Tool mit Stern-Symbol oben links, Momentary/Toggle Verhalten.
+- **2026-09-18:** Übernahme der ultra-cleanen POS-Designsprache von **KaSo 2.0** im Dark Mode (gestrichelte leere Kacheln, flache Volltonfarben, Pill-Badges).
+- **2026-09-18 (Architektur-Pivot JavaFX):**
+  - Vollständiges Verwerfen des Web-basierten Frontends, Javalin 6, REST-API, SSE und OpenAPI 3.0.
+  - Ersatz durch eine **integrierte, native JavaFX 21 Desktop-Applikation** (`OpenJFX 21 LTS`).
+  - Direkte Java-Service-Aufrufe statt HTTP-Overhead; reaktive UI-Aktualisierung über `Platform.runLater()`.
+  - Vektorbasierte Lucide-Icons nativ gerendert via JavaFX `SVGPath`.
 
 ---
 
 ## 9. Phasenweise Implementierungs-Roadmap
 
-### Phase 1: Maven Setup, Projektgerüst & Living Requirements
-- [ ] Saubere `pom.xml` mit Java 21, Javalin 6, Jackson, HikariCP, H2, SLF4J, `jSerialComm`, JUnit 5, AssertJ, Mockito.
-- [ ] Maven-Plugins: Compiler (Java 21), Exec-Plugin, Shade-Plugin (Fat-JAR mit `de.exit.jdmx.Main`), Surefire-Plugin.
-- [ ] Einstiegsklasse `Main.java` und Konfiguration `AppConfig.java` mit lückenlosem JavaDoc.
-- [ ] Anlegen der Dokumenten-Struktur (`docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md`, `docs/ONBOARDING.md`, `docs/openapi.yaml`).
+### Phase 1: Maven Setup, JavaFX Projektgerüst & Living Requirements
+- [ ] Saubere `pom.xml` mit Java 21, OpenJFX 21 LTS (`controls`, `graphics`, `media`), Jackson, HikariCP, H2, SLF4J, `jSerialComm`, JUnit 5, AssertJ, Mockito.
+- [ ] Maven-Plugins: Compiler (Java 21), `javafx-maven-plugin`, `exec-maven-plugin`, `maven-shade-plugin` (Fat-JAR mit `de.exit.jdmx.Main`), `surefire-plugin`.
+- [ ] Einstiegsklassen `Main.java` (Fat-JAR Launcher) und `App.java` (JavaFX Application).
+- [ ] Basis KaSo 2.0 Dark-Theme Stylesheet (`dark-theme.css`, `components.css`).
+- [ ] `LucideIcon.java`: Vektorbasiertes Lucide SVG-Path System für JavaFX.
+- [ ] Anlegen der Dokumenten-Struktur (`docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md`, `docs/ONBOARDING.md`).
 - [ ] **TDD Schritt:** `AppConfigTest.java` schreibt Konfigurationstests zuerst.
-- [ ] **Verifikation:** `mvn test` läuft grün; `mvn clean compile` und `mvn exec:java` startet Server auf Port 7070.
+- [ ] **Verifikation:** `mvn test` läuft grün; `mvn clean compile` und `mvn javafx:run` öffnet das leere Dark-Theme Fenster.
 
 ### Phase 2: DMX Domain Core mit HTP/LTP, Master, 16-Bit & Stop-All (TDD-First)
 - [ ] **TDD Schritt 1:** `DmxUniverseTest.java` & `DmxEngineTest.java` schreiben:
@@ -582,10 +618,10 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - [ ] **Verifikation:** `mvn test` läuft zu 100% grün durch.
 
 ### Phase 3: Relationale Persistenz (H2 / ANSI-SQL) (TDD-First)
-- [ ] **TDD Schritt 1:** Integrationstests für alle Repositories gegen In-Memory H2 DB schreiben (`JdbcFixtureRepositoryTest`, `JdbcSceneRepositoryTest`, etc.).
+- [ ] **TDD Schritt 1:** Integrationstests für alle Repositories gegen In-Memory H2 DB schreiben (`JdbcFixtureRepositoryTest`, `JdbcSceneRepositoryTest`, `JdbcMatrixPadRepositoryTest`, etc.).
 - [ ] **TDD Schritt 2:** Implementierung:
   - `DatabaseConfig.java` (HikariCP) und `DatabaseInitializer.java` (idempotente DDL-Migration).
-  - Repositories: `FixtureRepository`, `SceneRepository`, `MatrixButtonRepository`, `TimelineRepository`, `MidiMappingRepository`.
+  - Repositories: `FixtureRepository`, `SceneRepository`, `MatrixPadRepository`, `TimelineRepository`, `MidiMappingRepository`.
 - [ ] **Dokumentation:** 100% JavaDoc für Modelle, Repositories und SQL-Schema.
 - [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
 
@@ -605,35 +641,31 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - [ ] **Dokumentation:** 100% JavaDoc.
 - [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
 
-### Phase 6: REST API, OpenAPI 3.0 & SSE Realtime Engine (TDD-First)
-- [ ] **TDD Schritt 1:** API Controller Tests schreiben (`DmxApiControllerTest`, `FixtureApiControllerTest`, `TimelineApiControllerTest`, etc.).
-- [ ] **TDD Schritt 2:** Implementierung aller Javalin Controller und des `DmxSseHandler.java`.
-- [ ] **Dokumentation:**
-  - 100% JavaDoc auf allen Controllern.
-  - Vollständige OpenAPI 3.0 Spezifikation in `docs/openapi.yaml` erstellen.
-- [ ] **Verifikation:** `mvn test` läuft grün; HTTP-Endpunkte und SSE-Stream liefern korrekte JSON-Payloads.
+### Phase 6: Service-Layer & Application Controller (TDD-First)
+- [ ] **TDD Schritt 1:** Unit-Tests für `DmxService`, `FixtureService`, `MatrixService`, `SceneService`, `TimelineService`.
+- [ ] **TDD Schritt 2:** Implementierung der Services zur Anbindung der JavaFX UI an den Core.
+- [ ] **Dokumentation:** 100% JavaDoc auf allen Service-Klassen.
+- [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
 
-### Phase 7: Web-Frontend (Die 5 Tabs mit Lucide-Icons & reine View)
-- [ ] **Architektur:** Reine View & Event-Dispatcher – keine Geschäftslogik im Browser!
-- [ ] **JSDoc-Pflicht:** Jedes JavaScript-Modul wird lückenlos mit JSDoc dokumentiert.
-- [ ] **Basis-Layout & Theme:** Studio Dark Theme, permanenter Global-Header (Master, Blackout, STOP ALL, DMX-Traffic Balken), 100% Lucide-Icons (keine Emojis!).
-- [ ] **Tab 1 (2D Stage & Fixtures):** U-Traverse, Wand-Projektion, Beams, Quick-Inspector mit 2D-XY-Pad und Limitern.
-- [ ] **Tab 2 (Fader & Universum):** 512-Kanal Fader Desk mit Canvas Universe Grid.
-- [ ] **Tab 3 (Live Matrix):** 3×16 Pad-Matrix (48 unbeschriftete Pads pro Seite), vollständig ohne Scrollbalken über mehrere Seiten (Seite 1–4), mit linker Edit-Sidebar (Flash-Tool mit Stern-Symbol oben links, Toggle-Tool, Farbwähler und Momentary-Verhalten).
-- [ ] **Tab 4 (Timeline):** Show-Designer mit Waveform, Audio-Wiedergabe über PA, Playhead, Scrubbing und DMX-Spuren.
-- [ ] **Tab 5 (Input / Output):** Art-Net, USB Port-Auswahl, MIDI-Learn Dialog und DMX-Traffic Monitor.
-- [ ] **Verifikation:** End-to-End-Test: Fader, 2D Stage, Matrix, Timeline und I/O reagieren synchron und latenzfrei.
+### Phase 7: JavaFX Desktop UI (Die 5 Tabs im KaSo 2.0 Dark Mode mit 100% Lucide-Icons)
+- [ ] **MainView & HeaderBar:** Grand Master Fader, roter Blackout-Knopf, KaSo Pill-Badges (Universe, FPS), `STOP ALL` Button in Storno-Rot, Lucide-Icons.
+- [ ] **Tab 1 (2D Stage & Fixtures):** CAD-Rigging-Blaupause der U-Traverse und Projektionswand, Vektor-Beams, Quick-Inspector mit Pan/Tilt XY-Pad und Limitern.
+- [ ] **Tab 2 (Fader & Universum):** 512-Kanal Universe-Heatmap auf JavaFX Canvas mit 60 FPS, Fader-Züge mit Flash-Buttons.
+- [ ] **Tab 3 (Live Matrix):** 3×16 Pad-Matrix (48 unbeschriftete Pads pro Seite), Seiten 1–4, KaSo gestrichelte leere Kacheln / Volltonfarben, Flash-Stern-Icon, linke Edit-Sidebar.
+- [ ] **Tab 4 (Timeline):** Show-Designer mit Audio-Waveform, synchroner Wiedergabe über PC-Soundkarte / PA, DMX-Spuren.
+- [ ] **Tab 5 (Input / Output):** Art-Net Setup, USB Port-Auswahl, MIDI-Learn Dialog und DMX-Traffic Monitor.
+- [ ] **Verifikation:** Manueller Start mit `mvn javafx:run`: Alle 5 Tabs rendern flüssig, Interaktionen steuern DMX-Werte ohne Verzögerung.
 
 ### Phase 8: Polish, Living Requirements Abgleich & Standalone Fat-JAR
 - [ ] Erstellung & Finalisierung der Pflicht-Dokumente:
   - `docs/ONBOARDING.md`: Leitfaden für neue Entwickler.
-  - `docs/ARCHITECTURE.md`: Tiefendokumentation (HTP/LTP, Threading, Timing, Audio-DMX-Sync).
+  - `docs/ARCHITECTURE.md`: Technische Tiefendokumentation (DMX512-Timing, Threading-Modell, Art-Net UDP, JavaFX UI-Threading, H2/JDBC).
   - `docs/REQUIREMENTS.md`: Finaler Abgleich aller Anforderungen (Status: Erfüllt).
-  - `docs/openapi.yaml`: Validierung gegen Swagger-Tools.
-  - `README.md`: Vollständige Produktanleitung.
-- [ ] JavaDoc & JSDoc Vollständigkeitsprüfung.
+  - `README.md`: Vollständige Produktanleitung mit Start- & Build-Befehlen.
+- [ ] JavaDoc Vollständigkeitsprüfung.
 - [ ] Maven Fat-JAR Build (`mvn clean package`).
 - [ ] **Verifikation:** Standalone-Start via `java -jar target/jdmx-1.0.0-SNAPSHOT.jar`.
+
 
 ---
 
