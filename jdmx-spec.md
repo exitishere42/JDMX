@@ -2,7 +2,22 @@
 
 > **Verbindliche Master-Spezifikation für die Software-Entwicklung**  
 > Basierend auf den Anforderungen für den Vereins- und Bühnenbetrieb mit statischem Licht (Dimmer/PARs) und bewegtem Licht (Moving Heads, Scanner).  
-> Konzeptionell angelehnt an die bewährte Trennung von QLC+ (Fader Desk, 2D Stage, Virtual Console & I/O Matrix).
+> Konzeptionell angelehnt an die bewährte Trennung von QLC+ (Fader Desk, 2D Stage, Virtual Console, Timeline & I/O Matrix).
+>
+> ### 🛑 Eiserne Leitplanken für das Projekt:
+> 1. **STRIKTE MVC-ARCHITEKTUR (100% BACKEND-LOGIK):**
+>    - **Sämtliche Logik gehört ins Backend:** DMX-Berechnungen, HTP/LTP-Merging, Fades, Überblendungen, Chaser/FX-Engines, Audio-Sync, Grand Master/Blackout/Stop-All, Adresskollisionen und Treiber-Kommunikation laufen **ausschließlich im Java-Backend**.
+>    - **Frontend ist reine View & Event-Dispatcher:** Das Web-Frontend stellt empfangene SSE-Zustände rein visuell dar und schickt Benutzerinteraktionen sofort per REST-Call an das Backend. **Keine Geschäftslogik, DMX-Berechnungen oder Timer im Browser.**
+> 2. **LÜCKENLOSE DOKUMENTATION (BACKEND & FRONTEND):**
+>    - **Backend:** 100% **JavaDoc** auf allen Klassen, Interfaces, Records, Enums, Feldern und Methoden (`@param`, `@return`, `@throws`, Threading-Garantien, Architektur-Begründung).
+>    - **Frontend:** 100% **JSDoc** auf allen JavaScript-Modulen, Funktionen, UI-Klassen und Event-Handlern.
+> 3. **OPENAPI 3.0 SPEZIFIKATION:**
+>    - Sämtliche REST-Endpunkte, SSE-Streams, Daten-Schemas und Fehlercodes werden formal nach OpenAPI 3.0 Standard in [`docs/openapi.yaml`](./docs/openapi.yaml) gepflegt (Swagger-kompatibel).
+> 4. **LEBENDIGES ANFORDERUNGSMANAGEMENT (LIVING REQUIREMENTS):**
+>    - Anforderungen werden von Beginn an strukturiert dokumentiert (siehe Abschnitt 8).
+>    - Neu aufkommende oder sich ändernde Anforderungen während der Entwicklung werden **sofort schriftlich festgehalten**, der bestehende Teil wird angepasst und im Anforderungs-Changelog dokumentiert.
+> 5. **STRIKTES TEST-DRIVEN DEVELOPMENT (TDD):**
+>    - Tests ZUERST mit JUnit 5 vor der Implementierung. Vor jedem Compile/Build zwingend `mvn test` (100% grün).
 
 ---
 
@@ -118,18 +133,15 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
      - Plattformunabhängig implementiert über `jSerialComm`.
      - Port-Auswahl (z. B. `COM3` unter Windows, `/dev/ttyUSB0` unter Linux).
   3. **Virtual Simulator Driver:**
-     - Headless- und Testbetrieb ohne physische Hardware (Ausgabe via Logging / Web-Visualisierung).
-- **Hardware-Inputs (MIDI):**
-  - **MIDI Input Subsystem:**
-    - Basiert auf der nativen Java Sound API (`javax.sound.midi`) – 100% plattformunabhängig, keine C-Libraries erforderlich.
-    - Automatisches Scannen angeschlossener USB-MIDI-Controller (z. B. Akai APC Mini, Novation Launchpad, Behringer BCF2000, Korg nanoKONTROL).
-  - **MIDI-Learn & Mapping-Matrix:**
-    - Live-MIDI-Learn: Button oder Fader in der Software anklicken, Regler/Taste auf dem MIDI-Pult betätigen -> automatische Verknüpfung.
-    - Zuweisung von MIDI Note On/Off und Control Change (CC) auf:
-      - Grand Master Fader
-      - Blackout-Toggle
-      - Einzel- oder Submaster-Fader im Fader Desk
-      - Beliebige Slots in der 3×25 Live Matrix
+     - Für Entwicklung und Offline-Tests ohne Hardware.
+- **MIDI Input & Mapping:**
+  - Erkennt angeschlossene USB-MIDI-Controller (z. B. Akai APC Mini, Korg nanoKONTROL, Behringer X-Touch).
+  - **MIDI-Learn Funktion:** Klick auf einen Regler oder Matrix-Button im UI, MIDI-Taste oder Fader am Controller bewegen ➔ Automatische Zuordnung gespeichert.
+  - Unterstützte Mappings:
+    - Grand Master Fader
+    - Blackout-Toggle
+    - Einzel- oder Submaster-Fader im Fader Desk
+    - Beliebige Slots in der 3×25 Live Matrix
   - **MIDI Feedback (Option):**
     - Sendet Note-On/Off-Befehle zurück an Controller mit LED-Tasten (z. B. Launchpad / APC Mini), um aktive Cues leuchten zu lassen.
 - **DMX Traffic Monitor (Diagnose wie in DMXControl):**
@@ -141,9 +153,63 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
 
 ---
 
-## 3. DMX Core Engine: Technische Leitregeln für Moving Lights
+## 3. Architektur & MVC-Schichtenmodell
 
-### 3.1 HTP vs. LTP Merging
+```mermaid
+flowchart TD
+    subgraph Browser ["Web-Frontend (View / UI-Controller)"]
+        UI["5 Tabs & Global Header (HTML5 / CSS / Lucide)"]
+        EV["Event-Dispatcher (REST Fetch)"]
+        SSE_C["SSE Client (EventSource)"]
+    end
+
+    subgraph Backend ["Java 21 Backend (100% Geschäfts- & DMX-Logik)"]
+        API["Javalin REST Controller"]
+        SSE_H["DmxSseHandler (Echtzeit-Stream)"]
+        SVC["Services (DmxService, SceneService, TimelineService, MidiService)"]
+        CORE["DmxUniverse & Engine (HTP/LTP, 16-Bit, StopAll)"]
+        REPO["JDBC Repositories (H2 / ANSI-SQL)"]
+        DRV["DMX Output Drivers (Art-Net / DMX2USB / Sim)"]
+        MIDI["MIDI Subsystem (javax.sound.midi)"]
+        AUDIO["Audio Output Engine (Soundkarte / PA)"]
+    end
+
+    UI -->|Benutzeraktion| EV
+    EV -->|HTTP POST/PUT/DELETE| API
+    API --> SVC
+    SVC --> CORE
+    SVC --> REPO
+    CORE -->|DMX Frames| DRV
+    CORE -->|Delta / Stats| SSE_H
+    SSE_H -->|SSE Events| SSE_C
+    SSE_C -->|State Updates| UI
+    MIDI -->|Note / CC| SVC
+    SVC -->|Audio Sync| AUDIO
+```
+
+### 3.1 Das MVC-Prinzip im Detail
+- **Model (Backend):**
+  - Repräsentiert die gesamte Datenhaltung und den Systemzustand.
+  - Klassen: `DmxUniverse`, `Fixture`, `Scene`, `MatrixButton`, `TimelineShow`, `MidiMapping`, `UniverseState`.
+  - Vollständige Validierungs- und Integritätsregeln liegen hier (z. B. Adresskollisionen, Grenzwerte).
+- **Controller (Backend):**
+  - Javalin REST Controller (`DmxApiController`, `FixtureApiController`, `SceneApiController`, etc.) und Services.
+  - Führen Berechnungen aus: HTP/LTP-Merging, Master-Skalierung, Pan/Tilt Limitering, Fading-Kurven, Stop-All Release.
+- **View (Frontend):**
+  - Rein reaktive Visualisierung (`src/main/resources/public/`).
+  - Zeigt empfangene Werte unverzüglich im DOM / Canvas an.
+  - Berechnet **keine** DMX-Werte, **keine** Überblendungen und **keine** Kollisionen vor.
+
+### 3.2 Dokumentations- & Schnittstellen-Standards
+- **JavaDoc (Backend):** 100% Abdeckung aller Klassen, Records, Interfaces, Enums, Felder und Methoden.
+- **JSDoc (Frontend):** Jedes Frontend-Modul und jede JavaScript-Funktion wird mit strukturiertem JSDoc dokumentiert.
+- **OpenAPI 3.0 Spezifikation:** Bereitstellung von [`docs/openapi.yaml`](./docs/openapi.yaml). Standardisiert alle Endpunkte, Payloads, Schemas und SSE-Events.
+
+---
+
+## 4. DMX Core Engine: Technische Leitregeln
+
+### 4.1 HTP vs. LTP Merging
 - **HTP (Highest Takes Precedence):**
   - Gilt ausnahmslos für **Dimmer- und Intensitätskanäle**.
   - Wenn mehrere Szenen oder Flash-Buttons denselben Dimmer ansprechen, gewinnt der höchste Wert.
@@ -151,35 +217,34 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
   - Gilt für **Pan, Tilt, Gobo, Farbe, Prisma und Shutter**.
   - Der zuletzt gesendete Befehl überschreibt den Wert – unabhängig davon, ob die Zahl größer oder kleiner ist.
 
-### 3.2 Grand Master & Blackout-Regel
+### 4.2 Grand Master & Blackout-Regel
 - **Grand Master:** Skaliert **ausschließlich** Kanäle vom Typ `DIMMER` und `SHUTTER` (`effektiv = (wert * master) / 255`).
 - **Blackout:** Setzt **ausschließlich** `DIMMER`- und `SHUTTER`-Kanäle auf 0.
 - **Verbotene Aktion:** Pan-, Tilt- oder Farbkanäle dürfen durch Grand Master oder Blackout **niemals verändert oder genullt werden**! Moving Heads müssen beim Blackout exakt auf ihrer aktuellen Position stehen bleiben.
 
-### 3.3 16-Bit Pan/Tilt Behandlung
+### 4.3 16-Bit Pan/Tilt Behandlung
 - Moving Heads nutzen 2 DMX-Kanäle pro Achse (Coarse = High Byte 0–255, Fine = Low Byte 0–255), entsprechend 65.536 Stufen.
 - Die Engine berechnet Positionen intern als 16-Bit Integer (`0 .. 65535`) und teilt sie beim Frame-Export auf:
   - `Coarse = (value >> 8) & 0xFF`
   - `Fine   = value & 0xFF`
 
-### 3.4 Globaler Release & Stop-All Engine Mechanismus
+### 4.4 Globaler Release & Stop-All Engine Mechanismus
 - Die DMX-Engine besitzt eine zentrale, thread-sichere Methode `stopAll()`:
   - **Sofortiger Abbruch:** Alle laufenden Chaser-Threads, Fading-Tasks und FX-Generatoren werden unverzüglich beendet (`cancel(true)`).
   - **Matrix-Deaktivierung:** Alle Buttons in der 3×25 Live-Matrix werden auf `active = false` gesetzt.
-  - **Release aller Overrides:** Manuelle Fader-Haltungen (Manual Overrides) im Fader Desk und in der 2D-Ansicht werden freigegeben.
-  - **Reset des Ausgabepuffers:** Dimmer-Kanäle werden auf 0 gesetzt. Pan/Tilt-Werte fahren sanft oder verharren auf definierter Park-/Home-Position.
-  - **Verhindert Zustandskonflikte:** Löst das bekannte QLC+-Problem, bei dem man getrennte Stop-Buttons für Simple Desk, Chaser und Virtual Console suchen musste.
+  - **Release aller Overrides:** Manuelle Fader-Haltungen im Fader Desk und in der 2D-Ansicht werden freigegeben.
+  - **Reset des Ausgabepuffers:** Dimmer-Kanäle werden auf 0 gesetzt. Pan/Tilt-Werte verharren auf definierter Home-Position.
 
-### 3.5 DMX-Traffic Messung & Frame-Timing
+### 4.5 DMX-Traffic Messung & Frame-Timing
 - Die `DmxEngine` erfasst kontinuierlich Diagnose-Metriken im Sendeloop:
   - **FPS-Counter:** Exakte Messung der tatsächlich erreichten Bildwiederholrate (Frames pro Sekunde).
-  - **Frame-Time Tracker:** Zeitspanne in Nanosekunden/Millisekunden pro DMX-Zyklus (Renderzeit + I/O-Übertragungszeit).
-  - **Delta-Analyzer:** Vergleicht Frame $N$ mit Frame $N-1$ und zählt veränderte DMX-Kanäle (`changedChannelsCount`).
+  - **Frame-Time Tracker:** Zeitspanne in Nanosekunden/Millisekunden pro DMX-Zyklus.
+  - **Delta-Analyzer:** Vergleicht Frame $N$ mit Frame $N-1$ und zählt veränderte DMX-Kanäle.
   - **Bus-Auslastungsfaktor:** Berechnet das Verhältnis von aktiven Daten zu Leerlaufzeiten für das Balkendiagramm.
 
 ---
 
-## 4. Tech-Stack & Framework-Leitplanken
+## 5. Tech-Stack & Dateistruktur
 
 - **Java-Version:** Java 21 LTS (Records, Virtual Threads, Pattern Matching).
 - **Build-Tool:** **Apache Maven** (`pom.xml`) – Strikte Richtlinie, kein Gradle.
@@ -189,19 +254,36 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
 - **Serielle Schnittstelle (USB-DMX):** `com.fazecast:jSerialComm:2.11.0`.
 - **MIDI-Schnittstelle:** Java SE Standard `javax.sound.midi`.
 - **Logging:** SLF4J mit `slf4j-simple`.
-- **Frontend:**
-  - Modernes HTML5, CSS3 Studio Dark Theme (ohne Node/NPM-Zwang).
-  - **Ausschließliche Verwendung von Lucide-Icons.**
-  - **Absolutes Emoji-Verbot** in der gesamten Benutzeroberfläche.
-  - HTML5 Canvas für 2D-Stage und 512-Kanal-Grid.
-  - Server-Sent Events (SSE) für bidirektionale Echtzeit-Synchronisation.
+- **Frontend:** HTML5, CSS3 Studio Dark Theme (ohne Node/NPM-Zwang), Lucide-Icons, Canvas 2D, SSE.
 - **Testing:** **JUnit 5 (Jupiter)** + Mockito / AssertJ.
+
+### Dateistruktur
+```text
+jdmx/
+├── pom.xml                                   # Maven Build-Deskriptor
+├── .gitignore                                # Excludes für target/, data/, AGENTS.md
+├── jdmx-spec.md                              # Master-Spezifikation (dieses Dokument)
+├── README.md                                 # Projekt-Übersicht & Schnellstart
+├── docs/                                     # Vollständige Dokumentations-Artefakte
+│   ├── ARCHITECTURE.md                       # Tiefenarchitektur & Timing-Details
+│   ├── ONBOARDING.md                         # Entwickler-Einarbeitungsleitfaden
+│   ├── REQUIREMENTS.md                       # Strukturierter Anforderungskatalog
+│   └── openapi.yaml                          # OpenAPI 3.0 REST- & SSE-Spezifikation
+├── data/                                     # H2-Datenbankdateien
+└── src/
+    ├── main/
+    │   ├── java/de/exit/jdmx/                # 100% Geschäftslogik & Services
+    │   └── resources/
+    │       ├── application.properties
+    │       └── public/                       # Reine View & Assets (HTML/CSS/JS/Lucide)
+    └── test/java/de/exit/jdmx/               # TDD Unit- & Integrationstests
+```
 
 ---
 
-## 5. Datenmodell & Schemas
+## 6. Datenmodell & Schemas
 
-### 5.1 Datamodels (Records)
+### 6.1 Datamodels (Records)
 
 #### `ChannelType.java`
 ```java
@@ -210,17 +292,9 @@ package de.exit.jdmx.model;
 public enum ChannelType {
     DIMMER, PAN, PAN_FINE, TILT, TILT_FINE, RED, GREEN, BLUE, WHITE, SHUTTER, GOBO, SPEED, OTHER;
 
-    public boolean isIntensity() {
-        return this == DIMMER || this == SHUTTER;
-    }
-
-    public boolean isPosition() {
-        return this == PAN || this == PAN_FINE || this == TILT || this == TILT_FINE;
-    }
-
-    public boolean isColor() {
-        return this == RED || this == GREEN || this == BLUE || this == WHITE;
-    }
+    public boolean isIntensity() { return this == DIMMER || this == SHUTTER; }
+    public boolean isPosition() { return this == PAN || this == PAN_FINE || this == TILT || this == TILT_FINE; }
+    public boolean isColor() { return this == RED || this == GREEN || this == BLUE || this == WHITE; }
 }
 ```
 
@@ -320,7 +394,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record MidiMapping(
     String id,
-    String deviceName,     // Name des MIDI-Controllers
+    String deviceName,
     int midiChannel,       // 1 - 16
     MidiMessageType messageType, // NOTE_ON, CONTROL_CHANGE
     int controlNumber,     // Note-Nummer oder CC-Nummer (0-127)
@@ -334,13 +408,13 @@ public record MidiMapping(
 package de.exit.jdmx.model;
 
 public record DmxTrafficStats(
-    int fps,                 // Aktuelle Ausgaberate in Hz / FPS
-    int targetFps,           // Soll-Frequenz (Standard: 40 Hz)
-    long packetsSentTotal,   // Gesamtzahl gesendeter Frames
-    int activeChannelsCount, // Kanäle mit DMX-Wert > 0
-    int changedChannelsCount,// Im aktuellen Zyklus veränderte Kanäle
-    double busLoadPercent,   // DMX-Busauslastung (0.0 - 100.0%)
-    double frameTimeMs       // Berechnungs- und Übertragungszeit in ms
+    int fps,
+    int targetFps,
+    long packetsSentTotal,
+    int activeChannelsCount,
+    int changedChannelsCount,
+    double busLoadPercent,
+    double frameTimeMs
 ) {}
 ```
 
@@ -381,7 +455,7 @@ public record TimelineBlock(
 
 ---
 
-## 6. REST-API & SSE Schnittstellen
+## 7. REST-API & SSE Schnittstellen
 
 | Methode | Pfad | Beschreibung | Payload / Rückgabe |
 | :--- | :--- | :--- | :--- |
@@ -416,72 +490,114 @@ public record TimelineBlock(
 
 ---
 
-## 7. Phasenweise Implementierungs-Roadmap
+## 8. Initialer Anforderungskatalog (Living Requirements)
 
-### Phase 1: Maven Setup & Projektgerüst
-- [ ] Saubere `pom.xml` mit Java 21, Javalin 6, Jackson, HikariCP, H2, SLF4J, `jSerialComm`, JUnit 5.
-- [ ] Maven-Plugins: Compiler (Java 21), Exec-Plugin, Shade-Plugin (Fat-JAR mit `de.exit.jdmx.Main`).
-- [ ] Einstiegsklasse `Main.java` und Konfiguration `AppConfig.java`.
-- [ ] **Verifikation:** `mvn clean compile` und `mvn exec:java` startet Server auf Port 7070.
+Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen werden hier ergänzt, bestehende bei Modifikationen fortgeschrieben.
 
-### Phase 2: DMX Domain Core mit HTP/LTP, Master & 16-Bit
-- [ ] `DmxUniverse.java`: 512-Kanal-Puffer, Trennung von HTP (Dimmer) und LTP (Pan/Tilt/Farbe).
-- [ ] Grand Master- und Blackout-Logik (beeinflusst ausschließlich Dimmer/Shutter, niemals Pan/Tilt).
-- [ ] 16-Bit Pan/Tilt Hilfsfunktionen (Coarse/Fine Splitting).
-- [ ] Treiber-Interface `DmxOutputDriver` und `VirtualSimulationDriver`.
-- [ ] DMX-Ticker / Loop `DmxEngine.java` (30–44 Hz).
-- [ ] **Verifikation:** JUnit-5 Tests (`DmxUniverseTest`) decken HTP, LTP, 16-Bit und Master/Blackout-Isolation zu 100% ab.
+| ID | Kategorie | Titel / Beschreibung | Priorität | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **REQ-ARCH-01** | Architektur | **Strikte MVC-Trennung:** 100% aller Berechnungen und Logik im Backend; Frontend ist reine View & Event-Dispatcher. | MUST | Definiert |
+| **REQ-DOC-01** | Dokumentation | **Lückenloses JavaDoc & JSDoc:** Jede Klasse/Methode im Backend und jedes Modul/Funktion im Frontend muss dokumentiert sein. | MUST | Definiert |
+| **REQ-DOC-02** | Dokumentation | **OpenAPI 3.0 Spezifikation:** REST- und SSE-API müssen standardkonform in `docs/openapi.yaml` vorliegen. | MUST | Definiert |
+| **REQ-DOC-03** | Dokumentation | **Living Requirements:** Kontinuierliche Pflege und Fortschreibung von Anforderungen und Spezifikation bei Änderungen. | MUST | Definiert |
+| **REQ-TEST-01** | Qualität | **Striktes TDD mit JUnit 5:** Tests werden zuerst geschrieben; `mvn test` muss vor jedem Compile zu 100% grün sein. | MUST | Definiert |
+| **REQ-CORE-01** | DMX Core | 512-Kanal Universe Frame-Buffer mit Thread-Sicherheit. | MUST | Definiert |
+| **REQ-CORE-02** | DMX Core | **HTP/LTP Merging:** HTP für Dimmer/Shutter, LTP für Pan/Tilt/Farben. | MUST | Definiert |
+| **REQ-CORE-03** | DMX Core | **Grand Master & Blackout:** Skaliert bzw. nullt nur Dimmer/Shutter; Pan/Tilt bleibt unverändert. | MUST | Definiert |
+| **REQ-CORE-04** | DMX Core | **Globaler STOP ALL / RELEASE:** Sofortiger Stopp aller Chaser, Fades, Overrides und Matrix-Zustände. | MUST | Definiert |
+| **REQ-CORE-05** | DMX Core | **16-Bit Pan/Tilt:** Coarse/Fine Berechnung (0..65535) für Moving Lights. | MUST | Definiert |
+| **REQ-CORE-06** | DMX Core | **DMX-Traffic Messung:** FPS-Counter, Buslast-Faktor, Latenz und geänderte Kanäle in Echtzeit. | MUST | Definiert |
+| **REQ-IO-01** | I/O Treiber | **Art-Net UDP Driver:** Port 6454, OpCode 0x5000, Broadcast/Unicast. | MUST | Definiert |
+| **REQ-IO-02** | I/O Treiber | **DMX2USB Driver:** Serielle FTDI/Enttec-Kommunikation via `jSerialComm`. | MUST | Definiert |
+| **REQ-IO-03** | I/O Treiber | **Native Java MIDI & Learn:** Erkennung von Controllern, Note/CC Zuweisung, MIDI-Feedback. | MUST | Definiert |
+| **REQ-UI-01** | Frontend | **5 Haupt-Tabs:** Fader, 2D Stage, 3x25 Matrix, Timeline, Input/Output. | MUST | Definiert |
+| **REQ-UI-02** | Frontend | **Permanenter Global-Header:** Master, Blackout, STOP ALL, DMX-Traffic Balken. | MUST | Definiert |
+| **REQ-UI-03** | Frontend | **Design-Leitlinie:** Studio Dark Theme, 100% Lucide-Icons, absolutes Emoji-Verbot. | MUST | Definiert |
+| **REQ-TIME-01** | Timeline | **Synchrone Audio-Ausgabe:** Direktes Abspielen über Computer-Soundkarte / Hallen-PA synchron zu DMX-Lichtspuren. | MUST | Definiert |
+| **REQ-TIME-02** | Timeline | **Wellenform & Scrubbing:** Visuelle Audio-Waveform mit ziehbarem Playhead. | MUST | Definiert |
+| **REQ-DB-01** | Persistenz | H2 Database mit HikariCP und ANSI-SQL Repositories (Postgres-ready). | MUST | Definiert |
 
-### Phase 3: Relationale Persistenz (H2 / ANSI-SQL)
-- [ ] `DatabaseConfig.java` mit HikariCP und H2 File-DB (`./data/jdmx_db`).
-- [ ] `DatabaseInitializer.java` mit idempotentem Schema (`CREATE TABLE IF NOT EXISTS` für `fixtures`, `scenes`, `matrix_buttons`, `timeline_shows`, `timeline_tracks`, `timeline_blocks`, `midi_mappings`).
-- [ ] Repositories und JDBC-Implementierungen:
-  - `FixtureRepository` & `JdbcFixtureRepository`
-  - `SceneRepository` & `JdbcSceneRepository`
-  - `MatrixButtonRepository` & `JdbcMatrixButtonRepository`
-  - `TimelineRepository` & `JdbcTimelineRepository`
-  - `MidiMappingRepository` & `JdbcMidiMappingRepository`
-- [ ] **Verifikation:** Integrationstests prüfen CRUD-Operationen aller Repositories gegen H2.
+### 8.1 Anforderungs-Changelog (Historie von Änderungen)
+- **2026-09-17:** Initiale Spezifikation erstellt (Core, Fixtures, H2, REST/SSE, Web-Dashboard).
+- **2026-09-17:** Erweiterung um 4-Tab-UI, U-Traversen 2D-Stage, 3x25 Live-Matrix, MIDI, DMX2USB und Partial Cues.
+- **2026-09-17:** Hinzufügen des globalen STOP ALL Release-Buttons und der DMX-Traffic-Bar (wie in DMXControl).
+- **2026-09-18:** Erweiterung um Tab 4 (Timeline & synchrone Audio-Wiedergabe über Soundkarte/PA).
+- **2026-09-18:** Verankerung von **Strikter MVC-Architektur (100% Backend-Logik)**, **JSDoc-Frontend-Dokumentation**, **OpenAPI 3.0 Spezifikation (`docs/openapi.yaml`)** und **Living Requirements Management**.
 
-### Phase 4: DMX Output-Treiber (Art-Net & DMX2USB)
-- [ ] `ArtNetDriver.java`: Erzeugung standardkonformer UDP-Art-DMX Pakete (OpCode `0x5000`, Port 6454).
-- [ ] `DmxUsbDriver.java`: Serielle Kommunikation über `jSerialComm` (Enttec Pro / FTDI Protokoll mit Break/MAB Timing).
-- [ ] Treiber-Factory und Umschaltung zur Laufzeit ohne Server-Neustart.
-- [ ] **Verifikation:** `ArtNetDriverTest` prüft Header, Sequenznummer und DMX-Payload im Byte-Array.
+---
 
-### Phase 5: MIDI-Subsystem (Native Java MIDI)
-- [ ] `MidiService.java` basierend auf `javax.sound.midi`:
-  - Automatische Erkennung verfügbarer MIDI-Transmitter (`MidiSystem.getMidiDeviceInfo()`).
-  - Empfang von Note-On, Note-Off und Control Change (CC) Nachrichten.
-  - MIDI-Learn Manager (hört auf nächste eingehende Nachricht und verknüpft sie).
-  - Event-Dispatcher leitet MIDI-Befehle an Master, Blackout, Fader oder Matrix-Buttons weiter.
-- [ ] **Verifikation:** Unit-Tests mit gemocktem MIDI-Receiver simulieren CC- und Note-Befehle.
+## 9. Phasenweise Implementierungs-Roadmap
 
-### Phase 6: REST API, Audio-Streaming & SSE Realtime Engine
-- [ ] Controller:
-  - `DmxApiController`: Kanäle, Master, Blackout, Stop-All, DMX-Traffic.
-  - `FixtureApiController`: Fixture-CRUD mit Adress-Kollisionsprüfung.
-  - `SceneApiController`: Szenen speichern und recallen (mit Scope-Filter und Fading).
-  - `MatrixApiController`: 3×25 Grid konfigurieren und triggern.
-  - `TimelineApiController`: Shows anlegen, Audio-Upload & Streaming, Transport-Steuerung (Play/Pause/Seek).
-  - `IoApiController`: Treiberwahl, Port-Auswahl, MIDI-Geräte, MIDI-Mappings & Learn.
-- [ ] `DmxSseHandler.java`: Broadcast von `universe-update`, `matrix-update`, `master-update`, `traffic-update`, `timeline-tick`.
-- [ ] **Verifikation:** HTTP Integrationstests für alle REST-Endpunkte und SSE-Verbindung.
+### Phase 1: Maven Setup, Projektgerüst & Living Requirements
+- [ ] Saubere `pom.xml` mit Java 21, Javalin 6, Jackson, HikariCP, H2, SLF4J, `jSerialComm`, JUnit 5, AssertJ, Mockito.
+- [ ] Maven-Plugins: Compiler (Java 21), Exec-Plugin, Shade-Plugin (Fat-JAR mit `de.exit.jdmx.Main`), Surefire-Plugin.
+- [ ] Einstiegsklasse `Main.java` und Konfiguration `AppConfig.java` mit lückenlosem JavaDoc.
+- [ ] Anlegen der Dokumenten-Struktur (`docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md`, `docs/ONBOARDING.md`, `docs/openapi.yaml`).
+- [ ] **TDD Schritt:** `AppConfigTest.java` schreibt Konfigurationstests zuerst.
+- [ ] **Verifikation:** `mvn test` läuft grün; `mvn clean compile` und `mvn exec:java` startet Server auf Port 7070.
 
-### Phase 7: Web-Frontend (Die 5 Tabs mit Lucide-Icons)
-- [ ] **Basis-Layout & Theme:** Studio Dark Theme, responsive Navigation, permanenter Global-Header mit Master, Blackout, STOP ALL und Traffic-Balken, Lucide-Icons (keine Emojis!).
-- [ ] **Tab 1 (Fader & Universum):** 512-Kanal Fader Desk mit Canvas Universe Grid und Gruppierung nach Fixtures.
-- [ ] **Tab 2 (2D Stage & Fixtures):** Visuelle U-Traverse und Wand, Scheinwerfer-Platzierung, Quick-Inspector mit 2D-XY-Pad für Pan/Tilt, Invertierung und Limiter.
-- [ ] **Tab 3 (Live Matrix):** 3×25 Button-Grid mit freier Belegbarkeit, Farbcodierung, Label, Status-Feedback, Toggle/Flash/Radio-Modi und Partial Cues.
-- [ ] **Tab 4 (Timeline):** Show-Designer mit Wellenform (Waveform), synchroner Audio-Ausgabe für Hallen-PA, Playhead, Scrubbing und mehrspurigen DMX-Szenenblöcken.
-- [ ] **Tab 5 (Input / Output):** Art-Net Setup, DMX2USB Port-Auswahl, MIDI-Geräteliste, MIDI-Learn Dialog, Mapping-Tabelle und großes DMX-Traffic Diagramm.
-- [ ] **Verifikation:** Manueller End-to-End-Test im Browser: Fader, 2D Stage, 3x25 Matrix, Timeline mit Audio und I/O reagieren synchron und latenzfrei.
+### Phase 2: DMX Domain Core mit HTP/LTP, Master, 16-Bit & Stop-All (TDD-First)
+- [ ] **TDD Schritt 1:** `DmxUniverseTest.java` & `DmxEngineTest.java` schreiben:
+  - 512-Kanal-Puffer, Thread-Sicherheit.
+  - HTP-Regel für Dimmer, LTP-Regel für Pan/Tilt/Color.
+  - Grand Master & Blackout isoliert auf Dimmer/Shutter.
+  - 16-Bit Pan/Tilt Coarse/Fine Splitting.
+  - `stopAll()` Mechanismus: Sofortiges Zurücksetzen aller States.
+  - DMX-Traffic Metriken (FPS, geänderte Kanäle, Buslast).
+- [ ] **TDD Schritt 2:** Implementierung im Backend (`de.exit.jdmx.core`).
+- [ ] **Dokumentation:** 100% JavaDoc für alle Core-Klassen und Methoden.
+- [ ] **Verifikation:** `mvn test` läuft zu 100% grün durch.
 
-### Phase 8: Polish, Dokumentation & Standalone Fat-JAR
-- [ ] Erstellung der Pflicht-Dokumente:
-  - `docs/ONBOARDING.md`: Leitfaden für neue Entwickler (Setup, Architektur, Treiber-Erweiterung).
-  - `docs/ARCHITECTURE.md`: Tiefendokumentation (HTP/LTP, Threading, Timing, Audio-DMX-Sync, Paketformate).
-  - `README.md`: Vollständige Produkt- und Installationsanleitung.
-- [ ] JavaDoc-Vollständigkeit auf allen Klassen, Records und Methoden.
+### Phase 3: Relationale Persistenz (H2 / ANSI-SQL) (TDD-First)
+- [ ] **TDD Schritt 1:** Integrationstests für alle Repositories gegen In-Memory H2 DB schreiben (`JdbcFixtureRepositoryTest`, `JdbcSceneRepositoryTest`, etc.).
+- [ ] **TDD Schritt 2:** Implementierung:
+  - `DatabaseConfig.java` (HikariCP) und `DatabaseInitializer.java` (idempotente DDL-Migration).
+  - Repositories: `FixtureRepository`, `SceneRepository`, `MatrixButtonRepository`, `TimelineRepository`, `MidiMappingRepository`.
+- [ ] **Dokumentation:** 100% JavaDoc für Modelle, Repositories und SQL-Schema.
+- [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
+
+### Phase 4: DMX Output-Treiber (Art-Net & DMX2USB) (TDD-First)
+- [ ] **TDD Schritt 1:** `ArtNetDriverTest.java` & `DmxUsbDriverTest.java` schreiben (Header-Prüfung, Byte-Arrays, Exception-Handling).
+- [ ] **TDD Schritt 2:** Implementierung:
+  - `ArtNetDriver.java` (UDP Port 6454, OpCode `0x5000`).
+  - `DmxUsbDriver.java` (`jSerialComm`, Break/MAB-Timing).
+  - Treiber-Manager zur Umschaltung zur Laufzeit.
+- [ ] **Dokumentation:** 100% JavaDoc für Treiber und Schnittstellen.
+- [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
+
+### Phase 5: MIDI-Subsystem (Native Java MIDI) (TDD-First)
+- [ ] **TDD Schritt 1:** `MidiServiceTest.java` mit gemockten MIDI-Nachrichten (Note-On/Off, CC) schreiben.
+- [ ] **TDD Schritt 2:** Implementierung:
+  - `MidiService.java` (`javax.sound.midi`): Erkennung, Listener, MIDI-Learn Manager, Event-Dispatcher.
+- [ ] **Dokumentation:** 100% JavaDoc.
+- [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
+
+### Phase 6: REST API, OpenAPI 3.0 & SSE Realtime Engine (TDD-First)
+- [ ] **TDD Schritt 1:** API Controller Tests schreiben (`DmxApiControllerTest`, `FixtureApiControllerTest`, `TimelineApiControllerTest`, etc.).
+- [ ] **TDD Schritt 2:** Implementierung aller Javalin Controller und des `DmxSseHandler.java`.
+- [ ] **Dokumentation:**
+  - 100% JavaDoc auf allen Controllern.
+  - Vollständige OpenAPI 3.0 Spezifikation in `docs/openapi.yaml` erstellen.
+- [ ] **Verifikation:** `mvn test` läuft grün; HTTP-Endpunkte und SSE-Stream liefern korrekte JSON-Payloads.
+
+### Phase 7: Web-Frontend (Die 5 Tabs mit Lucide-Icons & reine View)
+- [ ] **Architektur:** Reine View & Event-Dispatcher – keine Geschäftslogik im Browser!
+- [ ] **JSDoc-Pflicht:** Jedes JavaScript-Modul wird lückenlos mit JSDoc dokumentiert.
+- [ ] **Basis-Layout & Theme:** Studio Dark Theme, permanenter Global-Header (Master, Blackout, STOP ALL, DMX-Traffic Balken), 100% Lucide-Icons (keine Emojis!).
+- [ ] **Tab 1 (Fader & Universum):** 512-Kanal Fader Desk mit Canvas Universe Grid.
+- [ ] **Tab 2 (2D Stage & Fixtures):** U-Traverse, Wand-Projektion, Beams, Quick-Inspector mit 2D-XY-Pad und Limitern.
+- [ ] **Tab 3 (Live Matrix):** 3×25 Button-Grid mit freier Belegbarkeit, Partial Cues und MIDI-Feedback.
+- [ ] **Tab 4 (Timeline):** Show-Designer mit Waveform, Audio-Wiedergabe über PA, Playhead, Scrubbing und DMX-Spuren.
+- [ ] **Tab 5 (Input / Output):** Art-Net, USB Port-Auswahl, MIDI-Learn Dialog und DMX-Traffic Monitor.
+- [ ] **Verifikation:** End-to-End-Test: Fader, 2D Stage, Matrix, Timeline und I/O reagieren synchron und latenzfrei.
+
+### Phase 8: Polish, Living Requirements Abgleich & Standalone Fat-JAR
+- [ ] Erstellung & Finalisierung der Pflicht-Dokumente:
+  - `docs/ONBOARDING.md`: Leitfaden für neue Entwickler.
+  - `docs/ARCHITECTURE.md`: Tiefendokumentation (HTP/LTP, Threading, Timing, Audio-DMX-Sync).
+  - `docs/REQUIREMENTS.md`: Finaler Abgleich aller Anforderungen (Status: Erfüllt).
+  - `docs/openapi.yaml`: Validierung gegen Swagger-Tools.
+  - `README.md`: Vollständige Produktanleitung.
+- [ ] JavaDoc & JSDoc Vollständigkeitsprüfung.
 - [ ] Maven Fat-JAR Build (`mvn clean package`).
 - [ ] **Verifikation:** Standalone-Start via `java -jar target/jdmx-1.0.0-SNAPSHOT.jar`.
