@@ -41,8 +41,8 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ [ jdmx ]  Grand Master: [████████░░] 80%  [● BLACKOUT]  [■ STOP ALL]  [Traffic: ▄▆█ 40Hz]               │
 ├─────────────────┬───────────────────┬──────────────────────┬──────────────────────┬─────────────────────┤
-│ [1] FADER       │ [2] 2D STAGE      │ [3] LIVE MATRIX      │ [4] TIMELINE         │ [5] INPUT / OUTPUT  │
-│     & UNIVERSE  │     & FIXTURES    │     (3x25 CONSOLE)   │     (AUDIO & SHOW)   │     (ARTNET/MIDI)   │
+│ [1] 2D STAGE    │ [2] FADER         │ [3] LIVE MATRIX      │ [4] TIMELINE         │ [5] INPUT / OUTPUT  │
+│     & FIXTURES  │     & UNIVERSE    │     (3x25 CONSOLE)   │     (AUDIO & SHOW)   │     (ARTNET/MIDI)   │
 └─────────────────┴───────────────────┴──────────────────────┴──────────────────────┴─────────────────────┘
 ```
 
@@ -64,16 +64,8 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
 
 ---
 
-### Tab 1: Fader Desk & Universum (Kanal-Ebene)
-- **Zweck:** Diagnostik, Einleuchten, Testen und manuelles Eingreifen auf DMX-Kanal-Ebene.
-- **Funktionen:**
-  - **512-Kanal Fader-Raster:** Vertikale Schieberegler mit Kanalnummer, DMX-Wert (0–255) und Prozentwert (0–100%).
-  - **Fixture-Gruppierung:** Kanäle können nach Geräten gruppiert ein- und ausgeklappt werden (z. B. *„Moving Head 1 [CH 1–16]“* mit Kanalbezeichnungen: *Pan, Pan Fine, Tilt, Tilt Fine, Dimmer, Color, Gobo...*).
-  - **Flash-Buttons:** Für Dimmerkanäle (tastendes Setzen auf 255).
-  - **High-Performance Canvas-Universe-Grid:** Live-Kompaktanzeige aller 512 Kanäle als 16x32-Raster mit Helligkeits-Visualisierung.
-
-### Tab 2: 2D Stage & Fixture-Patch (U-Traverse & Wand)
-- **Zweck:** Räumliche Anordnung, Adressierung und intuitive Ausrichtung von Moving Lights.
+### Tab 1: 2D Stage & Fixture-Patch (U-Traverse & Wand)
+- **Zweck:** Räumliche Anordnung, Adressierung und intuitive Ausrichtung von Moving Lights (primäre visuelle Arbeitsfläche nach QLC+-Vorbild).
 - **Funktionen:**
   - **2D-Bühnenplan:**
     - Schematische Abbildung des Raums: Konfigurierbare **U-Traverse** (Linker Schenkel, Querseite, Rechter Schenkel) und gegenüberliegende **Projektionswand**.
@@ -88,39 +80,79 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
     - **Pan/Tilt Limits:** Min/Max-Begrenzer (Software-Limiter), damit Moving Heads den gewünschten Wandbereich nicht verlassen und nicht in Decke oder Publikum strahlen.
     - **RGBW-Farbwähler & Schnell-Dimmer / Shutter**.
 
-### Tab 3: Live Matrix / Virtual Console (3 × 25 Button-Desk)
-- **Zweck:** Das intuitive Live-Bedienfeld für den Showabend – optimiert für PC, Touch-Tablets und externe MIDI-Hardware.
-- **Philosophie:** Komplett offenes, modulares System ohne starre Pflichtvorlagen. Der Lichtoperator belegt sich die Knöpfe und Fader selbst passend zum Setup (z. B. Reihe 1 für Moving Head Bewegung/Positionen, Reihe 2 für Farb-Overrides, Reihe 3 für Effekte, Strobe & Chaser).
-- **Layout:** 3 Reihen mit je 25 Spalten = 75 frei konfigurierbare Slots.
-- **Button-Typen:**
-  1. **Full Cue (Vollszene):** Ruft eine komplette Lichtstimmung ab.
-  2. **Selective / Partial Cues (Teilszenen mit Attribut-Maskierung):**
-     - **Color-Only:** Ändert ausschließlich Farben (z. B. *„Rot“*, *„Blau“*, *„Warmweiß“*) – Position und Helligkeit bleiben unberührt.
-     - **Intensity-Only:** Ändert nur die Helligkeit (z. B. *„100%“*, *„50%“*, *„Blinder Flash“*).
-     - **Position-Only:** Fährt nur Pan/Tilt an – Farben und Dimmer bleiben unverändert.
-  3. **Chaser & FX:** Startet zyklische Abläufe (z. B. *„Sinus-Welle über die Wand“*, *„Farbkreis“*, *„Stroboskop“*).
-- **Button-Verhalten (Trigger-Modi):**
-  - `TOGGLE`: Klick schaltet an / nochmal Klick schaltet aus.
-  - `FLASH` (Momentary): Aktiv solange Maustaste / Touch / MIDI-Taste gehalten wird.
-  - `EXCLUSIVE_GROUP` (Radio): Z. B. für Farbreihen: Die Aktivierung von *„Grün“* deaktiviert automatisch *„Rot“* oder *„Blau“*.
-- **Fading:** Konfigurierbare Einblendzeit (`fadeTimeMs`) für weiche Übergänge.
-- **Hardware-Anbindung:** Jede Taste kann per 1-Klick MIDI-Learn direkt auf physische Controller-Pads (z. B. Akai APC Mini, Novation Launchpad) gelegt werden.
+### Tab 2: Fader Desk & Universum (Kanal-Ebene)
+- **Zweck:** Diagnostik, Einleuchten, Testen und manuelles Eingreifen auf DMX-Kanal-Ebene.
+- **Funktionen:**
+  - **512-Kanal Fader-Raster:** Vertikale Schieberegler mit Kanalnummer, DMX-Wert (0–255) und Prozentwert (0–100%).
+  - **Fixture-Gruppierung:** Kanäle können nach Geräten gruppiert ein- und ausgeklappt werden (z. B. *„Moving Head 1 [CH 1–16]“* mit Kanalbezeichnungen: *Pan, Pan Fine, Tilt, Tilt Fine, Dimmer, Color, Gobo...*).
+  - **Flash-Buttons:** Für Dimmerkanäle (tastendes Setzen auf 255).
+  - **High-Performance Canvas-Universe-Grid:** Live-Kompaktanzeige aller 512 Kanäle als 16x32-Raster mit Helligkeits-Visualisierung.
 
-### Tab 4: Timeline (Show & Music Sync)
+### Tab 3: Live Matrix / Virtual Console (Seitenbasierte Pad-Matrix)
+- **Zweck:** Das intuitive Live-Bedienfeld für den Showabend – optimiert für PC, Touch-Tablets und externe MIDI-Hardware.
+- **Philosophie:** Komplett offenes, modulares System ohne starre Vorlagen. Der Lichtoperator belegt sich die Pads passend zum Setup.
+- **Layout (3 × 16 Pad-Matrix):**
+  - **16 Spalten horizontal × 3 Reihen vertikal:** Exakt **48 unbeschriftete Pads pro Seite** in einer klaren, einheitlichen 3×16-Tabelle (mit dezentem Rhythmusabstand alle 4 Spalten).
+  - **Vollständig scrollfrei (Keine Scrollbalken):** Das 3×16 Raster passt sich vollständig an den Viewport an; es gibt weder vertikale noch horizontale Scrollbalken.
+  - **Seitenbasierte Organisation (Paging):** Seiten 1 bis 4 mit schneller Umschaltung im Kopfbereich. Jede Seite speichert ihren eigenen Zustand (Flash/Toggle, Farbe, Aktivität).
+- **Pad-Design (Unbeschriftet & Taktil):**
+  - **Keine Textbeschriftung:** Die Buttons besitzen bewusst keine Textnamen, um maximale Dichte, taktile Klarheit und blitzschnelle Übersicht wie bei professionellen Launchpads / Hardware-Controllern zu gewährleisten.
+  - **Flash-Symbol oben links:** Buttons im Flash-Modus zeigen ein dezent leuchtendes Lucide-Stern-Symbol (`star`) in der oberen linken Ecke.
+  - **Status-LED oben rechts:** Signalisiert den aktiven Status des Pads in Echtzeit.
+  - **Farb-Akzentleiste:** Dünne, dezent illuminierte Bodenleiste zur optischen Gruppierung nach Farben.
+- **Linke Edit-Sidebar & Werkzeugpalette:**
+  - **Modus-Umschalter:** Schaltet per Klick zwischen `LIVE` (Normalbetrieb) und `EDIT` (Konfigurationsmodus) um.
+  - **Werkzeugliste (Tools im Edit-Modus):**
+    1. **Flash-Tool (Stern-Icon):** Klick auf ein beliebiges Pad schaltet dieses in den Flash-Modus um (Stern oben links erscheint/verschwindet).
+    2. **Toggle-Tool:** Klick auf ein Pad versetzt es in den Standard-Rastmodus (Stern wird entfernt).
+    3. **Farbe zuweisen (Farbpalette):** Zuweisung frei wählbarer Akzentfarben (Cyan/Blau, Rot, Amber, Grün, Violett, Pink, Weiß).
+    4. **Zurücksetzen (Eraser):** Setzt das Pad auf Standardwerte zurück.
+  - **Statusanzeige:** Live-Zähler für aktive Seite, Anzahl konfigurierter Flash-Buttons und aktive Tasten.
+- **Interaktions- & Trigger-Verhalten:**
+  - `FLASH` (Momentary mit Stern): Aktiviert bei Tastendruck (`mousedown` / `touchstart`), deaktiviert sofort beim Loslassen (`mouseup` / `mouseleave` / `touchend`).
+  - `TOGGLE` (Latching ohne Stern): Standard-Rastverhalten – Klick schaltet ein, erneuter Klick schaltet aus.
+- **Hardware-Anbindung:** Jedes Pad kann per 1-Klick MIDI-Learn direkt auf physische Controller-Pads (z. B. Akai APC Mini, Novation Launchpad) gemappt werden.
+
+### Tab 4: Timeline (FL Studio Style Show & Music Designer)
 - **Zweck:** Vorprogrammierte, mikrosekundengenaue Shows synchron zur Musik (z. B. für Showtänze oder Einmarsch-Hymnen).
-- **Integrierte Audio-Wiedergabe (Ersetzt VLC / externe Zuspieler):**
-  - Audio-Dateien (MP3, WAV, OGG) werden direkt in die Show geladen.
-  - Das Audio-Signal wird **direkt über den Audio-Ausgang / die Soundkarte des Computers an das Mischpult / die Hallen-PA** ausgegeben.
-  - **100% Synchronität:** Ton und Licht starten zeitgleich mit einem einzigen Druck auf *Play* – keine Timing-Verschiebungen und kein Herunterzählen mehr zwischen Ton- und Lichtmann.
-- **Wellenform-Darstellung (Waveform-Display):**
-  - Visuelle Wellenform der Audiodatei für millimetergenaues Arbeiten an Drops, Beats und Tempowechseln.
-  - Playhead mit Zeitanzeige (Minuten:Sekunden:Millisekunden).
-  - **Scrubbing & Spulen:** Beim Klick in die Zeitleiste springt das Lied sofort exakt an diese Stelle mit (ideal zum Einstudieren einzelner Tanz-Abschnitte).
-  - Transport-Steuerung: Play, Pause, Stop, Loop-Marker, Lautstärkeregler.
-- **Mehrspur-DMX-Zeitleiste (Light Tracks):**
-  - Mehrere parallele Lichtspuren unter der Audiospur (z. B. für *Moving Heads Bewegung*, *Farben*, *Dimmer/Strobe*, *Frontlicht*).
-  - Platzieren von Szenen- und Chaser-Blöcken per Drag & Drop.
-  - Ziehbare Blocklänge (Dauer) und stufenlos einstellbare Fade-In / Fade-Out Kurven.
+- **Konzeptionelle Vorlage: FL Studio Playlist & Browser-Workflow:**
+  ```text
+  ┌───────────────────────┬─────────────────────────────────────────────────────────────────────────────┐
+  │ [ jdmx File Explorer] │ [▶ PLAY] [■ STOP] [🔁 LOOP] [🧲 SNAP: Beat] 01:23.450 / 03:45.000   Vol:[███] │
+  ├───────────────────────┼─────────────────────────────────────────────────────────────────────────────┤
+  │ 📁 Audio & Songs      │ [Bar 1]       [Bar 2]       [Bar 3]       [Bar 4]       [Bar 5]             │
+  │   ├─ showtanz26.mp3 ──┼─► [Line 1 (Audio):  ▄█▆▄▂  ▄█▆▄▂  ▄█▆▄▂  ▄█▆▄▂  ▄█▆▄▂  ▄█▆▄▂  ▄█▆▄▂  ]    │
+  │   └─ fanfare.mp3      │                                                                           │
+  │ 📁 Scenes & Cues      │                                                                           │
+  │   ├─ Wand_Blau ───────┼─► [Line 2: Wand_Blau ─────────►]  [Line 2: Wand_Rot ────────────────────►]│
+  │   ├─ Wand_Rot         │                                                                           │
+  │   └─ Warmweiss_Garde  │                                                                           │
+  │ 📁 Chasers & FX       │                                                                           │
+  │   ├─ Welle_Schnell ───┼─►                 [Line 3: Welle_Schnell ───────────────►]                │
+  │   └─ Strobe_Gewitter ─┼─►                                [Line 4: ⚡ STROBE 3s]                    │
+  │ 📁 Fixture Groups     │                                                                           │
+  │   └─ Moving_Heads_U   │ [Line 5: (Freie Spur für beliebige Clips...)                            ] │
+  └───────────────────────┴─────────────────────────────────────────────────────────────────────────────┘
+  ```
+- **Linke Seitenleiste: Der jdmx File Explorer (Browser):**
+  - Schneller Zugriff auf alle im System gespeicherten Assets per Baumstruktur:
+    - 📁 **Audio & Songs:** Hochgeladene Musikdateien (MP3, WAV, OGG) mit Dauer und Format.
+    - 📁 **Scenes & Cues:** Gespeicherte Lichtszenen, Farb-Presets und Positionen.
+    - 📁 **Chasers & FX:** Definierte Lauflichter, Wellen-Figuren, Strobe-Impulse.
+    - 📁 **Fixture Groups:** Scheinwerfergruppen (z. B. „Alle Moving Heads“, „U-Traverse“, „Frontlicht“).
+  - **Drag & Drop auf die Spuren:** Jedes Element (Song, Szene, Chaser) kann einfach mit der Maus gepackt und auf eine beliebige freie Zeile (Line) der Timeline gezogen werden.
+- **Rechte Hauptansicht: Multi-Line Playlist (Tracks wie in FL Studio):**
+  - **Universelle Zeilen/Lines:** Spuren sind nicht starr festgelegt. Auf Track 1 kann die Audiospur liegen, auf Track 2 eine Szene, auf Track 3 ein Chaser, auf Track 4 ein Strobe-Trigger.
+  - **Clip-Manipulation auf der Zeitleiste:**
+    - **Verschieben & Platzieren:** Clips frei auf der Zeitachse verschieben.
+    - **Länge/Dauer ziehen:** An der rechten Kante des Clips ziehen, um festzulegen, wie lange die Szene oder der Chaser aktiv bleibt.
+    - **Weiche Fades (Handles):** Anfasser an den oberen Blockecken für stufenlose Fade-In und Fade-Out Rampen.
+    - **Mute & Solo pro Line:** Einzelne Spuren stummschalten oder isoliert abspielen.
+    - **Snap-to-Grid (Magnet-Raster):** Einrasten an Takten (Bar, Beat, 1/2, 1/4, None) für perfekte Rhythmus-Synchronisation.
+- **Integrierte Audio-Wiedergabe (Ersetzt VLC vollständig):**
+  - Das Audiosignal wird **direkt über den Audio-Ausgang / die Soundkarte des Computers an das Mischpult / die Hallen-PA** ausgegeben.
+  - **100% Latenz- und Drift-frei:** Audio und DMX starten mikrosekundengenau synchron beim Klick auf Play (oder Druck auf die Leertaste).
+  - **Scrubbing & Spulen:** Klick an eine beliebige Stelle der Zeitleiste lässt Musik und Licht synchron dorthin springen (ideal zum Einstudieren einzelner Tanz-Passagen).
 
 ### Tab 5: Input / Output (I/O) & Diagnostik
 - **Zweck:** Anbindung physischer Schnittstellen für DMX-Ausgabe, externe Controller und Bus-Überwachung.
@@ -510,7 +542,7 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 | **REQ-IO-01** | I/O Treiber | **Art-Net UDP Driver:** Port 6454, OpCode 0x5000, Broadcast/Unicast. | MUST | Definiert |
 | **REQ-IO-02** | I/O Treiber | **DMX2USB Driver:** Serielle FTDI/Enttec-Kommunikation via `jSerialComm`. | MUST | Definiert |
 | **REQ-IO-03** | I/O Treiber | **Native Java MIDI & Learn:** Erkennung von Controllern, Note/CC Zuweisung, MIDI-Feedback. | MUST | Definiert |
-| **REQ-UI-01** | Frontend | **5 Haupt-Tabs:** Fader, 2D Stage, 3x25 Matrix, Timeline, Input/Output. | MUST | Definiert |
+| **REQ-UI-01** | Frontend | **5 Haupt-Tabs:** 2D Stage & Fixtures, Fader & Universum, 3x25 Matrix, Timeline, Input/Output. | MUST | Definiert |
 | **REQ-UI-02** | Frontend | **Permanenter Global-Header:** Master, Blackout, STOP ALL, DMX-Traffic Balken. | MUST | Definiert |
 | **REQ-UI-03** | Frontend | **Design-Leitlinie:** Studio Dark Theme, 100% Lucide-Icons, absolutes Emoji-Verbot. | MUST | Definiert |
 | **REQ-TIME-01** | Timeline | **Synchrone Audio-Ausgabe:** Direktes Abspielen über Computer-Soundkarte / Hallen-PA synchron zu DMX-Lichtspuren. | MUST | Definiert |
@@ -523,6 +555,7 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - **2026-09-17:** Hinzufügen des globalen STOP ALL Release-Buttons und der DMX-Traffic-Bar (wie in DMXControl).
 - **2026-09-18:** Erweiterung um Tab 4 (Timeline & synchrone Audio-Wiedergabe über Soundkarte/PA).
 - **2026-09-18:** Verankerung von **Strikter MVC-Architektur (100% Backend-Logik)**, **JSDoc-Frontend-Dokumentation**, **OpenAPI 3.0 Spezifikation (`docs/openapi.yaml`)** und **Living Requirements Management**.
+- **2026-09-18:** Tausch der Tab-Reihenfolge: Tab 1 ist nun **2D Stage & Fixtures** (primäre visuelle Arbeitsfläche nach QLC+-Vorbild), Tab 2 ist **Fader & Universum**.
 
 ---
 
@@ -584,9 +617,9 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - [ ] **Architektur:** Reine View & Event-Dispatcher – keine Geschäftslogik im Browser!
 - [ ] **JSDoc-Pflicht:** Jedes JavaScript-Modul wird lückenlos mit JSDoc dokumentiert.
 - [ ] **Basis-Layout & Theme:** Studio Dark Theme, permanenter Global-Header (Master, Blackout, STOP ALL, DMX-Traffic Balken), 100% Lucide-Icons (keine Emojis!).
-- [ ] **Tab 1 (Fader & Universum):** 512-Kanal Fader Desk mit Canvas Universe Grid.
-- [ ] **Tab 2 (2D Stage & Fixtures):** U-Traverse, Wand-Projektion, Beams, Quick-Inspector mit 2D-XY-Pad und Limitern.
-- [ ] **Tab 3 (Live Matrix):** 3×25 Button-Grid mit freier Belegbarkeit, Partial Cues und MIDI-Feedback.
+- [ ] **Tab 1 (2D Stage & Fixtures):** U-Traverse, Wand-Projektion, Beams, Quick-Inspector mit 2D-XY-Pad und Limitern.
+- [ ] **Tab 2 (Fader & Universum):** 512-Kanal Fader Desk mit Canvas Universe Grid.
+- [ ] **Tab 3 (Live Matrix):** 3×16 Pad-Matrix (48 unbeschriftete Pads pro Seite), vollständig ohne Scrollbalken über mehrere Seiten (Seite 1–4), mit linker Edit-Sidebar (Flash-Tool mit Stern-Symbol oben links, Toggle-Tool, Farbwähler und Momentary-Verhalten).
 - [ ] **Tab 4 (Timeline):** Show-Designer mit Waveform, Audio-Wiedergabe über PA, Playhead, Scrubbing und DMX-Spuren.
 - [ ] **Tab 5 (Input / Output):** Art-Net, USB Port-Auswahl, MIDI-Learn Dialog und DMX-Traffic Monitor.
 - [ ] **Verifikation:** End-to-End-Test: Fader, 2D Stage, Matrix, Timeline und I/O reagieren synchron und latenzfrei.
@@ -601,3 +634,21 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - [ ] JavaDoc & JSDoc Vollständigkeitsprüfung.
 - [ ] Maven Fat-JAR Build (`mvn clean package`).
 - [ ] **Verifikation:** Standalone-Start via `java -jar target/jdmx-1.0.0-SNAPSHOT.jar`.
+
+---
+
+## 8.1 Änderungshistorie (Living Requirements Log)
+- **2026-09-18 (Refinement Tab 3: Button-Matrix):**
+  - Festlegung des Matrix-Layouts auf exakt **3 × 16 Pads (48 unbeschriftete Tasten pro Seite)** als einheitliche, zusammenhängende Tabelle ohne separate Zeilenblöcke oder Bank-Überschriften.
+  - Strenges Gebot: **Keine Scrollbalken** im Matrix-Bereich; vertikal und horizontal 100% Viewport-Einpassung mit Paging (Seiten 1 bis 4).
+  - **Unbeschriftete Tasten:** Pads besitzen keine Textnamen, sondern fungieren als hochdichte, taktile Pads mit dezentem Farbstreifen und Status-LED.
+  - **Linke Edit-Sidebar:** Integrierter Edit-Modus-Umschalter und Werkzeugliste (`Flash Tool`, `Toggle Tool`, `Farbe zuweisen`, `Zurücksetzen`).
+  - **Flash-Funktionalität & Stern-Symbol:** Pads können einzeln im Edit-Modus mit dem Flash-Tool belegt werden und zeigen daraufhin oben links ein Lucide-Stern-Icon (`star`).
+  - **Momentary-Verhalten:** Flash-Buttons sind im Live-Betrieb tastend (`mousedown` aktiv, `mouseup` aus), während reguläre Tasten toggeln.
+  - Vollständige Bereinigung jeglicher externer GitHub-Skill-Referenzen.
+- **2026-09-18 (KaSo 2.0 Clean Dark Mode Evolution):**
+  - Übernahme der ultra-cleanen POS-Designsprache von **KaSo 2.0** im Dark Mode:
+    - **Leere Pads:** Gestrichelter Rand (`1.5px dashed`) mit abgerundeten Ecken (`border-radius: 8px`), signalisiert visuell freie/belegbare Slots.
+    - **Belegte Pads:** Satte, flache Volltonfarben (Gelb wie Pommes, Grün wie Cola, Rot wie Storno) mit hohem Kontrast, 0% Glow, 0% Unschärfe, 0% Verläufe.
+    - **Header:** Dezente KaSo-Pill-Badges (`Universe`, `DMX FPS`, `Bediener`, `Master`), Wrench-Settings-Icon und markanter `STOP ALL` Button in Storno-Rot.
+    - **Sidebar:** Große, freundliche KaSo-Aktionsschaltflächen (`Bearbeiten` wie KaSo-Zahlung) und Numpad-inspirierte Tools.
