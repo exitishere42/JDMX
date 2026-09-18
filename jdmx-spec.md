@@ -18,17 +18,17 @@
 
 ---
 
-## 2. Die 4 Haupt-Tabs & Permanenter Global-Header
+## 2. Die 5 Haupt-Tabs & Permanenter Global-Header
 
-Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über allen Ansichten sichtbaren Global-Header** sowie vier dedizierte Tabs:
+Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über allen Ansichten sichtbaren Global-Header** sowie fünf dedizierte Tabs:
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│ [ jdmx ]  Grand Master: [████████░░] 80%  [● BLACKOUT]  [■ STOP ALL]  [Traffic: ▄▆█ 40Hz]   │
-├─────────────────┬───────────────────┬──────────────────────┬────────────────────────────────┤
-│ [1] FADER       │ [2] 2D STAGE      │ [3] LIVE MATRIX      │ [4] INPUT / OUTPUT             │
-│     & UNIVERSE  │     & FIXTURES    │     (3x25 CONSOLE)   │     (ARTNET/MIDI & TRAFFIC)    │
-└─────────────────┴───────────────────┴──────────────────────┴────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ [ jdmx ]  Grand Master: [████████░░] 80%  [● BLACKOUT]  [■ STOP ALL]  [Traffic: ▄▆█ 40Hz]               │
+├─────────────────┬───────────────────┬──────────────────────┬──────────────────────┬─────────────────────┤
+│ [1] FADER       │ [2] 2D STAGE      │ [3] LIVE MATRIX      │ [4] TIMELINE         │ [5] INPUT / OUTPUT  │
+│     & UNIVERSE  │     & FIXTURES    │     (3x25 CONSOLE)   │     (AUDIO & SHOW)   │     (ARTNET/MIDI)   │
+└─────────────────┴───────────────────┴──────────────────────┴──────────────────────┴─────────────────────┘
 ```
 
 ### Permanenter Global-Header (Immer verfügbar)
@@ -41,7 +41,7 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
      - Setzt alle manuellen Fader-Overrides zurück.
      - Bringt das gesamte Universum in einen definierten Ruhezustand (keine "feststeckenden" Kanäle mehr).
 4. **DMX-Traffic Live-Balkendiagramm (wie in DMXControl):**
-   - Permanente Miniaturanzeige im Header und Detailanzeige in Tab 4.
+   - Permanente Miniaturanzeige im Header und Detailanzeige in Tab 5.
    - Zeigt in Echtzeit als Balken:
      - **Frame-Rate (Hz / FPS):** Z. B. 30 Hz – 44 Hz Soll/Ist.
      - **DMX-Bus-Traffic & Aktivität:** Wieviele Kanäle ändern sich gerade, Leitungs-Durchsatz und Paket-Verkehr.
@@ -74,23 +74,41 @@ Die Web-Anwendung (`src/main/resources/public/`) besitzt einen **permanent über
     - **RGBW-Farbwähler & Schnell-Dimmer / Shutter**.
 
 ### Tab 3: Live Matrix / Virtual Console (3 × 25 Button-Desk)
-- **Zweck:** Das intuitive Live-Bedienfeld für den Showabend – optimiert für PC und Touch-Tablets.
-- **Layout:** 3 Reihen mit je 25 Spalten = 75 konfigurierbare Slots.
+- **Zweck:** Das intuitive Live-Bedienfeld für den Showabend – optimiert für PC, Touch-Tablets und externe MIDI-Hardware.
+- **Philosophie:** Komplett offenes, modulares System ohne starre Pflichtvorlagen. Der Lichtoperator belegt sich die Knöpfe und Fader selbst passend zum Setup (z. B. Reihe 1 für Moving Head Bewegung/Positionen, Reihe 2 für Farb-Overrides, Reihe 3 für Effekte, Strobe & Chaser).
+- **Layout:** 3 Reihen mit je 25 Spalten = 75 frei konfigurierbare Slots.
 - **Button-Typen:**
-  1. **Full Cue (Vollszene):** Ruft eine komplette Lichtstimmung ab (z. B. *„Einlass Warmweiß“*, *„Bühnenshow Blau/Gold“*).
+  1. **Full Cue (Vollszene):** Ruft eine komplette Lichtstimmung ab.
   2. **Selective / Partial Cues (Teilszenen mit Attribut-Maskierung):**
-     - **Color-Only:** Ändert ausschließlich Farben (z. B. *„Rot“*, *„Blau“*, *„Warmweiß“*) – Position und Helligkeit bleiben völlig unberührt.
+     - **Color-Only:** Ändert ausschließlich Farben (z. B. *„Rot“*, *„Blau“*, *„Warmweiß“*) – Position und Helligkeit bleiben unberührt.
      - **Intensity-Only:** Ändert nur die Helligkeit (z. B. *„100%“*, *„50%“*, *„Blinder Flash“*).
-     - **Position-Only:** Fährt nur Pan/Tilt an (z. B. *„Wand Fächer“*, *„Center Spot“*, *„Decke Uplight“*) – Farben und Dimmer bleiben unverändert.
+     - **Position-Only:** Fährt nur Pan/Tilt an – Farben und Dimmer bleiben unverändert.
   3. **Chaser & FX:** Startet zyklische Abläufe (z. B. *„Sinus-Welle über die Wand“*, *„Farbkreis“*, *„Stroboskop“*).
 - **Button-Verhalten (Trigger-Modi):**
   - `TOGGLE`: Klick schaltet an / nochmal Klick schaltet aus.
-  - `FLASH` (Momentary): Aktiv solange Maustaste / Touch gehalten wird.
+  - `FLASH` (Momentary): Aktiv solange Maustaste / Touch / MIDI-Taste gehalten wird.
   - `EXCLUSIVE_GROUP` (Radio): Z. B. für Farbreihen: Die Aktivierung von *„Grün“* deaktiviert automatisch *„Rot“* oder *„Blau“*.
 - **Fading:** Konfigurierbare Einblendzeit (`fadeTimeMs`) für weiche Übergänge.
+- **Hardware-Anbindung:** Jede Taste kann per 1-Klick MIDI-Learn direkt auf physische Controller-Pads (z. B. Akai APC Mini, Novation Launchpad) gelegt werden.
 
-### Tab 4: Input / Output (I/O) Management
-- **Zweck:** Anbindung physischer Schnittstellen für DMX-Ausgabe und externe Controller.
+### Tab 4: Timeline (Show & Music Sync)
+- **Zweck:** Vorprogrammierte, mikrosekundengenaue Shows synchron zur Musik (z. B. für Showtänze oder Einmarsch-Hymnen).
+- **Integrierte Audio-Wiedergabe (Ersetzt VLC / externe Zuspieler):**
+  - Audio-Dateien (MP3, WAV, OGG) werden direkt in die Show geladen.
+  - Das Audio-Signal wird **direkt über den Audio-Ausgang / die Soundkarte des Computers an das Mischpult / die Hallen-PA** ausgegeben.
+  - **100% Synchronität:** Ton und Licht starten zeitgleich mit einem einzigen Druck auf *Play* – keine Timing-Verschiebungen und kein Herunterzählen mehr zwischen Ton- und Lichtmann.
+- **Wellenform-Darstellung (Waveform-Display):**
+  - Visuelle Wellenform der Audiodatei für millimetergenaues Arbeiten an Drops, Beats und Tempowechseln.
+  - Playhead mit Zeitanzeige (Minuten:Sekunden:Millisekunden).
+  - **Scrubbing & Spulen:** Beim Klick in die Zeitleiste springt das Lied sofort exakt an diese Stelle mit (ideal zum Einstudieren einzelner Tanz-Abschnitte).
+  - Transport-Steuerung: Play, Pause, Stop, Loop-Marker, Lautstärkeregler.
+- **Mehrspur-DMX-Zeitleiste (Light Tracks):**
+  - Mehrere parallele Lichtspuren unter der Audiospur (z. B. für *Moving Heads Bewegung*, *Farben*, *Dimmer/Strobe*, *Frontlicht*).
+  - Platzieren von Szenen- und Chaser-Blöcken per Drag & Drop.
+  - Ziehbare Blocklänge (Dauer) und stufenlos einstellbare Fade-In / Fade-Out Kurven.
+
+### Tab 5: Input / Output (I/O) & Diagnostik
+- **Zweck:** Anbindung physischer Schnittstellen für DMX-Ausgabe, externe Controller und Bus-Überwachung.
 - **DMX Outputs:**
   1. **Art-Net Output (Ethernet/UDP):**
      - Sendet DMX-Frames an Art-Net Nodes im Netzwerk (Port 6454).
@@ -326,6 +344,41 @@ public record DmxTrafficStats(
 ) {}
 ```
 
+#### `TimelineShow.java`, `TimelineTrack.java`, `TimelineBlock.java`
+```java
+package de.exit.jdmx.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record TimelineShow(
+    String id,
+    String name,
+    String audioFileName,
+    long durationMs,
+    List<TimelineTrack> tracks
+) {}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record TimelineTrack(
+    String id,
+    String name,
+    String colorHex,
+    List<TimelineBlock> blocks
+) {}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record TimelineBlock(
+    String id,
+    long startMs,
+    long durationMs,
+    long fadeInMs,
+    long fadeOutMs,
+    String sceneId
+) {}
+```
+
 ---
 
 ## 6. REST-API & SSE Schnittstellen
@@ -348,13 +401,18 @@ public record DmxTrafficStats(
 | `GET` | `/api/matrix/buttons` | Alle 75 Tasten der 3×25 Matrix | `List<MatrixButton>` |
 | `PUT` | `/api/matrix/buttons/{row}/{col}` | Konfiguriert einen Button | `MatrixButton` |
 | `POST`| `/api/matrix/buttons/{row}/{col}/trigger` | Triggert einen Button (Klick/Flash) | `{ "action": "press" / "release" }` |
+| `GET` | `/api/timeline/shows` | Liste gespeicherter Shows | `List<TimelineShow>` |
+| `POST`| `/api/timeline/shows` | Erstellt/aktualisiert eine Show | `TimelineShow` |
+| `POST`| `/api/timeline/shows/{id}/audio` | Lädt Audiodatei (MP3/WAV) hoch | Multipart Audio |
+| `GET` | `/api/timeline/shows/{id}/audio` | Audio-Stream für PA / Browser-Ausgabe | Audio Stream (`audio/mpeg`) |
+| `POST`| `/api/timeline/control` | Transport-Steuerung (Play/Pause/Stop/Seek) | `{ "action": "play", "positionMs": 1500 }` |
 | `GET` | `/api/io/config` | Aktuelle Treiber- und MIDI-Konfiguration | `IOConfig` |
 | `POST`| `/api/io/driver` | Ändert DMX-Treiber (Art-Net, USB, Sim) | `DriverConfig` |
 | `GET` | `/api/io/midi/devices` | Liste gefundener MIDI-Hardware-Ports | `List<String>` |
 | `GET` | `/api/io/midi/mappings` | Aktuelle MIDI-Zuweisungen | `List<MidiMapping>` |
 | `POST`| `/api/io/midi/mappings` | Speichert MIDI-Zuweisung | `MidiMapping` |
 | `POST`| `/api/io/midi/learn` | Startet MIDI-Learn-Modus | `{ "targetType": "MATRIX_BUTTON", ... }` |
-| `GET` | `/api/live/stream` | **SSE-Stream:** Sendet `universe-update`, `master-update`, `matrix-update`, `traffic-update`, `midi-event` | EventStream (`text/event-stream`) |
+| `GET` | `/api/live/stream` | **SSE-Stream:** Sendet `universe-update`, `master-update`, `matrix-update`, `traffic-update`, `timeline-tick`, `midi-event` | EventStream (`text/event-stream`) |
 
 ---
 
@@ -376,11 +434,12 @@ public record DmxTrafficStats(
 
 ### Phase 3: Relationale Persistenz (H2 / ANSI-SQL)
 - [ ] `DatabaseConfig.java` mit HikariCP und H2 File-DB (`./data/jdmx_db`).
-- [ ] `DatabaseInitializer.java` mit idempotentem Schema (`CREATE TABLE IF NOT EXISTS` für `fixtures`, `scenes`, `matrix_buttons`, `midi_mappings`).
+- [ ] `DatabaseInitializer.java` mit idempotentem Schema (`CREATE TABLE IF NOT EXISTS` für `fixtures`, `scenes`, `matrix_buttons`, `timeline_shows`, `timeline_tracks`, `timeline_blocks`, `midi_mappings`).
 - [ ] Repositories und JDBC-Implementierungen:
   - `FixtureRepository` & `JdbcFixtureRepository`
   - `SceneRepository` & `JdbcSceneRepository`
   - `MatrixButtonRepository` & `JdbcMatrixButtonRepository`
+  - `TimelineRepository` & `JdbcTimelineRepository`
   - `MidiMappingRepository` & `JdbcMidiMappingRepository`
 - [ ] **Verifikation:** Integrationstests prüfen CRUD-Operationen aller Repositories gegen H2.
 
@@ -398,28 +457,30 @@ public record DmxTrafficStats(
   - Event-Dispatcher leitet MIDI-Befehle an Master, Blackout, Fader oder Matrix-Buttons weiter.
 - [ ] **Verifikation:** Unit-Tests mit gemocktem MIDI-Receiver simulieren CC- und Note-Befehle.
 
-### Phase 6: REST API & SSE Realtime Streaming
+### Phase 6: REST API, Audio-Streaming & SSE Realtime Engine
 - [ ] Controller:
-  - `DmxApiController`: Kanäle, Master, Blackout.
+  - `DmxApiController`: Kanäle, Master, Blackout, Stop-All, DMX-Traffic.
   - `FixtureApiController`: Fixture-CRUD mit Adress-Kollisionsprüfung.
   - `SceneApiController`: Szenen speichern und recallen (mit Scope-Filter und Fading).
   - `MatrixApiController`: 3×25 Grid konfigurieren und triggern.
+  - `TimelineApiController`: Shows anlegen, Audio-Upload & Streaming, Transport-Steuerung (Play/Pause/Seek).
   - `IoApiController`: Treiberwahl, Port-Auswahl, MIDI-Geräte, MIDI-Mappings & Learn.
-- [ ] `DmxSseHandler.java`: Broadcast von `universe-update`, `matrix-update`, `master-update`.
+- [ ] `DmxSseHandler.java`: Broadcast von `universe-update`, `matrix-update`, `master-update`, `traffic-update`, `timeline-tick`.
 - [ ] **Verifikation:** HTTP Integrationstests für alle REST-Endpunkte und SSE-Verbindung.
 
-### Phase 7: Web-Frontend (Die 4 Tabs mit Lucide-Icons)
-- [ ] **Basis-Layout & Theme:** Studio Dark Theme, responsive Navigation, Statusanzeigen, Lucide-Icons (keine Emojis!).
+### Phase 7: Web-Frontend (Die 5 Tabs mit Lucide-Icons)
+- [ ] **Basis-Layout & Theme:** Studio Dark Theme, responsive Navigation, permanenter Global-Header mit Master, Blackout, STOP ALL und Traffic-Balken, Lucide-Icons (keine Emojis!).
 - [ ] **Tab 1 (Fader & Universum):** 512-Kanal Fader Desk mit Canvas Universe Grid und Gruppierung nach Fixtures.
 - [ ] **Tab 2 (2D Stage & Fixtures):** Visuelle U-Traverse und Wand, Scheinwerfer-Platzierung, Quick-Inspector mit 2D-XY-Pad für Pan/Tilt, Invertierung und Limiter.
-- [ ] **Tab 3 (Live Matrix):** 3×25 Button-Grid mit Farbcodierung, Label, Status-Feedback, Toggle/Flash/Radio-Modi und Partial Cues.
-- [ ] **Tab 4 (Input / Output):** Art-Net Setup, DMX2USB Port-Auswahl, MIDI-Geräteliste, MIDI-Learn Dialog und Mapping-Tabelle.
-- [ ] **Verifikation:** Manueller End-to-End-Test im Browser: Fader, 2D Stage, 3x25 Matrix und I/O reagieren synchron und latenzfrei.
+- [ ] **Tab 3 (Live Matrix):** 3×25 Button-Grid mit freier Belegbarkeit, Farbcodierung, Label, Status-Feedback, Toggle/Flash/Radio-Modi und Partial Cues.
+- [ ] **Tab 4 (Timeline):** Show-Designer mit Wellenform (Waveform), synchroner Audio-Ausgabe für Hallen-PA, Playhead, Scrubbing und mehrspurigen DMX-Szenenblöcken.
+- [ ] **Tab 5 (Input / Output):** Art-Net Setup, DMX2USB Port-Auswahl, MIDI-Geräteliste, MIDI-Learn Dialog, Mapping-Tabelle und großes DMX-Traffic Diagramm.
+- [ ] **Verifikation:** Manueller End-to-End-Test im Browser: Fader, 2D Stage, 3x25 Matrix, Timeline mit Audio und I/O reagieren synchron und latenzfrei.
 
 ### Phase 8: Polish, Dokumentation & Standalone Fat-JAR
 - [ ] Erstellung der Pflicht-Dokumente:
   - `docs/ONBOARDING.md`: Leitfaden für neue Entwickler (Setup, Architektur, Treiber-Erweiterung).
-  - `docs/ARCHITECTURE.md`: Tiefendokumentation (HTP/LTP, Threading, Timing, Paketformate).
+  - `docs/ARCHITECTURE.md`: Tiefendokumentation (HTP/LTP, Threading, Timing, Audio-DMX-Sync, Paketformate).
   - `README.md`: Vollständige Produkt- und Installationsanleitung.
 - [ ] JavaDoc-Vollständigkeit auf allen Klassen, Records und Methoden.
 - [ ] Maven Fat-JAR Build (`mvn clean package`).
