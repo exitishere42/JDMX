@@ -2,7 +2,7 @@
 
 > **Verbindliche Master-Spezifikation für die Software-Entwicklung**  
 > Basierend auf den Anforderungen für den Vereins- und Bühnenbetrieb mit statischem Licht (Dimmer/PARs) und bewegtem Licht (Moving Heads, Scanner).  
-> Konzeptionell angelehnt an die bewährte Trennung von QLC+ (Fader Desk, 2D Stage, Virtual Console, Timeline & I/O Matrix) in Kombination mit der modernen **KaSo 2.0 Dark Mode Ästhetik**.
+> Konzeptionell angelehnt an die bewährte Trennung von QLC+ (Fader Desk, 2D Stage, Virtual Console, Timeline & I/O Matrix) in Kombination mit einem modernen, ergonomischen **Studio Dark Theme** für professionelle Lichtmischpulte.
 >
 > ### 🛑 Eiserne Leitplanken für das Projekt:
 > 1. **STRIKTE MVC-ARCHITEKTUR (100% KERNLOGIK):**
@@ -293,7 +293,7 @@ flowchart TD
 - **Serielle Schnittstelle (USB-DMX):** `com.fazecast:jSerialComm:2.11.0`.
 - **MIDI-Schnittstelle:** Java SE Standard `javax.sound.midi`.
 - **Logging:** SLF4J mit `slf4j-simple`.
-- **UI & Icons:** JavaFX CSS Dark Theme (KaSo 2.0 Design Tokens), Lucide-Icons (via JavaFX `SVGPath`), Canvas 2D.
+- **UI & Icons:** JavaFX CSS Dark Theme (Studio Dark Design Tokens), **farbige & neutrale Lucide-Icons** (via JavaFX `SVGPath` mit dynamischer Farbgebung), Canvas 2D.
 - **Testing:** **JUnit 5 (Jupiter)** + Mockito / AssertJ.
 
 ### Dateistruktur
@@ -322,18 +322,18 @@ jdmx/
     │   │   └── ui/                           # JavaFX Views, Tabs, HeaderBar & LucideIcon
     │   │       ├── MainView.java
     │   │       ├── HeaderBar.java
-    │   │       ├── icons/LucideIcon.java
+    │   │       ├── icons/LucideIcon.java     # Farbige & neutrale Lucide SVG-Icons
     │   │       └── tabs/
     │   │           ├── StageTab.java         # 2D Stage Rigging & Inspector
     │   │           ├── FaderUniverseTab.java # 512 Canvas Heatmap & Fader Desk
-    │   │           ├── LiveMatrixTab.java    # 3x16 Pad Desk (KaSo 2.0 Dark Mode)
+    │   │           ├── LiveMatrixTab.java    # 3x16 Pad Desk (Studio Dark Mode)
     │   │           ├── TimelineTab.java      # FL Studio Playlist & Audio Engine
     │   │           └── DiagnosticsTab.java   # Art-Net, USB, MIDI & Traffic Monitor
     │   └── resources/
     │       ├── application.properties
     │       └── de/exit/jdmx/styles/
-    │           ├── dark-theme.css            # KaSo 2.0 Dark Tokens
-    │           └── components.css            # Fader, Matrix-Pads, Badges
+    │           ├── dark-theme.css            # Studio Dark Theme Design Tokens
+    │           └── components.css            # Fader, Matrix-Pads, Badges, Farbakzente
     └── test/java/de/exit/jdmx/               # TDD Unit- & Integrationstests
 ```
 
@@ -571,7 +571,7 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 | **REQ-IO-03** | I/O Treiber | **Native Java MIDI & Learn:** Erkennung von Controllern, Note/CC Zuweisung, MIDI-Feedback. | MUST | Definiert |
 | **REQ-UI-01** | UI/UX | **5 Haupt-Tabs in JavaFX:** 2D Stage & Fixtures, Fader & Universum, 3x16 Matrix, Timeline, Input/Output. | MUST | Definiert |
 | **REQ-UI-02** | UI/UX | **Permanenter Global-Header:** Master, Blackout, STOP ALL, DMX-Traffic Balken. | MUST | Definiert |
-| **REQ-UI-03** | UI/UX | **KaSo 2.0 Dark Mode Ästhetik:** Flache Volltonfarben, gestrichelte leere Kacheln, Pill-Badges, 100% Lucide-Icons (JavaFX SVGPath), absolutes Emoji-Verbot. | MUST | Definiert |
+| **REQ-UI-03** | UI/UX | **Studio Dark Theme & Farbige Lucide-Icons:** Taktile Pads, klare Status-Badges, 100% Lucide-Icons (via JavaFX `SVGPath`). **Farbige Lucide-Icons ausdrücklich erlaubt** (Grün für Play/Active, Rot für Stop/Blackout, Gelb für Flash/Warnung, Blau/Cyan für DMX/Status), absolutes Emoji-Verbot. | MUST | Definiert |
 | **REQ-TIME-01** | Timeline | **Synchrone Audio-Ausgabe:** Direktes Abspielen über Computer-Soundkarte / Hallen-PA synchron zu DMX-Lichtspuren via JavaFX Media / Java Sound. | MUST | Definiert |
 | **REQ-TIME-02** | Timeline | **Wellenform & Scrubbing:** Visuelle Audio-Waveform mit ziehbarem Playhead. | MUST | Definiert |
 | **REQ-DB-01** | Persistenz | H2 Database mit HikariCP und ANSI-SQL Repositories (Postgres-ready). | MUST | Definiert |
@@ -584,23 +584,33 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - **2026-09-17:** Hinzufügen des globalen STOP ALL Release-Buttons und der DMX-Traffic-Bar (wie in DMXControl).
 - **2026-09-18:** Erweiterung um Tab 4 (Timeline & synchrone Audio-Wiedergabe über Soundkarte/PA).
 - **2026-09-18:** Verfeinerung Tab 3: Exakt 3×16 Pads (48 Pads pro Seite, Seiten 1–4), scrollfrei, Flash-Tool mit Stern-Symbol oben links, Momentary/Toggle Verhalten.
-- **2026-09-18:** Übernahme der ultra-cleanen POS-Designsprache von **KaSo 2.0** im Dark Mode (gestrichelte leere Kacheln, flache Volltonfarben, Pill-Badges).
 - **2026-09-18 (Architektur-Pivot JavaFX):**
   - Vollständiges Verwerfen des Web-basierten Frontends, Javalin 6, REST-API, SSE und OpenAPI 3.0.
   - Ersatz durch eine **integrierte, native JavaFX 21 Desktop-Applikation** (`OpenJFX 21 LTS`).
   - Direkte Java-Service-Aufrufe statt HTTP-Overhead; reaktive UI-Aktualisierung über `Platform.runLater()`.
-  - Vektorbasierte Lucide-Icons nativ gerendert via JavaFX `SVGPath`.
+- **2026-09-19 (Studio Dark Theme, Farbige Lucide-Icons & Subagenten-Team):**
+  - Vollständiges Entfernen von KaSo 2.0; stattdessen Etablierung des **Studio Dark Themes** für professionelle Lichtkonsolen.
+  - **Farbige Lucide-Icons ausdrücklich erlaubt & erwünscht:** Dynamische Farbgebung (Rot für Blackout/Stop, Grün für Play/Active, Gelb/Amber für Flash/Warnung, Blau/Cyan für DMX/Status). Emojis bleiben strikt verboten.
+  - **Strukturiertes Subagenten-Team-Modell:** Feste Rollenteilung für Subagenten (`core-backend`, `javafx-ui`, `ui-design`, `tdd-qa`).
 
 ---
 
 ## 9. Phasenweise Implementierungs-Roadmap
 
+### Subagenten-Orchestrierung für die Roadmap:
+- **`core-backend` Subagent:** Phasen 2 (Core Engine), 3 (H2 Persistenz), 4 (DMX-Treiber), 5 (MIDI), 6 (Services).
+- **`javafx-ui` Subagent:** Phase 7 (Stage, Fader, Matrix, Timeline, Diagnostics View-Wiring).
+- **`ui-design` Subagent:** Phasen 1 & 7 (CSS Stylesheets, Farbige Lucide-Icons in `LucideIcon.java`, Layouts).
+- **`tdd-qa` Subagent:** Kontinuierlich in allen Phasen (Unit-Tests, Grenzwerte, Verifikation vor jedem Commit).
+
+---
+
 ### Phase 1: Maven Setup, JavaFX Projektgerüst & Living Requirements
 - [ ] Saubere `pom.xml` mit Java 21, OpenJFX 21 LTS (`controls`, `graphics`, `media`), Jackson, HikariCP, H2, SLF4J, `jSerialComm`, JUnit 5, AssertJ, Mockito.
 - [ ] Maven-Plugins: Compiler (Java 21), `javafx-maven-plugin`, `exec-maven-plugin`, `maven-shade-plugin` (Fat-JAR mit `de.exit.jdmx.Main`), `surefire-plugin`.
 - [ ] Einstiegsklassen `Main.java` (Fat-JAR Launcher) und `App.java` (JavaFX Application).
-- [ ] Basis KaSo 2.0 Dark-Theme Stylesheet (`dark-theme.css`, `components.css`).
-- [ ] `LucideIcon.java`: Vektorbasiertes Lucide SVG-Path System für JavaFX.
+- [ ] Basis Studio Dark-Theme Stylesheet (`dark-theme.css`, `components.css`).
+- [ ] `LucideIcon.java`: Vektorbasiertes Lucide SVG-Path System mit Farbwahl (`create(type, size, color)`).
 - [ ] Anlegen der Dokumenten-Struktur (`docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md`, `docs/ONBOARDING.md`).
 - [ ] **TDD Schritt:** `AppConfigTest.java` schreibt Konfigurationstests zuerst.
 - [ ] **Verifikation:** `mvn test` läuft grün; `mvn clean compile` und `mvn javafx:run` öffnet das leere Dark-Theme Fenster.
@@ -647,11 +657,11 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - [ ] **Dokumentation:** 100% JavaDoc auf allen Service-Klassen.
 - [ ] **Verifikation:** `mvn test` läuft zu 100% grün.
 
-### Phase 7: JavaFX Desktop UI (Die 5 Tabs im KaSo 2.0 Dark Mode mit 100% Lucide-Icons)
-- [ ] **MainView & HeaderBar:** Grand Master Fader, roter Blackout-Knopf, KaSo Pill-Badges (Universe, FPS), `STOP ALL` Button in Storno-Rot, Lucide-Icons.
+### Phase 7: JavaFX Desktop UI (Die 5 Tabs im Studio Dark Theme mit farbigen Lucide-Icons)
+- [ ] **MainView & HeaderBar:** Grand Master Fader, roter Blackout-Knopf, Status-Pills (Universe, FPS), `STOP ALL` Button in auffälligem Rot, farbige Lucide-Icons.
 - [ ] **Tab 1 (2D Stage & Fixtures):** CAD-Rigging-Blaupause der U-Traverse und Projektionswand, Vektor-Beams, Quick-Inspector mit Pan/Tilt XY-Pad und Limitern.
 - [ ] **Tab 2 (Fader & Universum):** 512-Kanal Universe-Heatmap auf JavaFX Canvas mit 60 FPS, Fader-Züge mit Flash-Buttons.
-- [ ] **Tab 3 (Live Matrix):** 3×16 Pad-Matrix (48 unbeschriftete Pads pro Seite), Seiten 1–4, KaSo gestrichelte leere Kacheln / Volltonfarben, Flash-Stern-Icon, linke Edit-Sidebar.
+- [ ] **Tab 3 (Live Matrix):** 3×16 Pad-Matrix (48 unbeschriftete Pads pro Seite), Seiten 1–4, Studio Dark Theme Kacheln (dezent umrandet im Leerzustand, satte Farben im belegten Zustand), gelbes Flash-Stern-Icon, linke Edit-Sidebar.
 - [ ] **Tab 4 (Timeline):** Show-Designer mit Audio-Waveform, synchroner Wiedergabe über PC-Soundkarte / PA, DMX-Spuren.
 - [ ] **Tab 5 (Input / Output):** Art-Net Setup, USB Port-Auswahl, MIDI-Learn Dialog und DMX-Traffic Monitor.
 - [ ] **Verifikation:** Manueller Start mit `mvn javafx:run`: Alle 5 Tabs rendern flüssig, Interaktionen steuern DMX-Werte ohne Verzögerung.
@@ -665,22 +675,3 @@ Alle Systemanforderungen besitzen eine eindeutige Kennung. Neue Anforderungen we
 - [ ] JavaDoc Vollständigkeitsprüfung.
 - [ ] Maven Fat-JAR Build (`mvn clean package`).
 - [ ] **Verifikation:** Standalone-Start via `java -jar target/jdmx-1.0.0-SNAPSHOT.jar`.
-
-
----
-
-## 8.1 Änderungshistorie (Living Requirements Log)
-- **2026-09-18 (Refinement Tab 3: Button-Matrix):**
-  - Festlegung des Matrix-Layouts auf exakt **3 × 16 Pads (48 unbeschriftete Tasten pro Seite)** als einheitliche, zusammenhängende Tabelle ohne separate Zeilenblöcke oder Bank-Überschriften.
-  - Strenges Gebot: **Keine Scrollbalken** im Matrix-Bereich; vertikal und horizontal 100% Viewport-Einpassung mit Paging (Seiten 1 bis 4).
-  - **Unbeschriftete Tasten:** Pads besitzen keine Textnamen, sondern fungieren als hochdichte, taktile Pads mit dezentem Farbstreifen und Status-LED.
-  - **Linke Edit-Sidebar:** Integrierter Edit-Modus-Umschalter und Werkzeugliste (`Flash Tool`, `Toggle Tool`, `Farbe zuweisen`, `Zurücksetzen`).
-  - **Flash-Funktionalität & Stern-Symbol:** Pads können einzeln im Edit-Modus mit dem Flash-Tool belegt werden und zeigen daraufhin oben links ein Lucide-Stern-Icon (`star`).
-  - **Momentary-Verhalten:** Flash-Buttons sind im Live-Betrieb tastend (`mousedown` aktiv, `mouseup` aus), während reguläre Tasten toggeln.
-  - Vollständige Bereinigung jeglicher externer GitHub-Skill-Referenzen.
-- **2026-09-18 (KaSo 2.0 Clean Dark Mode Evolution):**
-  - Übernahme der ultra-cleanen POS-Designsprache von **KaSo 2.0** im Dark Mode:
-    - **Leere Pads:** Gestrichelter Rand (`1.5px dashed`) mit abgerundeten Ecken (`border-radius: 8px`), signalisiert visuell freie/belegbare Slots.
-    - **Belegte Pads:** Satte, flache Volltonfarben (Gelb wie Pommes, Grün wie Cola, Rot wie Storno) mit hohem Kontrast, 0% Glow, 0% Unschärfe, 0% Verläufe.
-    - **Header:** Dezente KaSo-Pill-Badges (`Universe`, `DMX FPS`, `Bediener`, `Master`), Wrench-Settings-Icon und markanter `STOP ALL` Button in Storno-Rot.
-    - **Sidebar:** Große, freundliche KaSo-Aktionsschaltflächen (`Bearbeiten` wie KaSo-Zahlung) und Numpad-inspirierte Tools.
