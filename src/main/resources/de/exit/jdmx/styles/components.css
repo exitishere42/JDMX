@@ -1,0 +1,148 @@
+/* ================================================================= */
+/* jdmx - Component Specific Styling                                 */
+/* Professional DMX Console Fader Caps & Square Flash Buttons        */
+/* ================================================================= */
+
+/* Fader Slider Base & Alignment */
+.slider:vertical {
+    -fx-padding: 0;
+    -fx-alignment: CENTER;
+}
+
+.slider:horizontal {
+    -fx-padding: 0;
+    -fx-alignment: CENTER;
+}
+
+/* Fader Slider Track Slot */
+.slider:vertical .track {
+    -fx-background-color: #0A0A0C, #18181C;
+    -fx-background-insets: 0, 1;
+    -fx-border-color: #2C2C2C;
+    -fx-border-width: 1px;
+    -fx-pref-width: 8px;
+    -fx-min-width: 8px;
+    -fx-max-width: 8px;
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+}
+
+.slider:horizontal .track {
+    -fx-background-color: #0A0A0C, #18181C;
+    -fx-background-insets: 0, 1;
+    -fx-border-color: #2C2C2C;
+    -fx-border-width: 1px;
+    -fx-pref-height: 8px;
+    -fx-min-height: 8px;
+    -fx-max-height: 8px;
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+}
+
+/* Vertical Fader Cap (Console Fader Knob with Center White Notch Indicator) */
+.slider:vertical .thumb {
+    -fx-pref-width: 28px;
+    -fx-pref-height: 36px;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-border-color: #4A4A52 #1A1A1E #1A1A1E #4A4A52;
+    -fx-border-width: 1px;
+    -fx-background-color: 
+        linear-gradient(to bottom, #3A3A42 0%, #222226 46%, #FFFFFF 47%, #FFFFFF 53%, #222226 54%, #1A1A1E 100%);
+    -fx-cursor: hand;
+}
+
+.slider:vertical .thumb:hover {
+    -fx-border-color: #00E5FF;
+    -fx-background-color: 
+        linear-gradient(to bottom, #444450 0%, #2A2A30 46%, #00E5FF 47%, #00E5FF 53%, #2A2A30 54%, #202026 100%);
+}
+
+.slider:vertical .thumb:pressed {
+    -fx-border-color: #00FF9A;
+    -fx-background-color: 
+        linear-gradient(to bottom, #444450 0%, #2A2A30 46%, #00FF9A 47%, #00FF9A 53%, #2A2A30 54%, #202026 100%);
+}
+
+/* Horizontal Fader Cap (Header Grand Master Fader) */
+.slider:horizontal .thumb {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 26px;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-border-color: #4A4A52 #1A1A1E #1A1A1E #4A4A52;
+    -fx-border-width: 1px;
+    -fx-background-color: 
+        linear-gradient(to right, #3A3A42 0%, #222226 46%, #FFFFFF 47%, #FFFFFF 53%, #222226 54%, #1A1A1E 100%);
+    -fx-cursor: hand;
+}
+
+.slider:horizontal .thumb:hover {
+    -fx-border-color: #00E5FF;
+    -fx-background-color: 
+        linear-gradient(to right, #444450 0%, #2A2A30 46%, #00E5FF 47%, #00E5FF 53%, #2A2A30 54%, #202026 100%);
+}
+
+.slider:horizontal .thumb:pressed {
+    -fx-border-color: #00FF9A;
+    -fx-background-color: 
+        linear-gradient(to right, #444450 0%, #2A2A30 46%, #00FF9A 47%, #00FF9A 53%, #2A2A30 54%, #202026 100%);
+}
+
+/* Square Flash Button with Icon */
+.btn-flash {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 36px;
+    -fx-min-width: 36px;
+    -fx-min-height: 36px;
+    -fx-max-width: 36px;
+    -fx-max-height: 36px;
+    -fx-background-color: -jdmx-control;
+    -fx-border-color: -jdmx-border;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+    -fx-padding: 0;
+}
+
+.btn-flash:hover {
+    -fx-background-color: -jdmx-chip;
+    -fx-border-color: -jdmx-primary;
+}
+
+.btn-flash:pressed {
+    -fx-scale-x: 0.96;
+    -fx-scale-y: 0.96;
+    -fx-background-color: -jdmx-primary;
+    -fx-border-color: -jdmx-primary;
+}
+
+/* Scrollbars - Subdued and minimal */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -jdmx-control;
+    -fx-background-radius: 4px;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: -jdmx-chip;
+}
+
+/* Color Swatches */
+.swatch-circle {
+    -fx-cursor: hand;
+}
+
+.swatch-circle:hover {
+    -fx-scale-x: 1.15;
+    -fx-scale-y: 1.15;
+}
+
+.swatch-circle.selected {
+    -fx-stroke: -jdmx-primary;
+    -fx-stroke-width: 2.5px;
+}
