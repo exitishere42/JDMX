@@ -31,7 +31,17 @@ Um maximale vertikale Arbeitsfläche für Bühne, Fader und Timeline zu garantie
 ```
 
 ### Elemente von links nach rechts:
-1. **Brand:** `[ jdmx ]` (Kompaktes Logo / Titel)
+1. **Brand & Action-Menü:** `[ jdmx ]`
+   - Klickbarer, randloser Button mit Warm-Amber-Glühbirnen-Logo links und dem Markennamen `jdmx` in Hellgrau.
+   - Öffnet beim Klick ein kompaktes vertikales Aktions-Dropdown (inspiriert vom QLC+ „Actions“-Menü, aber schlank und fokussiert):
+     - **`New Project`** (Icon: Lucide `file-plus`): Erstellt ein neues Projekt (mit Sicherheitsabfrage bei ungespeicherten Änderungen).
+     - **`Open File`** (Icon: Lucide `folder-open`): Öffnet einen `.jdmx`-Showstand.
+     - **`Save`** (Icon: Lucide `save`): Speichert das aktuelle Projekt direkt.
+     - **`Save as...`** (Icon: Lucide `file-pen`): Speichert unter neuem Namen/Pfad.
+     - **`Undo / Redo`** (Icons: Lucide `undo-2` / `redo-2`): Schnelles Rückgängigmachen / Wiederherstellen von Bearbeitungsschritten.
+     - **`Settings`** (Icon: Lucide `settings`): Öffnet die allgemeinen Einstellungen im In-App Overlay.
+     - **`Fullscreen`** (Icon: Lucide `maximize`): Schaltet den randlosen Vollbildmodus um.
+     - *(Hinweis: Die Liste ist modular aufgebaut und kann jederzeit um weitere Einträge wie z. B. About erweitert werden).*
 2. **Tab-Umschalter (Die 5 Haupt-Arbeitsbereiche):**
    - `[Stage & Fixtures]` (Tab 1)
    - `[Simple Desk]` (Tab 2)
@@ -46,6 +56,25 @@ Um maximale vertikale Arbeitsfläche für Bühne, Fader und Timeline zu garantie
      - Deaktiviert alle aktiven Tasten in der Button Matrix.
      - Gibt alle manuellen Fader-Overrides im Simple Desk frei.
      - Bringt das gesamte Universum mit 1 Klick in den definierten Ruhezustand.
+
+---
+
+## 2.1 In-App Modal Overlay Architektur ("Fenster im Fenster")
+
+Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausnahmslos als In-App Modal Overlays („Fenster im Fenster“)** realisiert – exakt nach dem Vorbild des Update- und Info-Systems von `sound2artnet` und `artnet2dmx`:
+
+- **Keine separaten OS-Fenster (Stages):** Dialoge öffnen sich niemals in einem eigenen Betriebssystem-Fenster, um Fokusverlust, Multi-Monitor-Desync oder Verstecken hinter der Hauptbühne im Live-Einsatz zu verhindern.
+- **Aufbau des In-App Modals:**
+  - **Dunkler Schleier:** Ein halbtransparenter Scrim (`rgba(0, 0, 0, 0.65)`) deckt das gesamte Hauptfenster ab und blockiert Klicks auf die dahinterliegende Arbeitsfläche.
+  - **Zentrierte Dialog-Karte:** Material 2 Surface (`#1E1E1E`) mit subtilem 1px Rand (`#2E2E2E`), abgerundeten Ecken (`8px`) und weichem Drop-Shadow.
+  - **Header:** Titel mit thematischem Lucide-Icon links und einem Schließen-Button `[✕]` oben rechts.
+  - **Tastatur- & Klick-Verhalten:** Schließen bei Klick auf `[✕]`, Drücken der `Escape`-Taste oder Klick auf den abgedunkelten Hintergrund.
+  - **Betroffene Komponenten:**
+    - Settings-Dialog
+    - 3-Schritte Fixture Patch Dialog (`+` in Stage & Fixtures)
+    - New / Open / Save As Projekt-Dialoge
+    - Sicherheits- und Bestätigungsabfragen (z. B. ungespeicherte Änderungen)
+    - About- & Versions-Dialog
 
 ---
 
