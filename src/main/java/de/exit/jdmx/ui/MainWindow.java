@@ -4,6 +4,7 @@ import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.stage.StageWorkspaceView;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
@@ -185,7 +186,7 @@ public class MainWindow extends StackPane {
      * Initialisiert die 5 Workspace-Tabs.
      */
     private void initTabViews() {
-        tabViews[0] = createTabPlaceholder("Stage & Fixtures", "stage", StudioTheme.COLOR_ICON_STAGE);
+        tabViews[0] = new StageWorkspaceView();
         tabViews[1] = createTabPlaceholder("Simple Desk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);

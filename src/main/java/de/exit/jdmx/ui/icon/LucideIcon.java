@@ -190,6 +190,15 @@ public class LucideIcon extends StackPane {
             case "star" ->
                 // Lucide star
                 "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+            case "sun", "intensity" ->
+                // Lucide sun
+                "M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M6.34 17.66l-1.41 1.41 M19.07 4.93l-1.41 1.41 M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z";
+            case "palette", "color" ->
+                // Lucide palette
+                "M12 2C6.5 2 2 6.5 2 12c0 3.6 2 5.5 4 5.5.9 0 1.5-.4 1.8-.8.3-.4.6-.7 1.2-.7H11a4 4 0 0 1 4 4v.5c0 1.9 1.6 3.5 3.5 3.5 3 0 5.5-3.8 5.5-7.5 0-5.5-4.5-10-10-10z";
+            case "crosshair", "move", "position" ->
+                // Lucide crosshair
+                "M12 2v4 M12 18v4 M2 12h4 M18 12h4 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z";
             default ->
                 // Lucide circle
                 "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";

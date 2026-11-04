@@ -622,3 +622,191 @@
     -fx-font-size: 13px;
     -fx-font-weight: 600;
 }
+
+/* ==========================================================================
+   Tab 1: Stage & Fixtures Layout (SplitPanes & Dragbars)
+   ========================================================================== */
+
+.stage-workspace-view,
+.device-control-dock {
+    -fx-background-color: #121212;
+    -fx-padding: 0;
+}
+
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-box-border: transparent;
+    -fx-padding: 0;
+}
+
+.split-pane > .split-pane-divider {
+    -fx-background-color: #202020;
+    -fx-padding: 0 3;
+}
+
+.split-pane:vertical > .split-pane-divider {
+    -fx-pref-height: 6px;
+    -fx-cursor: v-resize;
+}
+
+.split-pane:horizontal > .split-pane-divider {
+    -fx-pref-width: 6px;
+    -fx-cursor: h-resize;
+}
+
+.split-pane > .split-pane-divider:hover {
+    -fx-background-color: #383838;
+}
+
+.split-pane > .split-pane-divider:pressed {
+    -fx-background-color: #D1D5DB;
+}
+
+/* Control Module Cards (24/7 Geöffnete Steuerungs-Karten) */
+.control-module-card {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: #282828;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8 10;
+}
+
+.module-card-header {
+    -fx-border-color: transparent transparent #262626 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 5 0;
+}
+
+.module-card-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #9CA3AF;
+    -fx-letter-spacing: 0.5px;
+}
+
+/* Fader-Slider Styling */
+.fader-slider, .fader-slider-horizontal {
+    -fx-padding: 0;
+}
+
+.fader-slider .track {
+    -fx-background-color: #262626;
+    -fx-background-radius: 3px;
+    -fx-pref-width: 6px;
+}
+
+.fader-slider .thumb {
+    -fx-background-color: #D1D5DB;
+    -fx-background-radius: 3px;
+    -fx-pref-width: 16px;
+    -fx-pref-height: 10px;
+    -fx-cursor: v-resize;
+}
+
+.fader-slider .thumb:hover {
+    -fx-background-color: #FFFFFF;
+}
+
+.fader-slider-horizontal .track {
+    -fx-background-color: #262626;
+    -fx-background-radius: 3px;
+    -fx-pref-height: 6px;
+}
+
+.fader-slider-horizontal .thumb {
+    -fx-background-color: #D1D5DB;
+    -fx-background-radius: 3px;
+    -fx-pref-width: 10px;
+    -fx-pref-height: 16px;
+    -fx-cursor: h-resize;
+}
+
+.fader-slider-horizontal .thumb:hover {
+    -fx-background-color: #FFFFFF;
+}
+
+.fader-title-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9CA3AF;
+}
+
+.fader-value-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #E5E7EB;
+}
+
+/* Modul-Buttons */
+.module-quick-btn {
+    -fx-background-color: #242424;
+    -fx-text-fill: #D1D5DB;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 3 6;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+}
+
+.module-quick-btn:hover {
+    -fx-background-color: #333333;
+    -fx-text-fill: #F3F4F6;
+}
+
+.module-action-btn-green {
+    -fx-background-color: #123320;
+    -fx-text-fill: #10B981;
+    -fx-border-color: #059669;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.module-action-btn-green:hover {
+    -fx-background-color: #184229;
+}
+
+.module-action-btn-red {
+    -fx-background-color: #381515;
+    -fx-text-fill: #EF4444;
+    -fx-border-color: #DC2626;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.module-action-btn-red:hover {
+    -fx-background-color: #481B1B;
+}
+
+.module-action-btn-secondary {
+    -fx-background-color: #262626;
+    -fx-text-fill: #D1D5DB;
+    -fx-border-color: #383838;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-size: 11px;
+    -fx-padding: 4 10;
+    -fx-cursor: hand;
+}
+
+.module-action-btn-secondary:hover {
+    -fx-background-color: #333333;
+    -fx-text-fill: #FFFFFF;
+}
+
+.color-chip-btn {
+    -fx-border-color: rgba(255, 255, 255, 0.15);
+    -fx-border-radius: 4px;
+}
+
+.color-chip-btn:hover {
+    -fx-border-color: #FFFFFF;
+    -fx-effect: dropshadow(three-pass-box, rgba(255,255,255,0.4), 4, 0, 0, 0);
+}
