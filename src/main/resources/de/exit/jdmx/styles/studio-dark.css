@@ -7,6 +7,9 @@
 .root {
     -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -fx-background-color: #121212;
+    -fx-base: #1E1E1E;
+    -fx-background: #121212;
+    -fx-control-inner-background: #1E1E1E;
     -fx-font-size: 13px;
 }
 
@@ -507,30 +510,57 @@
 }
 
 /* ==========================================================================
-   Globale ScrollBar Styles (Kein weißes Standard-Windows-Design)
+   Globale ScrollPane & ScrollBar Styles (Dark Theme, kein weißes Windows-Design)
    ========================================================================== */
 
-.scroll-bar:vertical, .scroll-bar:horizontal {
+.scroll-pane,
+.settings-scrollpane {
     -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport,
+.settings-scrollpane > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.scroll-pane > .corner,
+.settings-scrollpane > .corner {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.scroll-bar:vertical,
+.scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
     -fx-padding: 0;
 }
 
 .scroll-bar:vertical {
     -fx-pref-width: 6px;
+    -fx-max-width: 6px;
 }
 
 .scroll-bar:horizontal {
     -fx-pref-height: 6px;
+    -fx-max-height: 6px;
 }
 
-.scroll-bar .track {
+.scroll-bar .track,
+.scroll-bar .track-background {
     -fx-background-color: transparent;
+    -fx-background: transparent;
     -fx-border-color: transparent;
 }
 
 .scroll-bar .thumb {
     -fx-background-color: #383838;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 4px;
 }
 
 .scroll-bar .thumb:hover {
@@ -540,8 +570,11 @@
 .scroll-bar .increment-button,
 .scroll-bar .decrement-button {
     -fx-background-color: transparent;
+    -fx-background: transparent;
     -fx-padding: 0;
-    -fx-shape: " ";
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-opacity: 0;
 }
 
 .scroll-bar .increment-arrow,

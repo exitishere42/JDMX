@@ -84,9 +84,12 @@ public class SettingsDialog {
         // 2. Tab-Umschalter (Allgemein | Shortcuts)
         HBox tabBar = buildTabBar();
 
-        // 3. Inhaltsbereich
+        // 3. Inhaltsbereich (mit identischer Höhe für Allgemein und Shortcuts)
         this.contentArea = new StackPane();
         contentArea.getStyleClass().add("settings-content-area");
+        contentArea.setMinHeight(255);
+        contentArea.setPrefHeight(255);
+        contentArea.setMaxHeight(255);
 
         this.generalView = buildGeneralView();
         this.shortcutsView = buildShortcutsView();
@@ -293,15 +296,22 @@ public class SettingsDialog {
         spacerReset.setPrefWidth(28);
 
         headerRow.getChildren().addAll(colHotkey, colDesc, spacerReset);
-        box.getChildren().add(headerRow);
 
-        // Tabellen-Zeilen
+        // Tabellen-Zeilen im ScrollPane mit passender Dark-Scrollbar
         VBox rows = new VBox(2);
+        rows.setPadding(new Insets(2, 4, 2, 0));
         for (ShortcutItem item : shortcutService.getAllShortcuts()) {
             rows.getChildren().add(createShortcutRow(item));
         }
 
-        box.getChildren().add(rows);
+        ScrollPane scrollPane = new ScrollPane(rows);
+        scrollPane.getStyleClass().add("settings-scrollpane");
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+        box.getChildren().addAll(headerRow, scrollPane);
         return box;
     }
 
