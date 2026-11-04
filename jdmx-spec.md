@@ -98,22 +98,22 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 │   │      │  (Neue Fixtures spawnen hier mittig nebeneinander mit       │                       │  aufklappbar)   │
 │   │      │   Kollisionslogik: [MH 1] [MH 2] [MH 3] [MH 4])             │                       │                 │
 └───┴──────┴─────────────────────────────────────────────────────────────┴───────────────────────┴─────────────────┘
-▼ AUSGEKLAPPTES BEDIENFELD (Erscheint unten, wenn ein Fixture angeklickt wird – DMXControl 3 Style)
+▼ 24/7 STEUERUNGS-DOCK (Permanente untere Leiste mit 3 horizontal verschiebbaren Modulen, Stage behält >60% Platz)
 ┌───────────────────────────────┬───────────────────────────────┬──────────────────────────────────────────────────┐
-│ INTENSITÄT                📌✕ │ FARBE (HSV)               📌✕ │ POSITION                                     📌✕ │
+│ INTENSITÄT                    │ FARBE (HSV)                   │ POSITION                                         │
 │                               │                               │                                                  │
 │ ┌────┐  │     │   ┌────┐┌────┐│ ┌───┐                         │         ┌───────────┬───────────┐     │          │
-│ │ VL │  │     │   │Auf ││Lumo││ │HSV│                         │         │           │           │     │          │
-│ ├────┤  │     │   ├────┼┤s   ││ └───┘        ╭───────╮        │         │           │           │     │          │
-│ │ 70 │  │     │   │Zu  ││Nox ││             ╭─╯   ●   ╰─╮     │   ──────┼───────────●───────────┼────── [█] Tilt   │
-│ ├────┤ [█]   [█]  └────┘└────┘│             │ Farb-   │       │         │           │           │     │          │
-│ │ 50 │  │     │               │             ╰─╮ kreis ╭─╯     │         │           │           │     │          │
+│ │100%│  │     │   │Lumo││Nox ││ │HSV│                         │         │           │           │     │          │
+│ ├────┤  │     │   │s   ││    ││ └───┘        ╭───────╮        │         │           │           │     │          │
+│ │ 70%│  │     │   └────┘└────┘│             ╭─╯   ●   ╰─╮     │   ──────┼───────────●───────────┼────── [█] Tilt   │
+│ ├────┤ [█]   [█]              │             │ Farb-   │       │         │           │           │     │          │
+│ │ 50%│  │     │               │             ╰─╮ kreis ╭─╯     │         │           │           │     │          │
 │ ├────┤  │     │               │               ╰───────╯       │         └───────────┴───────────┘     │          │
-│ │ 30 │  │     │               │                               │                                                  │
+│ │ 30%│  │     │               │                               │                                                  │
 │ ├────┤  │     │               │   (purer Farbkreis            │                    ───[█]───                     │
-│ │  0 │  │     │               │    ohne extra Schieberegler)  │                    Pan-Slider                    │
+│ │  0%│  │     │               │    mit Farbpaletten)          │                    Pan-Slider                    │
 │ └────┘  │     │               │                               │                                                  │
-│       Dimmer Strobo           │                               │   [✓] Pan Invertieren    [✓] Tilt Invertieren    │
+│       Dimmer Strobo           │                               │   [✓] Pan             [✓] Tilt            [Home] │
 └───────────────────────────────┴───────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 
