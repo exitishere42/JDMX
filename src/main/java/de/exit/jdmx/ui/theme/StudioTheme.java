@@ -55,6 +55,7 @@ public final class StudioTheme {
     public static final Color COLOR_PRIMARY_GRAY = Color.web(HEX_PRIMARY_GRAY);
     public static final Color COLOR_TEXT_HIGH = Color.web(HEX_TEXT_HIGH);
     public static final Color COLOR_TEXT_MED = Color.web(HEX_TEXT_MED);
+    public static final Color COLOR_TEXT_LOW = Color.web(HEX_TEXT_LOW);
 
     public static final Color COLOR_ICON_STAGE = Color.web(HEX_ICON_STAGE);
     public static final Color COLOR_ICON_FADER = Color.web(HEX_ICON_FADER);
