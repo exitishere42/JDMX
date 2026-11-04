@@ -18,6 +18,18 @@ class StudioThemeTest {
         assertThat(StudioTheme.HEX_PRIMARY_GRAY).isEqualTo("#D1D5DB");
         assertThat(StudioTheme.COLOR_PRIMARY_GRAY).isNotNull();
 
+        assertThat(StudioTheme.HEX_BRAND_LOGO).isEqualTo("#FEDC94");
+        assertThat(StudioTheme.COLOR_BRAND_LOGO).isNotNull();
+
+        assertThat(StudioTheme.COLOR_MENU_NEW).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_OPEN).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_SAVE).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_SAVE_AS).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_UNDO).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_REDO).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_SETTINGS).isNotNull();
+        assertThat(StudioTheme.COLOR_MENU_FULLSCREEN).isNotNull();
+
         assertThat(StudioTheme.COLOR_ICON_STAGE).isNotNull();
         assertThat(StudioTheme.COLOR_ICON_FADER).isNotNull();
         assertThat(StudioTheme.COLOR_ICON_MATRIX).isNotNull();

@@ -28,6 +28,10 @@ public final class StudioTheme {
     public static final String HEX_TEXT_MED = "#9CA3AF";
     public static final String HEX_TEXT_LOW = "#6B7280";
 
+    // --- Brand Logo Farbe (Warmes Amber-Gold) ---
+    public static final String HEX_BRAND_LOGO = "#FEDC94";
+    public static final Color COLOR_BRAND_LOGO = Color.web(HEX_BRAND_LOGO);
+
     // --- Bunte Signalfarben für Icons ---
     public static final String HEX_ICON_STAGE = "#38BDF8";     // Cyan / Helles Blau
     public static final String HEX_ICON_FADER = "#F59E0B";     // Warm Amber / Orange
@@ -36,6 +40,16 @@ public final class StudioTheme {
     public static final String HEX_ICON_IO = "#2DD4BF";        // Türkis / Teal
     public static final String HEX_ICON_RED = "#EF4444";       // Signalrot für Blackout & STOP
     public static final String HEX_ICON_GREEN = "#10B981";     // Grün für DMX Traffic
+
+    // --- Action Dropdown Menü Farben ---
+    public static final String HEX_MENU_NEW = "#38BDF8";       // Cyan
+    public static final String HEX_MENU_OPEN = "#F59E0B";      // Warm Amber
+    public static final String HEX_MENU_SAVE = "#10B981";      // Emerald Green
+    public static final String HEX_MENU_SAVE_AS = "#2DD4BF";   // Teal
+    public static final String HEX_MENU_UNDO = "#A855F7";      // Purple
+    public static final String HEX_MENU_REDO = "#38BDF8";      // Cyan
+    public static final String HEX_MENU_SETTINGS = "#D1D5DB";  // Light Gray
+    public static final String HEX_MENU_FULLSCREEN = "#FB923C";// Orange
 
     // --- JavaFX Color Instanzen ---
     public static final Color COLOR_PRIMARY_GRAY = Color.web(HEX_PRIMARY_GRAY);
@@ -49,4 +63,13 @@ public final class StudioTheme {
     public static final Color COLOR_ICON_IO = Color.web(HEX_ICON_IO);
     public static final Color COLOR_ICON_RED = Color.web(HEX_ICON_RED);
     public static final Color COLOR_ICON_GREEN = Color.web(HEX_ICON_GREEN);
+
+    public static final Color COLOR_MENU_NEW = Color.web(HEX_MENU_NEW);
+    public static final Color COLOR_MENU_OPEN = Color.web(HEX_MENU_OPEN);
+    public static final Color COLOR_MENU_SAVE = Color.web(HEX_MENU_SAVE);
+    public static final Color COLOR_MENU_SAVE_AS = Color.web(HEX_MENU_SAVE_AS);
+    public static final Color COLOR_MENU_UNDO = Color.web(HEX_MENU_UNDO);
+    public static final Color COLOR_MENU_REDO = Color.web(HEX_MENU_REDO);
+    public static final Color COLOR_MENU_SETTINGS = Color.web(HEX_MENU_SETTINGS);
+    public static final Color COLOR_MENU_FULLSCREEN = Color.web(HEX_MENU_FULLSCREEN);
 }

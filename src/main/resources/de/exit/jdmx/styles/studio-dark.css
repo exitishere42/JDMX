@@ -46,6 +46,50 @@
     -fx-background-color: #2E2E2E;
 }
 
+/* --- Brand Action Dropdown Menü --- */
+.action-menu-popup {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #2E2E2E;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 6px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.6), 16, 0, 0, 8);
+}
+
+.action-menu-item {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-text-fill: #D1D5DB;
+    -fx-font-size: 13px;
+    -fx-font-weight: 500;
+    -fx-padding: 7px 12px;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER_LEFT;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.action-menu-item:hover {
+    -fx-background-color: #2A2A2A;
+    -fx-text-fill: #F3F4F6;
+}
+
+.action-menu-item:pressed {
+    -fx-background-color: #333333;
+}
+
+.action-menu-separator {
+    -fx-padding: 4px 6px;
+}
+
+.action-menu-separator .line {
+    -fx-border-color: #2E2E2E;
+    -fx-border-width: 0.5px;
+}
+
 /* Trennlinie */
 .header-separator {
     -fx-stroke: #2E2E2E;

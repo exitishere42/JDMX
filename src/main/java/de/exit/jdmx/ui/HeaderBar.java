@@ -1,11 +1,13 @@
 package de.exit.jdmx.ui;
 
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.menu.BrandActionMenu;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
@@ -49,6 +51,9 @@ public class HeaderBar extends HBox {
     /** Label zur Visualisierung der aktuellen DMX-Paketrate. */
     private final Text trafficText = new Text("40 DMX/s");
 
+    /** Aufklappbares Aktions-Menü für Projektaktionen, Settings und Fullscreen. */
+    private final BrandActionMenu actionMenu = new BrandActionMenu();
+
     /**
      * Erstellt die All-in-One HeaderBar mit dezenter Hellgrau-Primärfarbe und bunten Icons.
      */
@@ -82,26 +87,42 @@ public class HeaderBar extends HBox {
     }
 
     /**
-     * Erzeugt den klickbaren Brand-Button mit dezentem Glühbirnen-Symbol (Warm Amber) links
+     * Erzeugt den klickbaren Brand-Button mit dezentem Glühbirnen-Symbol (Warm Amber-Gold #FEDC94) links
      * und dem Markennamen `jdmx` in Hellgrau, ohne Umrandung.
-     * Führt fürs Erste keine Aktion aus.
+     * Öffnet beim Klick das schlanke Action-Dropdown-Menü.
      */
     private Button createBrandButton() {
         Button btn = new Button("jdmx");
         btn.getStyleClass().add("brand-button");
         btn.setCursor(Cursor.HAND);
 
-        LucideIcon brandIcon = new LucideIcon("lightbulb", 18, Color.web("#FFB74D"));
+        LucideIcon brandIcon = new LucideIcon("lightbulb", 18, StudioTheme.COLOR_BRAND_LOGO);
         btn.setGraphic(brandIcon);
         btn.setContentDisplay(ContentDisplay.LEFT);
         btn.setGraphicTextGap(8);
 
-        // Fürs Erste keine Aktion
+        // Klick toggelt das Action-Dropdown-Menü direkt unter dem Button
         btn.setOnAction(e -> {
-            // Reserviert für spätere Info-/About-Aktion
+            if (actionMenu.isShowing()) {
+                actionMenu.hide();
+            } else {
+                Bounds bounds = btn.localToScreen(btn.getBoundsInLocal());
+                if (bounds != null && btn.getScene() != null && btn.getScene().getWindow() != null) {
+                    actionMenu.show(btn.getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
+                }
+            }
         });
 
         return btn;
+    }
+
+    /**
+     * Liefert das aufklappbare Aktions-Menü des Brand-Buttons.
+     *
+     * @return BrandActionMenu Instanz
+     */
+    public BrandActionMenu getActionMenu() {
+        return actionMenu;
     }
 
     /**

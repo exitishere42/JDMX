@@ -54,6 +54,13 @@ public class MainWindow extends BorderPane {
             // Not-Release für alle Chaser, Fades und Overrides
         });
 
+        // Brand Action-Menü Events
+        headerBar.getActionMenu().setOnAction("fullscreen", () -> {
+            if (getScene() != null && getScene().getWindow() instanceof javafx.stage.Stage stage) {
+                stage.setFullScreen(!stage.isFullScreen());
+            }
+        });
+
         // Initialen Tab anzeigen (Tab 0 = Stage & Fixtures)
         switchToTab(0);
     }
@@ -66,7 +73,7 @@ public class MainWindow extends BorderPane {
         tabViews[1] = createTabPlaceholder("Simple Desk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
-        tabViews[4] = createTabPlaceholder("Input/Output", "cable", StudioTheme.COLOR_ICON_IO);
+        tabViews[4] = createTabPlaceholder("Input/Output", "arrow-right-left", StudioTheme.COLOR_ICON_IO);
     }
 
     /**
