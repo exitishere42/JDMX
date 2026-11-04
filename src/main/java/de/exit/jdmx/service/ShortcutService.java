@@ -3,6 +3,7 @@ package de.exit.jdmx.service;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -164,5 +165,43 @@ public class ShortcutService {
             return sb.toString();
         }
         return comb.getDisplayText();
+    }
+
+    /**
+     * Prüft, ob ein Tastatur-Event der konfigurierten Tastenkombination einer Aktion entspricht.
+     * Unterstützt für Tab-Wechsel (1-5) automatisch auch das Numpad (NumPad 1-5).
+     *
+     * @param action Die Aktion
+     * @param event  Das KeyEvent
+     * @return {@code true}, wenn das Event übereinstimmt
+     */
+    public boolean matches(ShortcutAction action, KeyEvent event) {
+        if (action == null || event == null) {
+            return false;
+        }
+        ShortcutItem item = shortcuts.get(action);
+        if (item == null || item.keyCombination() == null) {
+            return false;
+        }
+
+        // Direkter KeyCombination Match
+        if (item.keyCombination().match(event)) {
+            return true;
+        }
+
+        // Optionale Numpad-Unterstützung für Tab 1 bis 5 (wenn keine Modifier aktiv sind)
+        if (!event.isControlDown() && !event.isAltDown() && !event.isShiftDown() && !event.isMetaDown()) {
+            KeyCode code = event.getCode();
+            return switch (action) {
+                case TAB_STAGE -> code == KeyCode.NUMPAD1;
+                case TAB_DESK -> code == KeyCode.NUMPAD2;
+                case TAB_MATRIX -> code == KeyCode.NUMPAD3;
+                case TAB_TIMELINE -> code == KeyCode.NUMPAD4;
+                case TAB_IO -> code == KeyCode.NUMPAD5;
+                default -> false;
+            };
+        }
+
+        return false;
     }
 }

@@ -56,7 +56,7 @@ public class SettingsDialog {
      * @param mainWindow Hauptfenster
      */
     public static void show(MainWindow mainWindow) {
-        SettingsDialog dialog = new SettingsDialog(mainWindow, new ShortcutService());
+        SettingsDialog dialog = new SettingsDialog(mainWindow, mainWindow.getShortcutService());
         mainWindow.showOverlay(dialog.getView());
     }
 

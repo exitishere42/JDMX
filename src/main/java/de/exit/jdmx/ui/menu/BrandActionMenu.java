@@ -185,4 +185,16 @@ public class BrandActionMenu extends Popup {
     public void setOnAction(String key, Runnable action) {
         this.actions.put(key, action);
     }
+
+    /**
+     * Löst die hinterlegte Aktion eines Menüeintrags programmgesteuert aus (z. B. via Shortcut).
+     *
+     * @param key Eindeutiger Key (z. B. "new_project", "save")
+     */
+    public void triggerAction(String key) {
+        Runnable action = actions.get(key);
+        if (action != null) {
+            action.run();
+        }
+    }
 }

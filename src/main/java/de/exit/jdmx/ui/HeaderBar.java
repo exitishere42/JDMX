@@ -21,6 +21,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Text;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -47,6 +49,9 @@ public class HeaderBar extends HBox {
 
     /** Callback-Empfänger bei Blackout-Toggle. */
     private Consumer<Boolean> blackoutHandler;
+
+    /** Liste der 5 ToggleButtons für die Workspace-Tabs. */
+    private final List<ToggleButton> tabButtons = new ArrayList<>();
 
     /** Label zur Visualisierung der aktuellen DMX-Paketrate. */
     private final Text trafficText = new Text("40 DMX/s");
@@ -183,6 +188,7 @@ public class HeaderBar extends HBox {
             });
 
             box.getChildren().add(tabBtn);
+            tabButtons.add(tabBtn);
         }
 
         return box;
@@ -275,6 +281,20 @@ public class HeaderBar extends HBox {
 
     public int getActiveTabIndex() {
         return activeTabIndex.get();
+    }
+
+    /**
+     * Wählt den Tab-Button programmgesteuert aus (z. B. via Shortcut 1-5).
+     *
+     * @param index Der Tab-Index (0 bis 4)
+     */
+    public void setActiveTab(int index) {
+        if (index >= 0 && index < tabButtons.size()) {
+            ToggleButton btn = tabButtons.get(index);
+            if (!btn.isSelected()) {
+                btn.setSelected(true);
+            }
+        }
     }
 
     public IntegerProperty activeTabIndexProperty() {

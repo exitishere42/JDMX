@@ -1,14 +1,20 @@
 package de.exit.jdmx.ui;
 
+import de.exit.jdmx.service.ShortcutAction;
+import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -39,10 +45,24 @@ public class MainWindow extends StackPane {
     /** In-App Modal Overlay Schicht (Halbtransparenter Schleier für Dialoge). */
     private final StackPane overlayPane;
 
+    /** HUD-Container für schnelle, unaufdringliche Status-Benachrichtigungen (z. B. Vollbild). */
+    private final StackPane hudPane;
+
+    /** Zentraler Shortcut-Service für konfigurierbare Tastaturkürzel. */
+    private final ShortcutService shortcutService;
+
     /**
      * Erstellt das Hauptfenster und initialisiert alle Basis-Komponenten.
      */
     public MainWindow() {
+        this(new ShortcutService());
+    }
+
+    /**
+     * Erstellt das Hauptfenster mit einem spezifischen ShortcutService.
+     */
+    public MainWindow(ShortcutService shortcutService) {
+        this.shortcutService = shortcutService;
         getStyleClass().add("main-window");
 
         this.contentPane = new BorderPane();
@@ -71,9 +91,14 @@ public class MainWindow extends StackPane {
             }
         });
 
-        getChildren().addAll(contentPane, overlayPane);
+        // 5. Schnelles HUD-Overlay (Vollbild / Status)
+        this.hudPane = new StackPane();
+        hudPane.setPickOnBounds(false);
+        hudPane.setAlignment(Pos.TOP_CENTER);
 
-        // 5. Header-Events verdrahten
+        getChildren().addAll(contentPane, overlayPane, hudPane);
+
+        // 6. Header-Events verdrahten
         headerBar.setOnTabChange(this::switchToTab);
         headerBar.setOnBlackout(active -> {
             // Signal-Event für DmxEngine / Core
@@ -83,23 +108,14 @@ public class MainWindow extends StackPane {
         });
 
         // Brand Action-Menü Events
-        headerBar.getActionMenu().setOnAction("fullscreen", () -> {
-            if (getScene() != null && getScene().getWindow() instanceof javafx.stage.Stage stage) {
-                stage.setFullScreen(!stage.isFullScreen());
-            }
-        });
+        headerBar.getActionMenu().setOnAction("fullscreen", this::toggleFullscreen);
 
         headerBar.getActionMenu().setOnAction("settings", () -> {
             SettingsDialog.show(this);
         });
 
-        // Globale Escape-Taste schließt aktive Overlays
-        addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == KeyCode.ESCAPE && isOverlayShowing()) {
-                hideOverlay();
-                e.consume();
-            }
-        });
+        // 7. Globale Tastenkürzel und Overlay-Steuerung
+        addEventFilter(KeyEvent.KEY_PRESSED, this::handleGlobalKeyEvent);
 
         // Initialen Tab anzeigen (Tab 0 = Stage & Fixtures)
         switchToTab(0);
@@ -182,6 +198,158 @@ public class MainWindow extends StackPane {
         if (index >= 0 && index < tabViews.length) {
             viewport.getChildren().clear();
             viewport.getChildren().add(tabViews[index]);
+            headerBar.setActiveTab(index);
         }
+    }
+
+    /**
+     * Schaltet den Vollbildmodus des Anwendungsfensters um.
+     * Beim Aktivieren wird JavaFX-seitig der träge native Hinweis unterdrückt
+     * und stattdessen ein extrem schnelles, dezentes Studio-HUD eingeblendet.
+     */
+    public void toggleFullscreen() {
+        if (getScene() != null && getScene().getWindow() instanceof javafx.stage.Stage stage) {
+            stage.setFullScreenExitHint("");
+            stage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+
+            boolean newState = !stage.isFullScreen();
+            stage.setFullScreen(newState);
+
+            if (newState) {
+                showFullscreenHud();
+            }
+        }
+    }
+
+    /**
+     * Zeigt eine schlanke, elegante HUD-Benachrichtigung beim Aktivieren des Vollbildmodus,
+     * die nach kurzer Zeit (~600ms) automatisch und sanft wieder ausgeblendet wird.
+     */
+    public void showFullscreenHud() {
+        hudPane.getChildren().clear();
+
+        HBox hud = new HBox(8);
+        hud.setAlignment(Pos.CENTER);
+        hud.getStyleClass().add("fullscreen-hud");
+
+        LucideIcon icon = new LucideIcon("maximize", 14, StudioTheme.COLOR_MENU_FULLSCREEN);
+        Text text = new Text("Vollbildmodus (F11)");
+        text.getStyleClass().add("fullscreen-hud-text");
+
+        hud.getChildren().addAll(icon, text);
+        StackPane.setMargin(hud, new Insets(16, 0, 0, 0));
+
+        hudPane.getChildren().add(hud);
+
+        hud.setOpacity(0.0);
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(80), hud);
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+
+        PauseTransition pause = new PauseTransition(Duration.millis(550));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(150), hud);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+
+        SequentialTransition seq = new SequentialTransition(fadeIn, pause, fadeOut);
+        seq.setOnFinished(e -> hudPane.getChildren().remove(hud));
+        seq.play();
+    }
+
+    /**
+     * Verarbeitet globale Tastatureingaben unter Berücksichtigung aktiver Overlays.
+     */
+    private void handleGlobalKeyEvent(KeyEvent event) {
+        // 1. Wenn ein Modal-Overlay offen ist: Escape schließt das Overlay
+        if (isOverlayShowing()) {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                hideOverlay();
+                event.consume();
+            }
+            return;
+        }
+
+        // 2. Escape verlässt den Vollbildmodus (wenn kein Overlay geöffnet ist)
+        if (event.getCode() == KeyCode.ESCAPE) {
+            if (getScene() != null && getScene().getWindow() instanceof javafx.stage.Stage stage && stage.isFullScreen()) {
+                stage.setFullScreen(false);
+                event.consume();
+                return;
+            }
+        }
+
+        // 3. F11 / Konfigurierter Shortcut für Vollbild umschalten
+        if (shortcutService.matches(ShortcutAction.FULLSCREEN, event)) {
+            toggleFullscreen();
+            event.consume();
+            return;
+        }
+
+        // 4. Tab-Wechsel (1-5 bzw. Numpad 1-5)
+        if (shortcutService.matches(ShortcutAction.TAB_STAGE, event)) {
+            switchToTab(0);
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.TAB_DESK, event)) {
+            switchToTab(1);
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.TAB_MATRIX, event)) {
+            switchToTab(2);
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.TAB_TIMELINE, event)) {
+            switchToTab(3);
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.TAB_IO, event)) {
+            switchToTab(4);
+            event.consume();
+            return;
+        }
+
+        // 5. Menü-Aktionen (Strg+N, Strg+O, Strg+S, Strg+Umschalt+S, Strg+Z, Strg+Y)
+        if (shortcutService.matches(ShortcutAction.NEW_PROJECT, event)) {
+            headerBar.getActionMenu().triggerAction("new_project");
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.OPEN_PROJECT, event)) {
+            headerBar.getActionMenu().triggerAction("open_file");
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.SAVE_PROJECT, event)) {
+            headerBar.getActionMenu().triggerAction("save");
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.SAVE_AS_PROJECT, event)) {
+            headerBar.getActionMenu().triggerAction("save_as");
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.UNDO, event)) {
+            headerBar.getActionMenu().triggerAction("undo");
+            event.consume();
+            return;
+        }
+        if (shortcutService.matches(ShortcutAction.REDO, event)) {
+            headerBar.getActionMenu().triggerAction("redo");
+            event.consume();
+            return;
+        }
+    }
+
+    /**
+     * Liefert den zentralen ShortcutService des Hauptfensters.
+     */
+    public ShortcutService getShortcutService() {
+        return shortcutService;
     }
 }

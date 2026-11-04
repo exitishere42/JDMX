@@ -39,6 +39,8 @@ public class JdmxApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(MIN_WIDTH);
         primaryStage.setMinHeight(MIN_HEIGHT);
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
 
         // App-Icon (Warm Amber Glühbirne im Dark Squircle) laden
         URL iconUrl = getClass().getResource("/icons/jdmx.png");

@@ -36,4 +36,28 @@ class MainWindowOverlayTest {
         mainWindow.hideOverlay();
         assertThat(mainWindow.isOverlayShowing()).isFalse();
     }
+
+    @Test
+    @DisplayName("Sollte zentralen ShortcutService bereitstellen und Tab per Shortcut umschalten")
+    void shouldHandleShortcutsInMainWindow() {
+        MainWindow mainWindow = new MainWindow();
+        assertThat(mainWindow.getShortcutService()).isNotNull();
+        assertThat(mainWindow.getHeaderBar().getActiveTabIndex()).isEqualTo(0);
+
+        // Simulieren von Taste "2" -> Tab 1 (Simple Desk)
+        javafx.scene.input.KeyEvent key2 = new javafx.scene.input.KeyEvent(
+                javafx.scene.input.KeyEvent.KEY_PRESSED, "", "", javafx.scene.input.KeyCode.DIGIT2, false, false, false, false);
+        mainWindow.fireEvent(key2);
+
+        assertThat(mainWindow.getHeaderBar().getActiveTabIndex()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Sollte Fullscreen-HUD ohne Fehler einblenden können")
+    void shouldShowFullscreenHud() {
+        MainWindow mainWindow = new MainWindow();
+        mainWindow.showFullscreenHud();
+        // Kein Fehler geworfen
+        assertThat(mainWindow).isNotNull();
+    }
 }
