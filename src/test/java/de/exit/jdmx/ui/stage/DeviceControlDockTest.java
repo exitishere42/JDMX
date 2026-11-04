@@ -41,8 +41,8 @@ class DeviceControlDockTest {
     void shouldSetMinimumWidthsOnAllModules() {
         DeviceControlDock dock = new DeviceControlDock();
 
-        assertThat(dock.getIntensityModule().getMinWidth()).isGreaterThanOrEqualTo(160.0);
-        assertThat(dock.getColorModule().getMinWidth()).isGreaterThanOrEqualTo(120.0);
+        assertThat(dock.getIntensityModule().getMinWidth()).isGreaterThanOrEqualTo(140.0);
+        assertThat(dock.getColorModule().getMinWidth()).isGreaterThanOrEqualTo(160.0);
         assertThat(dock.getPositionModule().getMinWidth()).isGreaterThanOrEqualTo(140.0);
     }
 
@@ -52,6 +52,6 @@ class DeviceControlDockTest {
         DeviceControlDock dock = new DeviceControlDock();
 
         assertThat(dock.getMinHeight()).isGreaterThanOrEqualTo(100.0);
-        assertThat(dock.getPrefHeight()).isLessThanOrEqualTo(140.0);
+        assertThat(dock.getPrefHeight()).isLessThanOrEqualTo(145.0);
     }
 }

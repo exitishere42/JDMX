@@ -9,6 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für das Intensitäts-Steuerungsmodul (IntensityModuleView).
+ * Entspricht dem DMXControl-Vorbild: 5er-Tastenleiste (VL, 70, 50, 30, 0),
+ * 2 Fader (Dimmer, Strobo - ohne Shutter) und 2x2 Block (Auf, Zu, Lumos, Nox).
  */
 class IntensityModuleViewTest {
 
@@ -22,17 +24,20 @@ class IntensityModuleViewTest {
     }
 
     @Test
-    @DisplayName("Sollte 5er-Tastenleiste, 3 Fader (Dimmer, Strobo, Shutter) und 2x2 Block enthalten")
-    void shouldContainAllIntensityControls() {
+    @DisplayName("Sollte 5er-Tastenleiste, 2 Fader (Dimmer, Strobo - OHNE Shutter) und 2x2 Block enthalten")
+    void shouldContainAllIntensityControlsWithoutShutter() {
         IntensityModuleView module = new IntensityModuleView();
 
         assertThat(module.getTitle()).isEqualTo("Intensität");
         assertThat(module.getDimmerSlider()).isNotNull();
         assertThat(module.getStrobeSlider()).isNotNull();
-        assertThat(module.getShutterSlider()).isNotNull();
 
         assertThat(module.getQuickButtons()).hasSize(5); // VL, 70, 50, 30, 0
         assertThat(module.getQuickButtons().get(0).getText()).isEqualTo("VL");
+        assertThat(module.getQuickButtons().get(1).getText()).isEqualTo("70");
+        assertThat(module.getQuickButtons().get(2).getText()).isEqualTo("50");
+        assertThat(module.getQuickButtons().get(3).getText()).isEqualTo("30");
+        assertThat(module.getQuickButtons().get(4).getText()).isEqualTo("0");
 
         assertThat(module.getBtnAuf()).isNotNull();
         assertThat(module.getBtnZu()).isNotNull();

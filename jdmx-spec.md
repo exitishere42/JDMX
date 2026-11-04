@@ -131,9 +131,9 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
    - File Explorer für Schnellzugriff auf gespeicherte Positions-Presets, Farb-Paletten und Gruppen.
 4. **24/7 Steuerungs-Dock unten (Kompaktes DMXControl 3 Style Device Control):**
    - **Kompakte Leiste:** Flache Bauform (~125–135px), scharfkantiges Moduldesign (0px Radius nur auf den Modulkarten), garantiert >60% vertikalen Raum für die obere Arbeitsfläche.
-   - **Intensität:** 5er-Schnelltasten (`VL`=100%, `70`, `50`, `30`, `0`), 3 vertikale Fader (`Dimmer`, `Strobo`, `Shutter`), 2x2 Tasterblock (`Auf`, `Zu`, `Lumos` [100%], `Nox` [0%]).
-   - **Farbe:** Purer, kompakter **HSV-Farbkreis** mit HSV-Reiter und Picker-Punkt (ohne Schieberegler).
-   - **Position:** Quadratisches **2D-XY-Fadenkreuz (80x80px)** mit Pan-Slider darunter und Tilt-Slider rechts sowie einem extra **`Home`**-Button zur schnellen Zentrierung auf 50%/50%.
+   - **Intensität:** 5er-Schnelltasten (`VL`=100%, `70`, `50`, `30`, `0`) vollflächig gestapelt, 2 vertikale Fader (`Dimmer`, `Strobo` – ohne Shutter), 2x2 Tasterblock (`Auf`, `Zu`, `Lumos` [100%], `Nox` [0%]).
+   - **Farbe:** Großer **HSV-Farbkreis (98x98px)** bis ca. 0.5cm an den Rand (ohne HSV-Schriftzug) sowie je 4 anpassbare Preset-Buttons links und rechts vom Rad (Linksklick: anwenden, Rechtsklick: speichern).
+   - **Position:** Großes **2D-XY-Fadenkreuz (96x96px)** bis ca. 0.5cm an den Rand mit Pan-Slider darunter und Tilt-Slider rechts sowie einem extra **`Home`**-Button im Header zur schnellen Zentrierung auf 50%/50%.
 
 ---
 
@@ -247,5 +247,5 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 | Datum | Komponente / Anforderung | Änderung / Spezifikation |
 | :--- | :--- | :--- |
-| **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock kompakt auf ~125–135px skaliert, scharfkantig (0px Radius nur auf Modulkarten). Modul 1: `Intensität` mit 5er-Buttons (`VL`, `70`, `50`, `30`, `0`), 3 Fadern (`Dimmer`, `Strobo`, `Shutter`) und 2x2 Block (`Auf`, `Zu`, `Lumos`, `Nox`). Modul 2: `Farbe` mit HSV-Reiter und reinem HSV-Kreis ohne Schieberegler. Modul 3: `Position` mit 80x80 Pad, Pan-Slider darunter, Tilt-Slider rechts und extra `Home`-Button. Stage-Bereich oben bleibt leere saubere Arbeitsfläche (>60% Raumgarantie). |
+| **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock kompakt auf ~125–135px skaliert, scharfkantig (0px Radius nur auf Modulkarten). Modul 1: `Intensität` vollflächig und schmaler (ohne Shutter) mit bündiger 5er-Tastenleiste (`VL`, `70`, `50`, `30`, `0`), 2 Fadern (`Dimmer`, `Strobo`) und 2x2 Block (`Auf`, `Zu`, `Lumos`, `Nox`). Modul 2: `Farbe` mit großem HSV-Farbkreis (98px, ohne HSV-Label) und je 4 anpassbaren Preset-Buttons links und rechts (Klick: anwenden, Rechtsklick: speichern). Modul 3: `Position` mit großem 96x96 Pad, Pan-Slider darunter, Tilt-Slider rechts und extra `Home`-Button. Stage-Bereich oben bleibt leere saubere Arbeitsfläche (>60% Raumgarantie). |
 

@@ -14,9 +14,9 @@ import javafx.scene.paint.Color;
 /**
  * Kompaktes Steuerungsmodul für Position (DMXControl-Stil).
  * <p>
- * Scharfkantig (0px Radius auf der Modulkarte) mit 2D XY-Pad (80x80px),
- * Schiebereglern für Pan (horizontal darunter) und Tilt (vertikal rechts)
- * sowie einem extra Home-Button zum Zentrieren auf 50%/50%.
+ * Scharfkantig (0px Radius auf der Modulkarte) mit großem 2D XY-Pad (96x96px),
+ * das fast bündig bis auf ca. 0.5cm an die Ränder reicht, Schiebereglern für
+ * Pan (horizontal darunter) und Tilt (vertikal rechts) sowie einem Home-Button im Header.
  * </p>
  */
 public class PositionModuleView extends VBox {
@@ -29,23 +29,24 @@ public class PositionModuleView extends VBox {
     private final Button btnHome;
 
     public PositionModuleView() {
-        super(3);
+        super(2);
         getStyleClass().add("control-module-card");
-        setMinWidth(140.0);
+        setMinWidth(150.0);
+        setPrefWidth(180.0);
 
-        // 1. Sliders & 2D XY-Pad (80x80)
+        // 1. Sliders & 2D XY-Pad (groß: 96x96 px)
         this.panSlider = new Slider(0, 100, 50);
-        panSlider.setPrefWidth(80);
-        panSlider.setMaxWidth(80);
+        panSlider.setPrefWidth(96);
+        panSlider.setMaxWidth(96);
         panSlider.getStyleClass().add("fader-slider-horizontal");
 
         this.tiltSlider = new Slider(0, 100, 50);
         tiltSlider.setOrientation(Orientation.VERTICAL);
-        tiltSlider.setPrefHeight(80);
-        tiltSlider.setMaxHeight(80);
+        tiltSlider.setPrefHeight(96);
+        tiltSlider.setMaxHeight(96);
         tiltSlider.getStyleClass().add("fader-slider");
 
-        this.xyPadCanvas = new Canvas(80, 80);
+        this.xyPadCanvas = new Canvas(96, 96);
         xyPadCanvas.getStyleClass().add("xy-pad-canvas");
 
         xyPadCanvas.setOnMousePressed(this::handlePadDrag);
@@ -76,16 +77,15 @@ public class PositionModuleView extends VBox {
 
         header.getChildren().addAll(lblTitle, spacer, btnHome);
 
-        // Zeile mit XY-Pad und Tilt-Slider rechts daneben
+        // 3. Layout: XY-Pad mit Tilt-Slider rechts, Pan-Slider darunter
         HBox padWithTiltRow = new HBox(4, xyPadCanvas, tiltSlider);
-        padWithTiltRow.setAlignment(Pos.CENTER_LEFT);
+        padWithTiltRow.setAlignment(Pos.CENTER);
 
-        // Zeile mit Pan-Slider darunter
         HBox panRow = new HBox(4, panSlider);
         panRow.setAlignment(Pos.CENTER_LEFT);
 
-        VBox padBox = new VBox(3, padWithTiltRow, panRow);
-        padBox.setAlignment(Pos.CENTER_LEFT);
+        VBox padBox = new VBox(2, padWithTiltRow, panRow);
+        padBox.setAlignment(Pos.CENTER);
         VBox.setVgrow(padBox, Priority.ALWAYS);
 
         getChildren().addAll(header, padBox);
