@@ -42,7 +42,8 @@ public class BrandActionMenu extends Popup {
 
         VBox root = new VBox(2);
         root.getStyleClass().add("action-menu-popup");
-        root.setMinWidth(220);
+        root.setMinWidth(175);
+        root.setPrefWidth(178);
 
         // 1. Projekt-Operationen
         Button btnNew = createMenuItem("new_project", "New Project", "file-plus", StudioTheme.COLOR_MENU_NEW);
@@ -121,14 +122,14 @@ public class BrandActionMenu extends Popup {
      */
     private Button createHalfMenuItem(String key, String title, String iconName, Color iconColor) {
         Button btn = new Button(title);
-        btn.getStyleClass().add("action-menu-item");
+        btn.getStyleClass().addAll("action-menu-item", "action-menu-half-item");
         btn.setMaxWidth(Double.MAX_VALUE);
         btn.setAlignment(Pos.CENTER_LEFT);
         btn.setCursor(Cursor.HAND);
         btn.setContentDisplay(ContentDisplay.LEFT);
-        btn.setGraphicTextGap(8);
+        btn.setGraphicTextGap(6);
 
-        LucideIcon icon = new LucideIcon(iconName, 16, iconColor);
+        LucideIcon icon = new LucideIcon(iconName, 15, iconColor);
         btn.setGraphic(icon);
 
         btn.setOnAction(e -> {
