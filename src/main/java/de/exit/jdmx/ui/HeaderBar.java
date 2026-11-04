@@ -7,7 +7,9 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
@@ -54,8 +56,8 @@ public class HeaderBar extends HBox {
         getStyleClass().add("header-bar");
         setAlignment(Pos.CENTER_LEFT);
 
-        // 1. Brand Logo (Dezentes Hellgrau)
-        HBox brandBox = createBrandBox();
+        // 1. Brand Button (Logo links neben Text, ohne Border)
+        Button brandButton = createBrandButton();
 
         // Trennlinie
         Line separator = new Line(0, 0, 0, 20);
@@ -76,24 +78,30 @@ public class HeaderBar extends HBox {
         HBox rightBox = new HBox(8, blackoutBtn, trafficPill, stopBtn);
         rightBox.setAlignment(Pos.CENTER_RIGHT);
 
-        getChildren().addAll(brandBox, separator, tabsBox, spacer, rightBox);
+        getChildren().addAll(brandButton, separator, tabsBox, spacer, rightBox);
     }
 
     /**
-     * Erzeugt das Marken-Logo `jdmx` mit dezentem Glühbirnen-Symbol (Warm Amber) und Schriftzug in Hellgrau.
+     * Erzeugt den klickbaren Brand-Button mit dezentem Glühbirnen-Symbol (Warm Amber) links
+     * und dem Markennamen `jdmx` in Hellgrau, ohne Umrandung.
+     * Führt fürs Erste keine Aktion aus.
      */
-    private HBox createBrandBox() {
-        HBox box = new HBox(8);
-        box.setAlignment(Pos.CENTER_LEFT);
-        box.getStyleClass().add("brand-box");
+    private Button createBrandButton() {
+        Button btn = new Button("jdmx");
+        btn.getStyleClass().add("brand-button");
+        btn.setCursor(Cursor.HAND);
 
         LucideIcon brandIcon = new LucideIcon("lightbulb", 18, Color.web("#FFB74D"));
+        btn.setGraphic(brandIcon);
+        btn.setContentDisplay(ContentDisplay.LEFT);
+        btn.setGraphicTextGap(8);
 
-        Text title = new Text("jdmx");
-        title.getStyleClass().add("brand-text");
+        // Fürs Erste keine Aktion
+        btn.setOnAction(e -> {
+            // Reserviert für spätere Info-/About-Aktion
+        });
 
-        box.getChildren().addAll(brandIcon, title);
-        return box;
+        return btn;
     }
 
     /**
