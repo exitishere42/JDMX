@@ -8,7 +8,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
@@ -23,14 +22,14 @@ import java.util.function.Consumer;
 /**
  * Die allumfassende, ultra-kompakte All-in-One Kopfzeile (Single Top-Bar) von JDMX.
  * <p>
- * Vereint das Markenlogo, die Umschalter für alle 5 Workspace-Tabs, den globalen
- * Blackout-Toggle, die DMX-Traffic-Anzeige (DMX/s) und den roten STOP-Button in
- * einer einzigen, platzsparenden Zeile.
+ * Primärfarbe ist ein dezentes, unaufdringliches Hellgrau.
+ * Die Tabs und Funktionen werden durch farbige Lucide-Vektor-Icons visualisiert.
+ * Der STOP-Button ist ein reines Symbol ohne Text.
  * </p>
  */
 public class HeaderBar extends HBox {
 
-    /** Index des aktuell aktiven Tabs (0 = Stage & Fixtures, 1 = Simple Desk, ...). */
+    /** Index des aktuell aktiven Tabs. */
     private final IntegerProperty activeTabIndex = new SimpleIntegerProperty(0);
 
     /** Zustand des globalen Blackouts. */
@@ -49,20 +48,20 @@ public class HeaderBar extends HBox {
     private final Text trafficText = new Text("40 DMX/s");
 
     /**
-     * Erstellt die All-in-One HeaderBar mit allen interaktiven Komponenten.
+     * Erstellt die All-in-One HeaderBar mit dezenter Hellgrau-Primärfarbe und bunten Icons.
      */
     public HeaderBar() {
         getStyleClass().add("header-bar");
         setAlignment(Pos.CENTER_LEFT);
 
-        // 1. Brand Logo
+        // 1. Brand Logo (Dezentes Hellgrau)
         HBox brandBox = createBrandBox();
 
         // Trennlinie
-        Line separator = new Line(0, 0, 0, 22);
+        Line separator = new Line(0, 0, 0, 20);
         separator.getStyleClass().add("header-separator");
 
-        // 2. Die 5 Workspace Tab-Buttons
+        // 2. Die 5 Workspace Tab-Buttons mit bunten Icons
         HBox tabsBox = createTabGroup();
 
         // Flexibler Platzhalter zur Ausrichtung nach rechts
@@ -74,14 +73,14 @@ public class HeaderBar extends HBox {
         HBox trafficPill = createTrafficPill();
         Button stopBtn = createStopButton();
 
-        HBox rightBox = new HBox(10, blackoutBtn, trafficPill, stopBtn);
+        HBox rightBox = new HBox(8, blackoutBtn, trafficPill, stopBtn);
         rightBox.setAlignment(Pos.CENTER_RIGHT);
 
         getChildren().addAll(brandBox, separator, tabsBox, spacer, rightBox);
     }
 
     /**
-     * Erzeugt das Marken-Logo `jdmx`.
+     * Erzeugt das Marken-Logo `jdmx` in dezentem Hellgrau.
      */
     private HBox createBrandBox() {
         HBox box = new HBox(6);
@@ -96,7 +95,7 @@ public class HeaderBar extends HBox {
     }
 
     /**
-     * Erzeugt die 5 Workspace-Umschalter als exklusive Toggle-Gruppe.
+     * Erzeugt die 5 Workspace-Umschalter mit individuellen bunten Lucide-Icons.
      */
     private HBox createTabGroup() {
         HBox box = new HBox(4);
@@ -121,29 +120,34 @@ public class HeaderBar extends HBox {
                 "cable"
         };
 
+        Color[] tabColors = {
+                StudioTheme.COLOR_ICON_STAGE,    // Cyan / Blau
+                StudioTheme.COLOR_ICON_FADER,    // Warm Amber / Orange
+                StudioTheme.COLOR_ICON_MATRIX,   // Violett / Purple
+                StudioTheme.COLOR_ICON_TIMELINE, // Smaragd-Grün
+                StudioTheme.COLOR_ICON_IO        // Türkis / Teal
+        };
+
         for (int i = 0; i < tabNames.length; i++) {
             final int index = i;
             ToggleButton tabBtn = new ToggleButton(tabNames[i]);
             tabBtn.setToggleGroup(group);
             tabBtn.getStyleClass().add("nav-tab-button");
 
-            LucideIcon icon = new LucideIcon(tabIcons[i], 14, StudioTheme.COLOR_TEXT_MED);
+            // Echtes Lucide-Vektor-Icon in seiner individuellen Signalfarbe
+            LucideIcon icon = new LucideIcon(tabIcons[i], 16, tabColors[i]);
             tabBtn.setGraphic(icon);
 
             if (i == 0) {
                 tabBtn.setSelected(true);
-                icon.setColor(StudioTheme.COLOR_CYAN);
             }
 
             tabBtn.selectedProperty().addListener((obs, oldVal, newVal) -> {
                 if (Boolean.TRUE.equals(newVal)) {
-                    icon.setColor(StudioTheme.COLOR_CYAN);
                     activeTabIndex.set(index);
                     if (tabChangeHandler != null) {
                         tabChangeHandler.accept(index);
                     }
-                } else {
-                    icon.setColor(StudioTheme.COLOR_TEXT_MED);
                 }
             });
 
@@ -154,13 +158,13 @@ public class HeaderBar extends HBox {
     }
 
     /**
-     * Erzeugt den Blackout-Toggle Button.
+     * Erzeugt den Blackout-Toggle Button mit rotem Power-Symbol.
      */
     private ToggleButton createBlackoutButton() {
         ToggleButton btn = new ToggleButton("BLACKOUT");
         btn.getStyleClass().add("btn-blackout");
 
-        LucideIcon powerIcon = new LucideIcon("power", 14, StudioTheme.COLOR_TEXT_HIGH);
+        LucideIcon powerIcon = new LucideIcon("power", 14, StudioTheme.COLOR_ICON_RED);
         btn.setGraphic(powerIcon);
 
         btn.selectedProperty().addListener((obs, oldVal, newVal) -> {
@@ -171,7 +175,7 @@ public class HeaderBar extends HBox {
                 powerIcon.setColor(Color.WHITE);
             } else {
                 btn.getStyleClass().remove("active");
-                powerIcon.setColor(StudioTheme.COLOR_TEXT_HIGH);
+                powerIcon.setColor(StudioTheme.COLOR_ICON_RED);
             }
             if (blackoutHandler != null) {
                 blackoutHandler.accept(active);
@@ -182,28 +186,30 @@ public class HeaderBar extends HBox {
     }
 
     /**
-     * Erzeugt die DMX/s Traffic-Pille mit Puls-Symbol.
+     * Erzeugt die DMX/s Traffic-Pille mit grünem Aktivitäts-Puls.
      */
     private HBox createTrafficPill() {
         HBox pill = new HBox(6);
         pill.getStyleClass().add("traffic-pill");
         pill.setAlignment(Pos.CENTER);
 
-        LucideIcon activityIcon = new LucideIcon("activity", 12, StudioTheme.COLOR_GREEN);
+        LucideIcon activityIcon = new LucideIcon("activity", 14, StudioTheme.COLOR_ICON_GREEN);
 
         trafficText.getStyleClass().add("traffic-text");
+
         pill.getChildren().addAll(activityIcon, trafficText);
         return pill;
     }
 
     /**
-     * Erzeugt den roten globalen STOP-Button.
+     * Erzeugt den reinen Symbol-STOP-Button (ohne Text, nur rotes Quadrat-Icon).
      */
     private Button createStopButton() {
-        Button btn = new Button("STOP");
-        btn.getStyleClass().add("btn-stop-all");
+        Button btn = new Button();
+        btn.getStyleClass().add("btn-stop-symbol");
 
-        LucideIcon stopIcon = new LucideIcon("square", 12, Color.WHITE);
+        // Reines Lucide-Quadrat-Symbol in Weiß auf rotem Grund
+        LucideIcon stopIcon = new LucideIcon("square", 16, Color.WHITE);
         btn.setGraphic(stopIcon);
 
         btn.setOnAction(e -> {
@@ -216,14 +222,12 @@ public class HeaderBar extends HBox {
     }
 
     /**
-     * Aktualisiert den angezeigten DMX-Paketrate-Text (z. B. "44 DMX/s").
+     * Aktualisiert den angezeigten DMX-Paketrate-Text.
      *
      * @param packetsPerSecond Aktuelle Paketrate
      */
     public void setDmxRate(int packetsPerSecond) {
-        if (trafficText != null) {
-            trafficText.setText(packetsPerSecond + " DMX/s");
-        }
+        trafficText.setText(packetsPerSecond + " DMX/s");
     }
 
     public void setOnTabChange(Consumer<Integer> handler) {

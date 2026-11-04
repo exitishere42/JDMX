@@ -62,22 +62,22 @@ public class MainWindow extends BorderPane {
      * Initialisiert die 5 Workspace-Tabs.
      */
     private void initTabViews() {
-        tabViews[0] = createTabPlaceholder("Stage & Fixtures", "stage");
-        tabViews[1] = createTabPlaceholder("Simple Desk", "sliders");
-        tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid");
-        tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines");
-        tabViews[4] = createTabPlaceholder("Input/Output", "cable");
+        tabViews[0] = createTabPlaceholder("Stage & Fixtures", "stage", StudioTheme.COLOR_ICON_STAGE);
+        tabViews[1] = createTabPlaceholder("Simple Desk", "sliders", StudioTheme.COLOR_ICON_FADER);
+        tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
+        tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
+        tabViews[4] = createTabPlaceholder("Input/Output", "cable", StudioTheme.COLOR_ICON_IO);
     }
 
     /**
-     * Erzeugt eine strukturierte Vorschau-Kachel für einen Tab ohne Erklärtexte.
+     * Erzeugt eine strukturierte Vorschau-Kachel für einen Tab mit farbigem Lucide-Icon.
      */
-    private Node createTabPlaceholder(String title, String iconName) {
+    private Node createTabPlaceholder(String title, String iconName, javafx.scene.paint.Color iconColor) {
         VBox box = new VBox(14);
         box.setAlignment(Pos.CENTER);
         box.getStyleClass().add("workspace-placeholder");
 
-        LucideIcon icon = new LucideIcon(iconName, 48, StudioTheme.COLOR_CYAN);
+        LucideIcon icon = new LucideIcon(iconName, 48, iconColor);
 
         Text titleText = new Text(title);
         titleText.getStyleClass().add("placeholder-title");

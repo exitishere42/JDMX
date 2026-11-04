@@ -12,13 +12,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StudioThemeTest {
 
     @Test
-    @DisplayName("Sollte valide Farb-Codes für Studio Dark Theme bereitstellen")
+    @DisplayName("Sollte neutrale Hellgrau-Primärfarbe und bunte Icon-Farben bereitstellen")
     void shouldProvideValidColorTokens() {
         assertThat(StudioTheme.HEX_BG_BASE).isEqualTo("#121212");
-        assertThat(StudioTheme.HEX_CYAN_ACCENT).isEqualTo("#00E5FF");
-        assertThat(StudioTheme.HEX_RED_STOP).isEqualTo("#EF4444");
+        assertThat(StudioTheme.HEX_PRIMARY_GRAY).isEqualTo("#D1D5DB");
+        assertThat(StudioTheme.COLOR_PRIMARY_GRAY).isNotNull();
 
-        assertThat(StudioTheme.COLOR_RED).isNotNull();
-        assertThat(StudioTheme.COLOR_CYAN).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_STAGE).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_FADER).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_MATRIX).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_TIMELINE).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_IO).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_RED).isNotNull();
+        assertThat(StudioTheme.COLOR_ICON_GREEN).isNotNull();
     }
 }
