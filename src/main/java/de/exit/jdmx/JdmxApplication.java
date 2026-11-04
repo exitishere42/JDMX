@@ -3,6 +3,7 @@ package de.exit.jdmx;
 import de.exit.jdmx.ui.MainWindow;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 import java.net.URL;
@@ -38,6 +39,12 @@ public class JdmxApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(MIN_WIDTH);
         primaryStage.setMinHeight(MIN_HEIGHT);
+
+        // App-Icon (Warm Amber Glühbirne im Dark Squircle) laden
+        URL iconUrl = getClass().getResource("/icons/jdmx.png");
+        if (iconUrl != null) {
+            primaryStage.getIcons().add(new Image(iconUrl.toExternalForm()));
+        }
 
         primaryStage.show();
     }

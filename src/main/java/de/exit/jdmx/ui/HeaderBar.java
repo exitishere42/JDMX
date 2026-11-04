@@ -80,17 +80,19 @@ public class HeaderBar extends HBox {
     }
 
     /**
-     * Erzeugt das Marken-Logo `jdmx` in dezentem Hellgrau.
+     * Erzeugt das Marken-Logo `jdmx` mit dezentem Glühbirnen-Symbol (Warm Amber) und Schriftzug in Hellgrau.
      */
     private HBox createBrandBox() {
-        HBox box = new HBox(6);
+        HBox box = new HBox(8);
         box.setAlignment(Pos.CENTER_LEFT);
         box.getStyleClass().add("brand-box");
+
+        LucideIcon brandIcon = new LucideIcon("lightbulb", 18, Color.web("#FFB74D"));
 
         Text title = new Text("jdmx");
         title.getStyleClass().add("brand-text");
 
-        box.getChildren().add(title);
+        box.getChildren().addAll(brandIcon, title);
         return box;
     }
 

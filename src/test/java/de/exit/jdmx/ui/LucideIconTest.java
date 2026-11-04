@@ -30,4 +30,12 @@ class LucideIconTest {
         assertThat(icon).isNotNull();
         assertThat(LucideIcon.getSvgPathData("arrow-right-left")).contains("M16 3");
     }
+
+    @Test
+    @DisplayName("Sollte lightbulb Icon für App-Logo korrekt erzeugen")
+    void shouldCreateLightbulbIcon() {
+        LucideIcon icon = new LucideIcon("lightbulb", 18, Color.web("#FFB74D"));
+        assertThat(icon).isNotNull();
+        assertThat(LucideIcon.getSvgPathData("lightbulb")).contains("M15 14");
+    }
 }
