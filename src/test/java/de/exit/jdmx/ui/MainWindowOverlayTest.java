@@ -53,10 +53,10 @@ class MainWindowOverlayTest {
     }
 
     @Test
-    @DisplayName("Sollte Fullscreen-HUD ohne Fehler einblenden können")
-    void shouldShowFullscreenHud() {
+    @DisplayName("Sollte Fullscreen-Hinweis ohne Fehler einblenden können")
+    void shouldShowFullscreenHint() {
         MainWindow mainWindow = new MainWindow();
-        mainWindow.showFullscreenHud();
+        mainWindow.showFullscreenHint();
         // Kein Fehler geworfen
         assertThat(mainWindow).isNotNull();
     }

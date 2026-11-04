@@ -15,6 +15,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -94,9 +95,28 @@ public class MainWindow extends StackPane {
         // 5. Schnelles HUD-Overlay (Vollbild / Status)
         this.hudPane = new StackPane();
         hudPane.setPickOnBounds(false);
-        hudPane.setAlignment(Pos.TOP_CENTER);
+        hudPane.setAlignment(Pos.CENTER);
 
         getChildren().addAll(contentPane, overlayPane, hudPane);
+
+        // Stage-Initialisierung für sauberes Fullscreen-Handling
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.windowProperty().addListener((wObs, oldWin, newWin) -> {
+                    if (newWin instanceof javafx.stage.Stage stage) {
+                        stage.setFullScreenExitHint("");
+                        stage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+                        stage.fullScreenProperty().addListener((fObs, wasFull, isFull) -> {
+                            if (Boolean.TRUE.equals(isFull)) {
+                                showFullscreenHint();
+                            } else {
+                                hudPane.getChildren().clear();
+                            }
+                        });
+                    }
+                });
+            }
+        });
 
         // 6. Header-Events verdrahten
         headerBar.setOnTabChange(this::switchToTab);
@@ -204,8 +224,8 @@ public class MainWindow extends StackPane {
 
     /**
      * Schaltet den Vollbildmodus des Anwendungsfensters um.
-     * Beim Aktivieren wird JavaFX-seitig der träge native Hinweis unterdrückt
-     * und stattdessen ein extrem schnelles, dezentes Studio-HUD eingeblendet.
+     * Beim Aktivieren wird JavaFX-seitig der träge 5s-Hinweis unterdrückt
+     * und stattdessen die authentische Meldung schnell ein- und ausgeblendet (~1s).
      */
     public void toggleFullscreen() {
         if (getScene() != null && getScene().getWindow() instanceof javafx.stage.Stage stage) {
@@ -216,45 +236,53 @@ public class MainWindow extends StackPane {
             stage.setFullScreen(newState);
 
             if (newState) {
-                showFullscreenHud();
+                showFullscreenHint();
+            } else {
+                hudPane.getChildren().clear();
             }
         }
     }
 
     /**
-     * Zeigt eine schlanke, elegante HUD-Benachrichtigung beim Aktivieren des Vollbildmodus,
-     * die nach kurzer Zeit (~600ms) automatisch und sanft wieder ausgeblendet wird.
+     * Zeigt die Vollbild-Meldung ("Drücken Sie ESC, um den Vollbildmodus zu verlassen")
+     * zentriert an, blendet sie aber deutlich schneller aus (~1s statt 5s im JavaFX-Standard).
      */
-    public void showFullscreenHud() {
+    public void showFullscreenHint() {
         hudPane.getChildren().clear();
 
-        HBox hud = new HBox(8);
-        hud.setAlignment(Pos.CENTER);
-        hud.getStyleClass().add("fullscreen-hud");
+        VBox box = new VBox();
+        box.setAlignment(Pos.CENTER);
+        box.getStyleClass().add("fullscreen-exit-hint-box");
+        box.setMaxWidth(Region.USE_PREF_SIZE);
+        box.setMaxHeight(Region.USE_PREF_SIZE);
 
-        LucideIcon icon = new LucideIcon("maximize", 14, StudioTheme.COLOR_MENU_FULLSCREEN);
-        Text text = new Text("Vollbildmodus (F11)");
-        text.getStyleClass().add("fullscreen-hud-text");
+        Text text = new Text("Drücken Sie ESC, um den Vollbildmodus zu verlassen");
+        text.getStyleClass().add("fullscreen-exit-hint-text");
 
-        hud.getChildren().addAll(icon, text);
-        StackPane.setMargin(hud, new Insets(16, 0, 0, 0));
+        box.getChildren().add(text);
+        hudPane.getChildren().add(box);
 
-        hudPane.getChildren().add(hud);
-
-        hud.setOpacity(0.0);
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(80), hud);
+        box.setOpacity(0.0);
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(90), box);
         fadeIn.setFromValue(0.0);
         fadeIn.setToValue(1.0);
 
-        PauseTransition pause = new PauseTransition(Duration.millis(550));
+        PauseTransition pause = new PauseTransition(Duration.millis(950));
 
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(150), hud);
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(250), box);
         fadeOut.setFromValue(1.0);
         fadeOut.setToValue(0.0);
 
         SequentialTransition seq = new SequentialTransition(fadeIn, pause, fadeOut);
-        seq.setOnFinished(e -> hudPane.getChildren().remove(hud));
+        seq.setOnFinished(e -> hudPane.getChildren().remove(box));
         seq.play();
+    }
+
+    /**
+     * Abwärtskompatible Methode für vorhandene Aufrufe.
+     */
+    public void showFullscreenHud() {
+        showFullscreenHint();
     }
 
     /**
