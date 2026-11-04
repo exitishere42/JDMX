@@ -2,6 +2,7 @@ package de.exit.jdmx.ui.stage;
 
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -22,8 +23,8 @@ import java.util.List;
  * Kompaktes Steuerungsmodul für Farbe (DMXControl-Stil).
  * <p>
  * Scharfkantig (0px Radius auf der Modulkarte) mit großem HSV-Farbkreis
- * (nahezu bündig bis zum Rand ohne störende Schieberegler oder HSV-Labels)
- * sowie je 4 anpassbaren Schnellwahl-/Preset-Buttons links und rechts vom Rad.
+ * (reicht bis auf ca. 0.5cm an den Rand) und je 4 anpassbaren Farb-Buttons
+ * links und rechts mit 1cm Abstand vom Rand.
  * </p>
  */
 public class ColorModuleView extends VBox {
@@ -46,7 +47,7 @@ public class ColorModuleView extends VBox {
         super(2);
         getStyleClass().add("control-module-card");
         setMinWidth(170.0);
-        setPrefWidth(210.0);
+        setPrefWidth(220.0);
 
         // 1. Schlichter Header
         HBox header = new HBox();
@@ -56,25 +57,38 @@ public class ColorModuleView extends VBox {
         lblTitle.getStyleClass().add("module-card-title");
         header.getChildren().add(lblTitle);
 
-        // 2. Großer HSV-Farbkreis (98x98 px - bis ca. 0.5cm an den Rand)
-        this.colorWheelCanvas = new Canvas(98, 98);
+        // 2. Großer HSV-Farbkreis (Standard 104x104 px, passt sich dynamisch an)
+        this.colorWheelCanvas = new Canvas(104, 104);
         colorWheelCanvas.setOnMousePressed(this::handleColorWheelClick);
         colorWheelCanvas.setOnMouseDragged(this::handleColorWheelClick);
 
         StackPane wheelContainer = new StackPane(colorWheelCanvas);
         wheelContainer.setAlignment(Pos.CENTER);
         VBox.setVgrow(wheelContainer, Priority.ALWAYS);
+        HBox.setHgrow(wheelContainer, Priority.ALWAYS);
 
-        // 3. Linke 4 Preset-Buttons
+        // Dynamisches Mitwachsen mit der Modulhöhe (bis auf ca. 5mm an den Rand)
+        wheelContainer.heightProperty().addListener((obs, oldV, newV) -> {
+            double h = newV.doubleValue();
+            if (h > 50) {
+                double size = Math.max(96.0, Math.min(130.0, h - 8.0));
+                colorWheelCanvas.setWidth(size);
+                colorWheelCanvas.setHeight(size);
+                drawColorWheel();
+            }
+        });
+
+        // 3. Linke 4 Preset-Buttons (ca. 1cm vom Rand entfernt)
         Color[] defaultLeft = {
                 Color.web("#FFFFFF"), // Weiß
                 Color.web("#FFF0D4"), // Warmweiß
                 Color.web("#EF4444"), // Rot
                 Color.web("#F59E0B")  // Gelb
         };
-        VBox leftBox = new VBox(3);
+        VBox leftBox = new VBox(4);
         leftBox.setAlignment(Pos.CENTER);
         VBox.setVgrow(leftBox, Priority.ALWAYS);
+        HBox.setMargin(leftBox, new Insets(0, 0, 0, 14)); // ca. 1cm vom linken Rand
 
         for (int i = 0; i < defaultLeft.length; i++) {
             final int index = i;
@@ -86,16 +100,17 @@ public class ColorModuleView extends VBox {
             leftBox.getChildren().add(btn);
         }
 
-        // 4. Rechte 4 Preset-Buttons
+        // 4. Rechte 4 Preset-Buttons (ca. 1cm vom Rand entfernt)
         Color[] defaultRight = {
                 Color.web("#10B981"), // Grün
                 Color.web("#06B6D4"), // Cyan
                 Color.web("#3B82F6"), // Blau
                 Color.web("#EC4899")  // Magenta
         };
-        VBox rightBox = new VBox(3);
+        VBox rightBox = new VBox(4);
         rightBox.setAlignment(Pos.CENTER);
         VBox.setVgrow(rightBox, Priority.ALWAYS);
+        HBox.setMargin(rightBox, new Insets(0, 14, 0, 0)); // ca. 1cm vom rechten Rand
 
         for (int i = 0; i < defaultRight.length; i++) {
             final int index = i;
@@ -107,7 +122,6 @@ public class ColorModuleView extends VBox {
             rightBox.getChildren().add(btn);
         }
 
-        // Farbkreis mit je ca. 10px Abstand zu den Buttons links und rechts
         HBox body = new HBox(8, leftBox, wheelContainer, rightBox);
         body.setAlignment(Pos.CENTER);
         VBox.setVgrow(body, Priority.ALWAYS);
@@ -121,7 +135,7 @@ public class ColorModuleView extends VBox {
         Button btn = new Button();
         btn.getStyleClass().add("color-chip-btn");
         btn.setPrefSize(22, 20);
-        btn.setMinSize(18, 16);
+        btn.setMinSize(20, 18);
         btn.setMaxSize(26, 24);
         VBox.setVgrow(btn, Priority.ALWAYS);
         applyColorToButton(btn, initialColor);
@@ -137,7 +151,6 @@ public class ColorModuleView extends VBox {
             }
         });
 
-        // Kontextmenü für Rechtsklick als Alternative
         ContextMenu contextMenu = new ContextMenu();
         MenuItem itemSave = new MenuItem("Aktuelle Farbe speichern");
         itemSave.setOnAction(e -> onSaveCurrentColor.run());
@@ -149,7 +162,7 @@ public class ColorModuleView extends VBox {
 
     private void applyColorToButton(Button btn, Color color) {
         String hex = toHex(color);
-        btn.setStyle("-fx-background-color: " + hex + "; -fx-border-color: #333333; -fx-border-radius: 3px; -fx-background-radius: 3px;");
+        btn.setStyle("-fx-background-color: " + hex + "; -fx-border-color: #383838; -fx-border-radius: 3px; -fx-background-radius: 3px;");
     }
 
     private String toHex(Color c) {
