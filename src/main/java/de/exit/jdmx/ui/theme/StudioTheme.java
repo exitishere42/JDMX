@@ -48,8 +48,8 @@ public final class StudioTheme {
     public static final String HEX_MENU_SAVE_AS = "#2DD4BF";   // Teal
     public static final String HEX_MENU_UNDO = "#A855F7";      // Purple
     public static final String HEX_MENU_REDO = "#38BDF8";      // Cyan
-    public static final String HEX_MENU_SETTINGS = "#D1D5DB";  // Light Gray
-    public static final String HEX_MENU_FULLSCREEN = "#FB923C";// Orange
+    public static final String HEX_MENU_SETTINGS = "#FB923C";  // Orange
+    public static final String HEX_MENU_FULLSCREEN = "#D1D5DB";// Light Gray
 
     // --- JavaFX Color Instanzen ---
     public static final Color COLOR_PRIMARY_GRAY = Color.web(HEX_PRIMARY_GRAY);
