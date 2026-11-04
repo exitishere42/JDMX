@@ -737,37 +737,43 @@
     -fx-text-fill: #E5E7EB;
 }
 
-/* Modul-Buttons */
+/* Modul-Buttons (Eckig mit Umrandung im DMXControl-Hardware-Stil) */
 .module-quick-btn {
     -fx-background-color: #242424;
     -fx-text-fill: #D1D5DB;
     -fx-font-size: 11px;
-    -fx-font-weight: 600;
-    -fx-padding: 3 6;
-    -fx-background-radius: 3px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 4;
+    -fx-background-radius: 0;
+    -fx-border-color: #383838;
+    -fx-border-radius: 0;
+    -fx-border-width: 1px;
     -fx-cursor: hand;
 }
 
 .module-quick-btn:hover {
     -fx-background-color: #333333;
-    -fx-text-fill: #F3F4F6;
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: #4B5563;
 }
 
 .module-small-btn {
     -fx-background-color: #242424;
     -fx-text-fill: #D1D5DB;
-    -fx-font-size: 10px;
-    -fx-font-weight: 600;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
     -fx-padding: 2 4;
-    -fx-background-radius: 3px;
-    -fx-border-color: #333333;
-    -fx-border-radius: 3px;
+    -fx-background-radius: 0;
+    -fx-border-color: #383838;
+    -fx-border-radius: 0;
+    -fx-border-width: 1px;
     -fx-cursor: hand;
 }
 
 .module-small-btn:hover {
     -fx-background-color: #333333;
     -fx-text-fill: #FFFFFF;
+    -fx-border-color: #4B5563;
 }
 
 .module-inner-tab-label {

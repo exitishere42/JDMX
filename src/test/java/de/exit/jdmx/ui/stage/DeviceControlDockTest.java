@@ -9,8 +9,9 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit-Tests für das untere 24/7 Steuerungs-Dock (DeviceControlDock)
- * mit den 3 horizontal verschiebbaren Modulen (Intensität, Farbe, Position).
+ * Unit-Tests für das untere 24/7 Steuerungs-Dock (DeviceControlDock).
+ * Prüft, dass das Intensitätsmodul horizontal auf eine feste Breite fixiert ist
+ * und nicht verschoben werden kann.
  */
 class DeviceControlDockTest {
 
@@ -37,11 +38,20 @@ class DeviceControlDockTest {
     }
 
     @Test
-    @DisplayName("Sollte für jedes Modul eine Mindestbreite festlegen (Harter Stopp gegen Kollabieren)")
-    void shouldSetMinimumWidthsOnAllModules() {
+    @DisplayName("Sollte Intensitätsmodul auf feste 245px fixieren (horizontal starr gesperrt)")
+    void shouldFixIntensityModuleWidth() {
         DeviceControlDock dock = new DeviceControlDock();
 
-        assertThat(dock.getIntensityModule().getMinWidth()).isGreaterThanOrEqualTo(140.0);
+        assertThat(dock.getIntensityModule().getMinWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
+        assertThat(dock.getIntensityModule().getMaxWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
+        assertThat(dock.getIntensityModule().getPrefWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
+    }
+
+    @Test
+    @DisplayName("Sollte für Farb- und Positionsmodul Mindestbreiten festlegen")
+    void shouldSetMinimumWidthsOnModules() {
+        DeviceControlDock dock = new DeviceControlDock();
+
         assertThat(dock.getColorModule().getMinWidth()).isGreaterThanOrEqualTo(160.0);
         assertThat(dock.getPositionModule().getMinWidth()).isGreaterThanOrEqualTo(140.0);
     }
