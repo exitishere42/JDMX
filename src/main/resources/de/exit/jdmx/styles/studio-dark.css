@@ -429,10 +429,10 @@
    Shortcuts Table (Keine Scrollbar, saubere Hotkey & Description Spalten)
    ========================================================================== */
 
-.settings-col-separator {
+.separator .line {
     -fx-border-color: #2E2E2E;
     -fx-border-width: 0.5px;
-    -fx-padding: 0 4;
+    -fx-background-color: transparent;
 }
 
 .shortcut-table-header {
@@ -449,17 +449,15 @@
 }
 
 .shortcut-table-row {
-    -fx-background-color: #171717;
-    -fx-background-radius: 4px;
-    -fx-border-color: #242424;
-    -fx-border-radius: 4px;
-    -fx-border-width: 1px;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #222222 transparent;
+    -fx-border-width: 0 0 1 0;
     -fx-padding: 3 8;
 }
 
 .shortcut-table-row:hover {
-    -fx-background-color: #222222;
-    -fx-border-color: #333333;
+    -fx-background-color: #202020;
+    -fx-background-radius: 4px;
 }
 
 .shortcut-description {
@@ -467,32 +465,33 @@
     -fx-font-size: 13px;
 }
 
-/* Keycap Button (Dezentes Grau/Weiß statt störendem Hellgelb) */
+/* Hotkey Button (Ohne Umrandung, nur feiner Hover) */
 .shortcut-key-badge {
-    -fx-background-color: #282828;
-    -fx-text-fill: #F3F4F6;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-text-fill: #D1D5DB;
     -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-font-weight: 600;
-    -fx-padding: 3 10;
+    -fx-padding: 4 8;
     -fx-background-radius: 4px;
-    -fx-border-color: #404040;
-    -fx-border-radius: 4px;
-    -fx-border-width: 1px;
     -fx-cursor: hand;
-    -fx-min-width: 135px;
-    -fx-pref-width: 135px;
-    -fx-alignment: CENTER;
+    -fx-min-width: 140px;
+    -fx-pref-width: 140px;
+    -fx-alignment: CENTER_LEFT;
 }
 
 .shortcut-key-badge:hover {
-    -fx-background-color: #333333;
-    -fx-border-color: #6B7280;
+    -fx-background-color: #262626;
+    -fx-text-fill: #F3F4F6;
 }
 
 .shortcut-key-badge.recording {
     -fx-background-color: #382815;
     -fx-border-color: #F59E0B;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
     -fx-text-fill: #F59E0B;
 }
 

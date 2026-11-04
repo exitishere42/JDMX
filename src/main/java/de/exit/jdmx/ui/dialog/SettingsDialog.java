@@ -8,7 +8,6 @@ import de.exit.jdmx.ui.icon.FlagIcon;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -70,9 +69,9 @@ public class SettingsDialog {
 
         this.card = new VBox(12);
         card.getStyleClass().add("settings-dialog-card");
-        card.setMinWidth(680);
-        card.setPrefWidth(720);
-        card.setMaxWidth(760);
+        card.setMinWidth(480);
+        card.setPrefWidth(510);
+        card.setMaxWidth(530);
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
@@ -271,78 +270,55 @@ public class SettingsDialog {
     }
 
     private VBox buildShortcutsView() {
-        VBox box = new VBox(6);
+        VBox box = new VBox(4);
         box.setPadding(new Insets(4, 0, 4, 0));
 
-        List<ShortcutItem> allItems = shortcutService.getAllShortcuts();
-        int mid = (allItems.size() + 1) / 2; // 6 Einträge pro Spalte
-        List<ShortcutItem> leftItems = allItems.subList(0, mid);
-        List<ShortcutItem> rightItems = allItems.subList(mid, allItems.size());
-
-        // 4-spaltiges Layout: 2 parallele Blöcke à [HOTKEY | DESCRIPTION | RESET]
-        VBox leftCol = createShortcutColumn(leftItems);
-        VBox rightCol = createShortcutColumn(rightItems);
-
-        HBox.setHgrow(leftCol, Priority.ALWAYS);
-        HBox.setHgrow(rightCol, Priority.ALWAYS);
-
-        Separator divider = new Separator(Orientation.VERTICAL);
-        divider.getStyleClass().add("settings-col-separator");
-
-        HBox twoCols = new HBox(14, leftCol, divider, rightCol);
-        twoCols.setAlignment(Pos.TOP_CENTER);
-
-        box.getChildren().add(twoCols);
-        return box;
-    }
-
-    private VBox createShortcutColumn(List<ShortcutItem> items) {
-        VBox col = new VBox(4);
-
-        HBox headerRow = new HBox(8);
+        // Tabellen-Header: HOTKEY | DESCRIPTION (ohne störendes Reload-Icon im Header)
+        HBox headerRow = new HBox(12);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         headerRow.getStyleClass().add("shortcut-table-header");
 
         Label colHotkey = new Label("HOTKEY");
         colHotkey.getStyleClass().add("shortcut-col-title");
-        colHotkey.setMinWidth(120);
-        colHotkey.setPrefWidth(120);
+        colHotkey.setMinWidth(140);
+        colHotkey.setPrefWidth(140);
 
         Label colDesc = new Label("DESCRIPTION");
         colDesc.getStyleClass().add("shortcut-col-title");
         HBox.setHgrow(colDesc, Priority.ALWAYS);
 
-        Label colReset = new Label("↺");
-        colReset.getStyleClass().add("shortcut-col-title");
-        colReset.setMinWidth(28);
-        colReset.setAlignment(Pos.CENTER);
+        // Unsichtbarer Platzhalter für die Ausrichtung der Reset-Buttons der Zeilen
+        Region spacerReset = new Region();
+        spacerReset.setMinWidth(28);
+        spacerReset.setPrefWidth(28);
 
-        headerRow.getChildren().addAll(colHotkey, colDesc, colReset);
-        col.getChildren().add(headerRow);
+        headerRow.getChildren().addAll(colHotkey, colDesc, spacerReset);
+        box.getChildren().add(headerRow);
 
+        // Tabellen-Zeilen
         VBox rows = new VBox(2);
-        for (ShortcutItem item : items) {
+        for (ShortcutItem item : shortcutService.getAllShortcuts()) {
             rows.getChildren().add(createShortcutRow(item));
         }
 
-        col.getChildren().add(rows);
-        return col;
+        box.getChildren().add(rows);
+        return box;
     }
 
     private HBox createShortcutRow(ShortcutItem item) {
-        HBox row = new HBox(8);
+        HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("shortcut-table-row");
 
-        // 1. Spalte: Hotkey Keycap-Button
+        // 1. Spalte: Hotkey Button (ohne Umrandung, nur feiner Hover-Effekt)
         Button btnKey = new Button(shortcutService.getDisplayText(item.action()));
         btnKey.getStyleClass().add("shortcut-key-badge");
         btnKey.setCursor(Cursor.HAND);
-        btnKey.setMinWidth(120);
-        btnKey.setPrefWidth(120);
+        btnKey.setMinWidth(140);
+        btnKey.setPrefWidth(140);
 
         // 2. Spalte: Description (Icon + Text)
-        HBox descBox = new HBox(6);
+        HBox descBox = new HBox(8);
         descBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(descBox, Priority.ALWAYS);
 
@@ -365,7 +341,7 @@ public class SettingsDialog {
             btnKey.getStyleClass().remove("recording");
         });
 
-        // Klick auf Badge startet Aufnahme-Modus
+        // Klick auf Hotkey startet Aufnahme-Modus
         btnKey.setOnAction(e -> startRecording(item.action(), btnKey));
 
         // Key-Event Listener für Tastendruck
