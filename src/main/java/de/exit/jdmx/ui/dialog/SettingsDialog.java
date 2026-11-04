@@ -66,11 +66,12 @@ public class SettingsDialog {
         this.mainWindow = mainWindow;
         this.shortcutService = shortcutService;
 
-        this.card = new VBox(14);
+        this.card = new VBox(12);
         card.getStyleClass().add("settings-dialog-card");
-        card.setMinWidth(520);
-        card.setMaxWidth(560);
-        card.setPrefWidth(540);
+        card.setMinWidth(540);
+        card.setMaxWidth(600);
+        card.setPrefWidth(560);
+        card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
     }
@@ -203,53 +204,68 @@ public class SettingsDialog {
 
     private VBox buildShortcutsView() {
         VBox box = new VBox(6);
-        box.setPadding(new Insets(8, 2, 8, 2));
+        box.setPadding(new Insets(4, 0, 4, 0));
 
-        Label infoLabel = new Label("Klicke auf eine Tastenkombination, um sie individuell anzupassen:");
-        infoLabel.getStyleClass().add("settings-info-text");
-        box.getChildren().add(infoLabel);
+        // Tabellen-Kopfzeile: HOTKEY | DESCRIPTION | RESET
+        HBox headerRow = new HBox(12);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        headerRow.getStyleClass().add("shortcut-table-header");
 
-        VBox list = new VBox(4);
+        Label colHotkey = new Label("HOTKEY");
+        colHotkey.getStyleClass().add("shortcut-col-title");
+        colHotkey.setMinWidth(135);
+        colHotkey.setPrefWidth(135);
+
+        Label colDesc = new Label("DESCRIPTION");
+        colDesc.getStyleClass().add("shortcut-col-title");
+        HBox.setHgrow(colDesc, Priority.ALWAYS);
+
+        Label colReset = new Label("RESET");
+        colReset.getStyleClass().add("shortcut-col-title");
+        colReset.setMinWidth(36);
+        colReset.setAlignment(Pos.CENTER);
+
+        headerRow.getChildren().addAll(colHotkey, colDesc, colReset);
+        box.getChildren().add(headerRow);
+
+        // Tabellen-Zeilen (Direkt und sauber ohne Scrollbar)
+        VBox table = new VBox(2);
         List<ShortcutItem> items = shortcutService.getAllShortcuts();
 
         for (ShortcutItem item : items) {
             HBox row = createShortcutRow(item);
-            list.getChildren().add(row);
+            table.getChildren().add(row);
         }
 
-        ScrollPane scroll = new ScrollPane(list);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(260);
-        scroll.setMaxHeight(300);
-        scroll.getStyleClass().add("settings-scrollpane");
-
-        box.getChildren().add(scroll);
+        box.getChildren().add(table);
         return box;
     }
 
     private HBox createShortcutRow(ShortcutItem item) {
-        HBox row = new HBox(8);
+        HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.getStyleClass().add("shortcut-row");
-        row.setPadding(new Insets(5, 8, 5, 8));
+        row.getStyleClass().add("shortcut-table-row");
 
-        // Icon + Name der Aktion
-        LucideIcon icon = new LucideIcon(item.action().getIconName(), 15, StudioTheme.COLOR_TEXT_HIGH);
-        Label lblName = new Label(item.action().getLabel());
-        lblName.getStyleClass().add("shortcut-name");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        // Tasten-Badge Button (Klickbar für Neuaufnahme)
+        // 1. Spalte: Hotkey Badge Button
         Button btnKey = new Button(shortcutService.getDisplayText(item.action()));
         btnKey.getStyleClass().add("shortcut-key-badge");
         btnKey.setCursor(Cursor.HAND);
 
-        // Reset Button
+        // 2. Spalte: Description (Icon + Erklärung)
+        HBox descBox = new HBox(8);
+        descBox.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(descBox, Priority.ALWAYS);
+
+        LucideIcon icon = new LucideIcon(item.action().getIconName(), 14, StudioTheme.COLOR_TEXT_HIGH);
+        Label lblDesc = new Label(item.action().getLabel());
+        lblDesc.getStyleClass().add("shortcut-description");
+
+        descBox.getChildren().addAll(icon, lblDesc);
+
+        // 3. Spalte: Reset Button
         Button btnReset = new Button();
         btnReset.getStyleClass().add("shortcut-reset-btn");
-        btnReset.setGraphic(new LucideIcon("rotate-ccw", 13, StudioTheme.COLOR_TEXT_LOW));
+        btnReset.setGraphic(new LucideIcon("rotate-ccw", 12, StudioTheme.COLOR_TEXT_LOW));
         btnReset.setCursor(Cursor.HAND);
         btnReset.setTooltip(new Tooltip("Auf Standard zurücksetzen"));
         btnReset.setOnAction(e -> {
@@ -270,7 +286,7 @@ public class SettingsDialog {
             }
         });
 
-        row.getChildren().addAll(icon, lblName, spacer, btnKey, btnReset);
+        row.getChildren().addAll(btnKey, descBox, btnReset);
         return row;
     }
 
