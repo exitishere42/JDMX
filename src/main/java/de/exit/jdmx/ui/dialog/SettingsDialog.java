@@ -4,9 +4,11 @@ import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.ShortcutItem;
 import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.ui.MainWindow;
+import de.exit.jdmx.ui.icon.FlagIcon;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
@@ -68,9 +70,9 @@ public class SettingsDialog {
 
         this.card = new VBox(12);
         card.getStyleClass().add("settings-dialog-card");
-        card.setMinWidth(540);
-        card.setMaxWidth(600);
-        card.setPrefWidth(560);
+        card.setMinWidth(680);
+        card.setPrefWidth(720);
+        card.setMaxWidth(760);
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
@@ -154,32 +156,53 @@ public class SettingsDialog {
         }
     }
 
+    /**
+     * Repräsentiert eine auswählbare Sprache mit Vektor-Flagge.
+     */
+    public record LanguageOption(String code, String displayName) {
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
+
     private VBox buildGeneralView() {
-        VBox box = new VBox(12);
+        VBox box = new VBox(14);
         box.setPadding(new Insets(10, 4, 10, 4));
 
-        // Vollbild beim Start
+        // 1. Sprache (Language mit echten Vektor-Flaggen für de, en, ru)
+        HBox langRow = new HBox(12);
+        langRow.setAlignment(Pos.CENTER_LEFT);
+        Label lblLang = new Label("Sprache:");
+        lblLang.getStyleClass().add("settings-label");
+        lblLang.setMinWidth(160);
+
+        ComboBox<LanguageOption> cbLanguage = createLanguageComboBox();
+        langRow.getChildren().addAll(lblLang, cbLanguage);
+
+        // 2. Vollbild beim Start
         CheckBox cbFullscreen = new CheckBox("Vollbild beim Programmstart");
         cbFullscreen.getStyleClass().add("settings-checkbox");
         cbFullscreen.setSelected(false);
 
-        // Sicherheitsabfrage vor Beenden
+        // 3. Sicherheitsabfrage vor Beenden
         CheckBox cbConfirmExit = new CheckBox("Bestätigung vor dem Schließen bei ungespeicherten Szenen");
         cbConfirmExit.getStyleClass().add("settings-checkbox");
         cbConfirmExit.setSelected(true);
 
-        // Auto-Save
+        // 4. Auto-Save
         HBox autoSaveRow = new HBox(12);
         autoSaveRow.setAlignment(Pos.CENTER_LEFT);
         Label lblAutoSave = new Label("Automatisches Speichern:");
         lblAutoSave.getStyleClass().add("settings-label");
+        lblAutoSave.setMinWidth(160);
         ComboBox<String> cbAutoSave = new ComboBox<>();
         cbAutoSave.getItems().addAll("Deaktiviert", "Alle 5 Minuten", "Alle 10 Minuten", "Alle 15 Minuten");
         cbAutoSave.setValue("Alle 10 Minuten");
         cbAutoSave.getStyleClass().add("settings-combo");
         autoSaveRow.getChildren().addAll(lblAutoSave, cbAutoSave);
 
-        // Standard-Projektverzeichnis
+        // 5. Standard-Projektverzeichnis
         VBox folderBox = new VBox(6);
         Label lblFolder = new Label("Standard-Projektordner:");
         lblFolder.getStyleClass().add("settings-label");
@@ -198,61 +221,128 @@ public class SettingsDialog {
         folderRow.getChildren().addAll(tfFolder, btnBrowse);
         folderBox.getChildren().addAll(lblFolder, folderRow);
 
-        box.getChildren().addAll(cbFullscreen, cbConfirmExit, autoSaveRow, folderBox);
+        box.getChildren().addAll(langRow, cbFullscreen, cbConfirmExit, autoSaveRow, folderBox);
         return box;
+    }
+
+    private ComboBox<LanguageOption> createLanguageComboBox() {
+        ComboBox<LanguageOption> combo = new ComboBox<>();
+        combo.getStyleClass().add("settings-combo");
+        combo.getItems().addAll(
+                new LanguageOption("de", "Deutsch"),
+                new LanguageOption("en", "English"),
+                new LanguageOption("ru", "Русский")
+        );
+        combo.setValue(combo.getItems().getFirst());
+
+        // Custom Cell Factory für Flagge + Text
+        combo.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(LanguageOption item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(item.displayName());
+                    setGraphic(FlagIcon.create(item.code()));
+                    setGraphicTextGap(10);
+                }
+            }
+        });
+
+        // Button Cell für die geschlossene Ansicht
+        combo.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(LanguageOption item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(item.displayName());
+                    setGraphic(FlagIcon.create(item.code()));
+                    setGraphicTextGap(10);
+                }
+            }
+        });
+
+        return combo;
     }
 
     private VBox buildShortcutsView() {
         VBox box = new VBox(6);
         box.setPadding(new Insets(4, 0, 4, 0));
 
-        // Tabellen-Kopfzeile: HOTKEY | DESCRIPTION | RESET
-        HBox headerRow = new HBox(12);
+        List<ShortcutItem> allItems = shortcutService.getAllShortcuts();
+        int mid = (allItems.size() + 1) / 2; // 6 Einträge pro Spalte
+        List<ShortcutItem> leftItems = allItems.subList(0, mid);
+        List<ShortcutItem> rightItems = allItems.subList(mid, allItems.size());
+
+        // 4-spaltiges Layout: 2 parallele Blöcke à [HOTKEY | DESCRIPTION | RESET]
+        VBox leftCol = createShortcutColumn(leftItems);
+        VBox rightCol = createShortcutColumn(rightItems);
+
+        HBox.setHgrow(leftCol, Priority.ALWAYS);
+        HBox.setHgrow(rightCol, Priority.ALWAYS);
+
+        Separator divider = new Separator(Orientation.VERTICAL);
+        divider.getStyleClass().add("settings-col-separator");
+
+        HBox twoCols = new HBox(14, leftCol, divider, rightCol);
+        twoCols.setAlignment(Pos.TOP_CENTER);
+
+        box.getChildren().add(twoCols);
+        return box;
+    }
+
+    private VBox createShortcutColumn(List<ShortcutItem> items) {
+        VBox col = new VBox(4);
+
+        HBox headerRow = new HBox(8);
         headerRow.setAlignment(Pos.CENTER_LEFT);
         headerRow.getStyleClass().add("shortcut-table-header");
 
         Label colHotkey = new Label("HOTKEY");
         colHotkey.getStyleClass().add("shortcut-col-title");
-        colHotkey.setMinWidth(135);
-        colHotkey.setPrefWidth(135);
+        colHotkey.setMinWidth(120);
+        colHotkey.setPrefWidth(120);
 
         Label colDesc = new Label("DESCRIPTION");
         colDesc.getStyleClass().add("shortcut-col-title");
         HBox.setHgrow(colDesc, Priority.ALWAYS);
 
-        Label colReset = new Label("RESET");
+        Label colReset = new Label("↺");
         colReset.getStyleClass().add("shortcut-col-title");
-        colReset.setMinWidth(36);
+        colReset.setMinWidth(28);
         colReset.setAlignment(Pos.CENTER);
 
         headerRow.getChildren().addAll(colHotkey, colDesc, colReset);
-        box.getChildren().add(headerRow);
+        col.getChildren().add(headerRow);
 
-        // Tabellen-Zeilen (Direkt und sauber ohne Scrollbar)
-        VBox table = new VBox(2);
-        List<ShortcutItem> items = shortcutService.getAllShortcuts();
-
+        VBox rows = new VBox(2);
         for (ShortcutItem item : items) {
-            HBox row = createShortcutRow(item);
-            table.getChildren().add(row);
+            rows.getChildren().add(createShortcutRow(item));
         }
 
-        box.getChildren().add(table);
-        return box;
+        col.getChildren().add(rows);
+        return col;
     }
 
     private HBox createShortcutRow(ShortcutItem item) {
-        HBox row = new HBox(12);
+        HBox row = new HBox(8);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("shortcut-table-row");
 
-        // 1. Spalte: Hotkey Badge Button
+        // 1. Spalte: Hotkey Keycap-Button
         Button btnKey = new Button(shortcutService.getDisplayText(item.action()));
         btnKey.getStyleClass().add("shortcut-key-badge");
         btnKey.setCursor(Cursor.HAND);
+        btnKey.setMinWidth(120);
+        btnKey.setPrefWidth(120);
 
-        // 2. Spalte: Description (Icon + Erklärung)
-        HBox descBox = new HBox(8);
+        // 2. Spalte: Description (Icon + Text)
+        HBox descBox = new HBox(6);
         descBox.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(descBox, Priority.ALWAYS);
 
@@ -262,7 +352,7 @@ public class SettingsDialog {
 
         descBox.getChildren().addAll(icon, lblDesc);
 
-        // 3. Spalte: Reset Button
+        // 3. Spalte: Reset-Button
         Button btnReset = new Button();
         btnReset.getStyleClass().add("shortcut-reset-btn");
         btnReset.setGraphic(new LucideIcon("rotate-ccw", 12, StudioTheme.COLOR_TEXT_LOW));

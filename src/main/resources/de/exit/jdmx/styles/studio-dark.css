@@ -429,6 +429,12 @@
    Shortcuts Table (Keine Scrollbar, saubere Hotkey & Description Spalten)
    ========================================================================== */
 
+.settings-col-separator {
+    -fx-border-color: #2E2E2E;
+    -fx-border-width: 0.5px;
+    -fx-padding: 0 4;
+}
+
 .shortcut-table-header {
     -fx-border-color: transparent transparent #2E2E2E transparent;
     -fx-border-width: 0 0 1 0;
