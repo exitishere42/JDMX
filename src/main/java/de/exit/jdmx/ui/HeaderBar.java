@@ -117,7 +117,7 @@ public class HeaderBar extends HBox {
                 "sliders",
                 "layout-grid",
                 "audio-lines",
-                "cable"
+                "arrow-right-left"
         };
 
         Color[] tabColors = {

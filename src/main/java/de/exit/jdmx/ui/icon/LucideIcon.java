@@ -105,8 +105,11 @@ public class LucideIcon extends StackPane {
 
     /**
      * Liefert die exakten Lucide SVG Path Data Strings (24x24 ViewBox).
+     *
+     * @param iconName Name des Lucide-Icons
+     * @return SVG-Pfad-Daten
      */
-    private static String getSvgPathData(String iconName) {
+    public static String getSvgPathData(String iconName) {
         return switch (iconName) {
             case "power" ->
                 // Lucide power: circle arc + vertical line
@@ -130,6 +133,9 @@ public class LucideIcon extends StackPane {
             case "audio-lines", "music" ->
                 // Lucide audio-lines
                 "M2 10v3 M6 6v11 M10 3v18 M14 8v7 M18 5v13 M22 10v3";
+            case "arrow-right-left", "arrows-horizontal", "io" ->
+                // Lucide arrow-right-left
+                "M16 3l4 4-4 4 M20 7H4 M8 21l-4-4 4-4 M4 17h16";
             case "cable", "network" ->
                 // Lucide cable
                 "M4 12v6 M16 12v6 M8 12v2 M12 12v2 M3 18h18 M18 6h-4a2 2 0 0 0-2 2v4 M6 6h4a2 2 0 0 1 2 2v4";
