@@ -662,20 +662,20 @@
     -fx-background-color: #D1D5DB;
 }
 
-/* Control Module Cards (24/7 Geöffnete Steuerungs-Karten) */
+/* Control Module Cards (24/7 Geöffnete Steuerungs-Karten) - scharfkantig (0px) nur für die Module */
 .control-module-card {
     -fx-background-color: #1A1A1A;
     -fx-border-color: #282828;
     -fx-border-width: 1px;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-padding: 8 10;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 4 6;
 }
 
 .module-card-header {
     -fx-border-color: transparent transparent #262626 transparent;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 0 0 5 0;
+    -fx-padding: 0 0 3 0;
 }
 
 .module-card-title {
@@ -751,6 +751,33 @@
 .module-quick-btn:hover {
     -fx-background-color: #333333;
     -fx-text-fill: #F3F4F6;
+}
+
+.module-small-btn {
+    -fx-background-color: #242424;
+    -fx-text-fill: #D1D5DB;
+    -fx-font-size: 10px;
+    -fx-font-weight: 600;
+    -fx-padding: 2 4;
+    -fx-background-radius: 3px;
+    -fx-border-color: #333333;
+    -fx-border-radius: 3px;
+    -fx-cursor: hand;
+}
+
+.module-small-btn:hover {
+    -fx-background-color: #333333;
+    -fx-text-fill: #FFFFFF;
+}
+
+.module-inner-tab-label {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #E5E7EB;
+    -fx-background-color: #242424;
+    -fx-padding: 2 8;
+    -fx-background-radius: 3px 3px 0 0;
+    -fx-border-color: #383838 #383838 transparent #383838;
 }
 
 .module-action-btn-green {

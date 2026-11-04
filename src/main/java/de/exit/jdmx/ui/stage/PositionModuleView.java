@@ -1,12 +1,10 @@
 package de.exit.jdmx.ui.stage;
 
-import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.input.MouseEvent;
@@ -14,36 +12,40 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 
 /**
- * Steuerungsmodul für Position (Pan/Tilt mit 2D XY-Pad, Schiebereglern und Invert-Optionen).
+ * Kompaktes Steuerungsmodul für Position (DMXControl-Stil).
+ * <p>
+ * Scharfkantig (0px Radius auf der Modulkarte) mit 2D XY-Pad (80x80px),
+ * Schiebereglern für Pan (horizontal darunter) und Tilt (vertikal rechts)
+ * sowie einem extra Home-Button zum Zentrieren auf 50%/50%.
+ * </p>
  */
 public class PositionModuleView extends VBox {
 
-    private final String title = "POSITION";
+    private final String title = "Position";
 
     private final Canvas xyPadCanvas;
     private final Slider panSlider;
     private final Slider tiltSlider;
-    private final CheckBox cbInvertPan;
-    private final CheckBox cbInvertTilt;
     private final Button btnHome;
 
     public PositionModuleView() {
-        super(8);
+        super(3);
         getStyleClass().add("control-module-card");
-        setMinWidth(240.0);
+        setMinWidth(140.0);
 
-        // 1. Header (Icon + Titel)
-        HBox header = createHeader();
-
-        // 2. Sliders & 2D XY-Pad
+        // 1. Sliders & 2D XY-Pad (80x80)
         this.panSlider = new Slider(0, 100, 50);
+        panSlider.setPrefWidth(80);
+        panSlider.setMaxWidth(80);
         panSlider.getStyleClass().add("fader-slider-horizontal");
 
         this.tiltSlider = new Slider(0, 100, 50);
         tiltSlider.setOrientation(Orientation.VERTICAL);
+        tiltSlider.setPrefHeight(80);
+        tiltSlider.setMaxHeight(80);
         tiltSlider.getStyleClass().add("fader-slider");
 
-        this.xyPadCanvas = new Canvas(120, 100);
+        this.xyPadCanvas = new Canvas(80, 80);
         xyPadCanvas.getStyleClass().add("xy-pad-canvas");
 
         xyPadCanvas.setOnMousePressed(this::handlePadDrag);
@@ -54,47 +56,39 @@ public class PositionModuleView extends VBox {
 
         drawXyPad();
 
-        // XY-Pad in der Mitte, Tilt rechts daneben
-        HBox padWithTiltRow = new HBox(6, xyPadCanvas, tiltSlider);
-        padWithTiltRow.setAlignment(Pos.CENTER);
-        VBox.setVgrow(padWithTiltRow, Priority.ALWAYS);
+        // 2. Header (Titel + Home-Button rechts)
+        HBox header = new HBox();
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("module-card-header");
 
-        // Pan-Slider unter dem Pad
-        VBox padBox = new VBox(4, padWithTiltRow, panSlider);
-        padBox.setAlignment(Pos.CENTER);
-        VBox.setVgrow(padBox, Priority.ALWAYS);
+        Label lblTitle = new Label(title);
+        lblTitle.getStyleClass().add("module-card-title");
 
-        // 3. Footer: Invert-Checkboxen & Home-Button
-        this.cbInvertPan = new CheckBox("Pan");
-        cbInvertPan.getStyleClass().add("settings-checkbox");
-
-        this.cbInvertTilt = new CheckBox("Tilt");
-        cbInvertTilt.getStyleClass().add("settings-checkbox");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         this.btnHome = new Button("Home");
-        btnHome.getStyleClass().add("module-action-btn-secondary");
+        btnHome.getStyleClass().add("module-small-btn");
         btnHome.setOnAction(e -> {
             panSlider.setValue(50.0);
             tiltSlider.setValue(50.0);
         });
 
-        HBox optionsRow = new HBox(8, cbInvertPan, cbInvertTilt, btnHome);
-        optionsRow.setAlignment(Pos.CENTER_RIGHT);
+        header.getChildren().addAll(lblTitle, spacer, btnHome);
 
-        getChildren().addAll(header, padBox, optionsRow);
-    }
+        // Zeile mit XY-Pad und Tilt-Slider rechts daneben
+        HBox padWithTiltRow = new HBox(4, xyPadCanvas, tiltSlider);
+        padWithTiltRow.setAlignment(Pos.CENTER_LEFT);
 
-    private HBox createHeader() {
-        HBox header = new HBox(6);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.getStyleClass().add("module-card-header");
+        // Zeile mit Pan-Slider darunter
+        HBox panRow = new HBox(4, panSlider);
+        panRow.setAlignment(Pos.CENTER_LEFT);
 
-        LucideIcon icon = new LucideIcon("crosshair", 14, Color.web("#A855F7"));
-        Label lblTitle = new Label(title);
-        lblTitle.getStyleClass().add("module-card-title");
+        VBox padBox = new VBox(3, padWithTiltRow, panRow);
+        padBox.setAlignment(Pos.CENTER_LEFT);
+        VBox.setVgrow(padBox, Priority.ALWAYS);
 
-        header.getChildren().addAll(icon, lblTitle);
-        return header;
+        getChildren().addAll(header, padBox);
     }
 
     private void handlePadDrag(MouseEvent event) {
@@ -105,7 +99,7 @@ public class PositionModuleView extends VBox {
         double clampedY = Math.max(0, Math.min(h, event.getY()));
 
         double panPct = (clampedX / w) * 100.0;
-        // Invert Y so top is 100% and bottom is 0%
+        // Oben = 100%, Unten = 0%
         double tiltPct = (1.0 - (clampedY / h)) * 100.0;
 
         panSlider.setValue(panPct);
@@ -119,14 +113,14 @@ public class PositionModuleView extends VBox {
 
         gc.clearRect(0, 0, w, h);
 
-        // Hintergrund
+        // Hintergrund (scharfkantig)
         gc.setFill(Color.web("#141414"));
-        gc.fillRoundRect(0, 0, w, h, 6, 6);
+        gc.fillRect(0, 0, w, h);
 
         // Rahmen
         gc.setStroke(Color.web("#2E2E2E"));
         gc.setLineWidth(1);
-        gc.strokeRoundRect(0, 0, w, h, 6, 6);
+        gc.strokeRect(0, 0, w, h);
 
         // Fadenkreuz (Mittellinien)
         gc.setStroke(Color.web("#282828"));
@@ -147,12 +141,12 @@ public class PositionModuleView extends VBox {
         gc.strokeLine(0, markerY, w, markerY);
         gc.setLineDashes(null);
 
-        // Cursor Dot
+        // Cursor Dot (Punkt)
         gc.setFill(Color.web("#A855F7"));
-        gc.fillOval(markerX - 5, markerY - 5, 10, 10);
+        gc.fillOval(markerX - 4, markerY - 4, 8, 8);
         gc.setStroke(Color.WHITE);
-        gc.setLineWidth(1.5);
-        gc.strokeOval(markerX - 5, markerY - 5, 10, 10);
+        gc.setLineWidth(1.2);
+        gc.strokeOval(markerX - 4, markerY - 4, 8, 8);
     }
 
     public String getTitle() {
@@ -169,14 +163,6 @@ public class PositionModuleView extends VBox {
 
     public Slider getTiltSlider() {
         return tiltSlider;
-    }
-
-    public CheckBox getCbInvertPan() {
-        return cbInvertPan;
-    }
-
-    public CheckBox getCbInvertTilt() {
-        return cbInvertTilt;
     }
 
     public Button getBtnHome() {

@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für das Farb-Steuerungsmodul (ColorModuleView).
+ * Reiner HSV-Farbkreis ohne Schieberegler gemäß Nutzerwunsch.
  */
 class ColorModuleViewTest {
 
@@ -23,21 +24,20 @@ class ColorModuleViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Farbkreis und Schnell-Farbpaletten bereitstellen")
-    void shouldContainColorControls() {
+    @DisplayName("Sollte purer Farbkreis mit HSV-Tab ohne Schieberegler sein")
+    void shouldContainColorWheelWithoutSliders() {
         ColorModuleView module = new ColorModuleView();
 
-        assertThat(module.getTitle()).isEqualTo("FARBE");
+        assertThat(module.getTitle()).isEqualTo("Farbe");
         assertThat(module.getColorWheel()).isNotNull();
-        assertThat(module.getColorPresets()).isNotEmpty();
+        assertThat(module.getSelectedColor()).isNotNull();
     }
 
     @Test
-    @DisplayName("Sollte ausgewählte Farbe über Preset-Klick anpassen")
-    void shouldSelectColorFromPreset() {
+    @DisplayName("Sollte ausgewählte Farbe programmatisch anpassen können")
+    void shouldUpdateSelectedColor() {
         ColorModuleView module = new ColorModuleView();
 
-        // Klick auf den roten Preset-Button
         module.selectColor(Color.RED);
         assertThat(module.getSelectedColor()).isEqualTo(Color.RED);
     }

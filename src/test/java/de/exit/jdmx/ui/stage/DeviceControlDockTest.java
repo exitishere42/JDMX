@@ -2,7 +2,6 @@ package de.exit.jdmx.ui.stage;
 
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
-import javafx.scene.control.SplitPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,17 +41,17 @@ class DeviceControlDockTest {
     void shouldSetMinimumWidthsOnAllModules() {
         DeviceControlDock dock = new DeviceControlDock();
 
-        // Harte Stopps für jedes Modul
-        assertThat(dock.getIntensityModule().getMinWidth()).isGreaterThanOrEqualTo(200.0);
-        assertThat(dock.getColorModule().getMinWidth()).isGreaterThanOrEqualTo(220.0);
-        assertThat(dock.getPositionModule().getMinWidth()).isGreaterThanOrEqualTo(240.0);
+        assertThat(dock.getIntensityModule().getMinWidth()).isGreaterThanOrEqualTo(160.0);
+        assertThat(dock.getColorModule().getMinWidth()).isGreaterThanOrEqualTo(120.0);
+        assertThat(dock.getPositionModule().getMinWidth()).isGreaterThanOrEqualTo(140.0);
     }
 
     @Test
-    @DisplayName("Sollte eine Mindesthöhe für das 24/7 Dock definieren")
-    void shouldHaveMinimumHeight() {
+    @DisplayName("Sollte eine flache, kompakte Höhe für das 24/7 Dock definieren")
+    void shouldHaveCompactHeight() {
         DeviceControlDock dock = new DeviceControlDock();
 
-        assertThat(dock.getMinHeight()).isGreaterThanOrEqualTo(160.0);
+        assertThat(dock.getMinHeight()).isGreaterThanOrEqualTo(100.0);
+        assertThat(dock.getPrefHeight()).isLessThanOrEqualTo(140.0);
     }
 }

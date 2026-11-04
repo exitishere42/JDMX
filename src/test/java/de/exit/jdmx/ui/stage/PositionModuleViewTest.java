@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit-Tests für das Positionierungs-Modul (PositionModuleView) mit Pan/Tilt XY-Pad.
+ * Unit-Tests für das Positionierungs-Modul (PositionModuleView) mit Pan/Tilt XY-Pad und Home-Button.
  */
 class PositionModuleViewTest {
 
@@ -22,17 +22,14 @@ class PositionModuleViewTest {
     }
 
     @Test
-    @DisplayName("Sollte XY-Fadenkreuz, Pan/Tilt-Slider, Invert-Checkboxen und Home-Button enthalten")
-    void shouldContainAllPositionControls() {
+    @DisplayName("Sollte XY-Pad, Pan/Tilt-Slider und Home-Button enthalten")
+    void shouldContainPositionControls() {
         PositionModuleView module = new PositionModuleView();
 
-        assertThat(module.getTitle()).isEqualTo("POSITION");
+        assertThat(module.getTitle()).isEqualTo("Position");
         assertThat(module.getXyPad()).isNotNull();
         assertThat(module.getPanSlider()).isNotNull();
         assertThat(module.getTiltSlider()).isNotNull();
-
-        assertThat(module.getCbInvertPan()).isNotNull();
-        assertThat(module.getCbInvertTilt()).isNotNull();
         assertThat(module.getBtnHome()).isNotNull();
     }
 
@@ -42,8 +39,8 @@ class PositionModuleViewTest {
         PositionModuleView module = new PositionModuleView();
 
         // Verstellen
-        module.getPanSlider().setValue(10.0);
-        module.getTiltSlider().setValue(90.0);
+        module.getPanSlider().setValue(15.0);
+        module.getTiltSlider().setValue(85.0);
 
         // Home drücken
         module.getBtnHome().fire();

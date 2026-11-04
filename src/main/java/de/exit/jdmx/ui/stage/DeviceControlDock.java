@@ -6,11 +6,12 @@ import javafx.scene.control.SplitPane;
 /**
  * Das untere 24/7 Steuerungs-Dock für Tab 1 (Stage & Fixtures).
  * <p>
- * Beherbergt 3 nebeneinanderliegende, horizontal verschiebbare Steuerungskarten:
+ * Beherbergt 3 nebeneinanderliegende, horizontal verschiebbare Steuerungskarten
+ * im kompakten DMXControl-Stil:
  * <ul>
- *     <li><b>Modul 1:</b> {@link IntensityModuleView} (Dimmer & Strobo)</li>
- *     <li><b>Modul 2:</b> {@link ColorModuleView} (HSV-Farbkreis & Presets)</li>
- *     <li><b>Modul 3:</b> {@link PositionModuleView} (Pan/Tilt 2D-Pad & Invert)</li>
+ *     <li><b>Modul 1:</b> {@link IntensityModuleView} (Dimmer, Strobo, Shutter)</li>
+ *     <li><b>Modul 2:</b> {@link ColorModuleView} (HSV-Farbkreis)</li>
+ *     <li><b>Modul 3:</b> {@link PositionModuleView} (Pan/Tilt 2D-Pad & Home-Button)</li>
  * </ul>
  * Jedes Modul besitzt eine feste Mindestbreite gegen versehentliches Kollabieren.
  * </p>
@@ -24,7 +25,8 @@ public class DeviceControlDock extends SplitPane {
     public DeviceControlDock() {
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("device-control-dock");
-        setMinHeight(180.0);
+        setMinHeight(115.0);
+        setPrefHeight(130.0);
 
         this.intensityModule = new IntensityModuleView();
         this.colorModule = new ColorModuleView();
@@ -33,8 +35,8 @@ public class DeviceControlDock extends SplitPane {
         // 3 Module hinzufügen
         getItems().addAll(intensityModule, colorModule, positionModule);
 
-        // Standard-Teilung: ca. 30% Intensität, 35% Farbe, 35% Position
-        setDividerPositions(0.30, 0.65);
+        // Standard-Teilung: ca. 38% Intensität, 30% Farbe, 32% Position
+        setDividerPositions(0.38, 0.68);
     }
 
     public IntensityModuleView getIntensityModule() {

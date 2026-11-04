@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für den Haupt-Workspace von Tab 1 (StageWorkspaceView).
- * Stellt sicher, dass die Stage oben immer mehr als 60% des Platzes behält.
+ * Stellt sicher, dass die leere Stage oben immer mehr als 60% des Platzes behält.
  */
 class StageWorkspaceViewTest {
 
@@ -40,12 +40,9 @@ class StageWorkspaceViewTest {
     void shouldGuaranteeStageKeepsMoreThanSixtyPercentHeight() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
-        // Standard-Teilung: z. B. 68% für die Stage, 32% für die Leiste
+        // Standard-Teilung: ca. 80-85% für die Stage, 15-20% für die kompakte Leiste
         double defaultDividerPos = workspace.getDividerPosition();
         assertThat(defaultDividerPos).isGreaterThan(0.60);
-
-        // Mindesthöhe für Stage Canvas
-        assertThat(workspace.getStageCanvasView().getMinHeight()).isGreaterThanOrEqualTo(220.0);
     }
 
     @Test

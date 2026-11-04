@@ -129,10 +129,11 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
    - Vektor-Beams simulieren Abstrahlrichtung, Pan/Tilt-Winkel, Farbe und Helligkeit in Echtzeit an die Wand.
 3. **Rechte Leiste (ausklappbar):**
    - File Explorer für Schnellzugriff auf gespeicherte Positions-Presets, Farb-Paletten und Gruppen.
-4. **Ausklappdock unten (DMXControl 3 Style Device Control):**
-   - **Intensität:** Prozent-Schnelltasten (`VL`=100%, `70`, `50`, `30`, `0`), vertikale Fader für `Dimmer` und `Strobo`, Taster `Auf`, `Zu`, `Lumos` (100%), `Nox` (0%).
-   - **Farbe:** Purer, aufgeräumter **HSV-Farbkreis** mit Picker-Punkt (ohne störende X/Y-Slider).
-   - **Position:** Großes **2D-XY-Fadenkreuz** mit Pan-Slider darunter und Tilt-Slider rechts, Checkboxen für **`Pan invertieren`** und **`Tilt invertieren`** (essenziell für die gespiegelten U-Schenkel) sowie Min/Max-Begrenzern.
+4. **24/7 Steuerungs-Dock unten (Kompaktes DMXControl 3 Style Device Control):**
+   - **Kompakte Leiste:** Flache Bauform (~125–135px), scharfkantiges Moduldesign (0px Radius nur auf den Modulkarten), garantiert >60% vertikalen Raum für die obere Arbeitsfläche.
+   - **Intensität:** 5er-Schnelltasten (`VL`=100%, `70`, `50`, `30`, `0`), 3 vertikale Fader (`Dimmer`, `Strobo`, `Shutter`), 2x2 Tasterblock (`Auf`, `Zu`, `Lumos` [100%], `Nox` [0%]).
+   - **Farbe:** Purer, kompakter **HSV-Farbkreis** mit HSV-Reiter und Picker-Punkt (ohne Schieberegler).
+   - **Position:** Quadratisches **2D-XY-Fadenkreuz (80x80px)** mit Pan-Slider darunter und Tilt-Slider rechts sowie einem extra **`Home`**-Button zur schnellen Zentrierung auf 50%/50%.
 
 ---
 
@@ -239,3 +240,12 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 - [ ] **Phase 5: JavaFX Desktop UI & All-in-One Header** (`MainWindow`, Studio Dark Theme, `LucideIcon.java`, Single Top-Bar).
 - [ ] **Phase 6: Die 5 Workspace-Tabs** (Stage & Fixtures, Simple Desk, Button Matrix, Show-Timeline, Input/Output).
 - [ ] **Phase 7: Dokumentation & Packaging** (`ONBOARDING.md`, `ARCHITECTURE.md`, `README.md`, Fat-JAR).
+
+---
+
+## 6. Änderungshistorie (Living Requirements)
+
+| Datum | Komponente / Anforderung | Änderung / Spezifikation |
+| :--- | :--- | :--- |
+| **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock kompakt auf ~125–135px skaliert, scharfkantig (0px Radius nur auf Modulkarten). Modul 1: `Intensität` mit 5er-Buttons (`VL`, `70`, `50`, `30`, `0`), 3 Fadern (`Dimmer`, `Strobo`, `Shutter`) und 2x2 Block (`Auf`, `Zu`, `Lumos`, `Nox`). Modul 2: `Farbe` mit HSV-Reiter und reinem HSV-Kreis ohne Schieberegler. Modul 3: `Position` mit 80x80 Pad, Pan-Slider darunter, Tilt-Slider rechts und extra `Home`-Button. Stage-Bereich oben bleibt leere saubere Arbeitsfläche (>60% Raumgarantie). |
+
