@@ -91,10 +91,7 @@ public class HeaderBar extends HBox {
         Text title = new Text("jdmx");
         title.getStyleClass().add("brand-text");
 
-        Text sub = new Text("2.0");
-        sub.getStyleClass().add("brand-sub");
-
-        box.getChildren().addAll(title, sub);
+        box.getChildren().add(title);
         return box;
     }
 
