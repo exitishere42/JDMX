@@ -1,0 +1,169 @@
+/* ==========================================================================
+   JDMX Studio Dark Theme Stylesheet
+   Modernes, blendfreies Lichtpult-Design mit 8pt Grid & sauberen Kontrasten
+   ========================================================================== */
+
+.root {
+    -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -fx-background-color: #121212;
+    -fx-font-size: 13px;
+}
+
+/* --- All-in-One Header Bar --- */
+.header-bar {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: transparent transparent #333333 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 6 12 6 12;
+    -fx-spacing: 12;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* Brand Logo */
+.brand-box {
+    -fx-spacing: 4;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 8 0 0;
+}
+
+.brand-text {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-fill: #00E5FF;
+    -fx-letter-spacing: 1px;
+}
+
+.brand-sub {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-fill: #8E8E8E;
+}
+
+/* Divider zwischen Brand und Tabs */
+.header-separator {
+    -fx-stroke: #333333;
+    -fx-stroke-width: 1;
+}
+
+/* Tab-Navigationsgruppe */
+.tab-button-group {
+    -fx-spacing: 4;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.nav-tab-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #A0A0A0;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-padding: 6 14 6 14;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+}
+
+.nav-tab-button:hover {
+    -fx-background-color: #262626;
+    -fx-text-fill: #FFFFFF;
+}
+
+.nav-tab-button:selected, .nav-tab-button.active {
+    -fx-background-color: #282828;
+    -fx-text-fill: #00E5FF;
+    -fx-border-color: #00E5FF;
+}
+
+/* Rechte Header-Aktionen */
+.header-right-actions {
+    -fx-spacing: 10;
+    -fx-alignment: CENTER_RIGHT;
+}
+
+/* Blackout Button */
+.btn-blackout {
+    -fx-background-color: #262626;
+    -fx-text-fill: #E5E5E5;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 12 6 12;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: #404040;
+    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+}
+
+.btn-blackout:hover {
+    -fx-background-color: #333333;
+    -fx-text-fill: #FFFFFF;
+}
+
+.btn-blackout.active {
+    -fx-background-color: #DC2626;
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: #EF4444;
+}
+
+/* DMX Traffic Pill */
+.traffic-pill {
+    -fx-background-color: #202020;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 12px;
+    -fx-border-color: #383838;
+    -fx-border-width: 1;
+    -fx-border-radius: 12px;
+    -fx-alignment: CENTER;
+    -fx-spacing: 6;
+}
+
+.traffic-text {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-fill: #10B981;
+}
+
+/* STOP Button (Roter Not-Release) */
+.btn-stop-all {
+    -fx-background-color: #DC2626;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 16 6 16;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: #EF4444;
+    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+}
+
+.btn-stop-all:hover {
+    -fx-background-color: #B91C1C;
+    -fx-border-color: #F87171;
+}
+
+.btn-stop-all:pressed {
+    -fx-background-color: #991B1B;
+}
+
+/* Haupt-Viewport / Arbeitsfläche */
+.main-viewport {
+    -fx-background-color: #121212;
+}
+
+.workspace-placeholder {
+    -fx-alignment: CENTER;
+    -fx-spacing: 12;
+}
+
+.placeholder-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-fill: #E5E5E5;
+}
+
+.placeholder-sub {
+    -fx-font-size: 13px;
+    -fx-fill: #8E8E8E;
+}
