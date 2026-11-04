@@ -62,37 +62,17 @@ public class MainWindow extends BorderPane {
      * Initialisiert die 5 Workspace-Tabs.
      */
     private void initTabViews() {
-        tabViews[0] = createTabPlaceholder(
-                "Stage & Fixtures",
-                "2D Bühnenplan mit U-Traverse gegen Projektionswand & DMXControl-3 Device Control",
-                "stage"
-        );
-        tabViews[1] = createTabPlaceholder(
-                "Simple Desk",
-                "QLC+ Style 512-Kanal Fader-Pult mit Custom Scrollbar & Fixture List",
-                "sliders"
-        );
-        tabViews[2] = createTabPlaceholder(
-                "Button Matrix",
-                "3x16 / 3x25 Live Virtual Console für Show-Busking & Selective Cues",
-                "layout-grid"
-        );
-        tabViews[3] = createTabPlaceholder(
-                "Show-Timeline",
-                "FL Studio Style Multi-Line Playlist mit integrierter Musik-Wiedergabe",
-                "audio-lines"
-        );
-        tabViews[4] = createTabPlaceholder(
-                "Input/Output",
-                "Art-Net UDP, DMX2USB (FTDI/Enttec), MIDI-Subsystem & DMX-Bus-Traffic Diagnostik",
-                "cable"
-        );
+        tabViews[0] = createTabPlaceholder("Stage & Fixtures", "stage");
+        tabViews[1] = createTabPlaceholder("Simple Desk", "sliders");
+        tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid");
+        tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines");
+        tabViews[4] = createTabPlaceholder("Input/Output", "cable");
     }
 
     /**
-     * Erzeugt eine strukturierte Vorschau-Kachel für einen Tab.
+     * Erzeugt eine strukturierte Vorschau-Kachel für einen Tab ohne Erklärtexte.
      */
-    private Node createTabPlaceholder(String title, String description, String iconName) {
+    private Node createTabPlaceholder(String title, String iconName) {
         VBox box = new VBox(14);
         box.setAlignment(Pos.CENTER);
         box.getStyleClass().add("workspace-placeholder");
@@ -102,10 +82,7 @@ public class MainWindow extends BorderPane {
         Text titleText = new Text(title);
         titleText.getStyleClass().add("placeholder-title");
 
-        Text descText = new Text(description);
-        descText.getStyleClass().add("placeholder-sub");
-
-        box.getChildren().addAll(icon, titleText, descText);
+        box.getChildren().addAll(icon, titleText);
         return box;
     }
 

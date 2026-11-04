@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
 
     <name>jdmx</name>
-    <description>Professional DMX Lighting Controller in JavaFX 21 LTS with Studio Dark Theme</description>
+    <description>Java DMX Controller</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

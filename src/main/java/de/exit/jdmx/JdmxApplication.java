@@ -16,7 +16,7 @@ import java.net.URL;
  */
 public class JdmxApplication extends Application {
 
-    public static final String APP_TITLE = "jdmx - Professional Lighting Controller";
+    public static final String APP_TITLE = "jdmx - Java DMX Controller";
     public static final double DEFAULT_WIDTH = 1280;
     public static final double DEFAULT_HEIGHT = 800;
     public static final double MIN_WIDTH = 1024;
