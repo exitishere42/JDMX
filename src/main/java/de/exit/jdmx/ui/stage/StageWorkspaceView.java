@@ -36,12 +36,15 @@ public class StageWorkspaceView extends SplitPane {
 
         getItems().addAll(stageCanvasView, controlDock);
 
+        // Das Dashboard darf beim Resizing des Fensters nicht unkontrolliert schrumpfen
+        SplitPane.setResizableWithParent(controlDock, false);
+
         // Standard-Teilung: 82% für die Bühne
         setDividerPositions(DEFAULT_STAGE_RATIO);
 
         // Clamping-Schutz:
         // Nach oben begrenzt auf MIN_STAGE_RATIO (Bühne behält mind. 60%)
-        // Nach unten begrenzt auf DEFAULT_STAGE_RATIO (Dock kann nicht kleiner als Startzustand werden)
+        // Nach unten fest arretiert auf DEFAULT_STAGE_RATIO (Dock kann nicht kleiner als Startzustand werden)
         if (!getDividers().isEmpty()) {
             getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
                 double val = newVal.doubleValue();

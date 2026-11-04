@@ -13,15 +13,18 @@ import javafx.scene.layout.Priority;
  * <p>
  * Robuste, jitterfreie Hybrid-Architektur (DMXControl-Standard):
  * <ul>
- *     <li><b>Links (Fest):</b> {@link IntensityModuleView} mit fester Breite von 270px,
- *         vollständig entkoppelt vom SplitPane (kann horizontal in keine Richtung verschoben werden)</li>
+ *     <li><b>Links (Fest):</b> {@link IntensityModuleView} mit fester Breite von 300px,
+ *         vollständig entkoppelt vom SplitPane (horizontal starr arretiert mit sauberem Randabstand)</li>
  *     <li><b>Rechts (Dynamisch):</b> Horizontales {@link SplitPane} mit {@link ColorModuleView} und
- *         {@link PositionModuleView}, die sich den verbleibenden Platz stabil 50/50 teilen und
- *         deren Teiler frei verschiebbar ist (ohne jedes gegenseitiges Verdünnen!)</li>
+ *         {@link PositionModuleView}, die sich den verbleibenden Platz stabil 50/50 teilen</li>
  * </ul>
+ * Die Mindesthöhe ist fest auf 135px verankert, sodass das Dashboard niemals kleiner geschoben werden kann.
  * </p>
  */
 public class DeviceControlDock extends HBox {
+
+    /** Standard- und Mindesthöhe des unteren Dashboards. */
+    public static final double DOCK_HEIGHT = 135.0;
 
     private final IntensityModuleView intensityModule;
     private final ColorModuleView colorModule;
@@ -30,14 +33,14 @@ public class DeviceControlDock extends HBox {
 
     public DeviceControlDock() {
         getStyleClass().add("device-control-dock");
-        setMinHeight(115.0);
-        setPrefHeight(135.0);
+        setMinHeight(DOCK_HEIGHT);
+        setPrefHeight(DOCK_HEIGHT);
 
         this.intensityModule = new IntensityModuleView();
         this.colorModule = new ColorModuleView();
         this.positionModule = new PositionModuleView();
 
-        // Dynamisches SplitPane für die restlichen Module (Farbe & Position)
+        // Dynamisches SplitPane für die beiden flexiblen Module rechts (Farbe & Position)
         this.dynamicSplitPane = new SplitPane();
         dynamicSplitPane.setOrientation(Orientation.HORIZONTAL);
         dynamicSplitPane.getStyleClass().add("device-control-dock-split");
@@ -46,7 +49,7 @@ public class DeviceControlDock extends HBox {
         dynamicSplitPane.getItems().addAll(colorModule, positionModule);
         dynamicSplitPane.setDividerPositions(0.50);
 
-        // Links festes Intensitätsmodul, rechts das flexible SplitPane
+        // Links festes Intensitätsmodul (300px), rechts das flexible SplitPane
         getChildren().addAll(intensityModule, dynamicSplitPane);
     }
 

@@ -13,19 +13,19 @@ import java.util.List;
 /**
  * Kompaktes Steuerungsmodul für Intensität (exakter DMXControl-Stil).
  * <p>
- * Scharfkantig (0px Radius auf Modul und Buttons mit Umrandung), mit großzügig bemessener
- * fester Breite (270px) horizontal entkoppelt gegen Verzerrungen und vollflächig in der vertikalen Höhe:
+ * Scharfkantig (0px Radius auf Modul und Buttons mit Umrandung), mit 300px Breite
+ * optimal bemessen für großzügigen Randabstand zur Farbkante und vollflächig in der vertikalen Höhe:
  * <ul>
- *     <li>Links: 5er-Tastenleiste (VL, 70, 50, 30, 0) mit 46px Breite eckig über die volle Faderhöhe</li>
- *     <li>Mitte: 2 vertikale Fader (Dimmer und Strobo) in 54px Spalten mit voll ausgeschriebenen Beschriftungen</li>
- *     <li>Rechts: 2x2 Tastenblock (Auf, Zu, Lumos, Nox) mit viel Platz (Lumos mit 66px) und Label "Intensität"</li>
+ *     <li>Links: 5er-Tastenleiste (VL, 70, 50, 30, 0) mit 44px Breite eckig über die volle Faderhöhe</li>
+ *     <li>Mitte: 2 vertikale Fader (Dimmer und Strobo) in 50px Spalten mit voll ausgeschriebenen Beschriftungen</li>
+ *     <li>Rechts: 2x2 Tastenblock (Auf, Zu, Lumos, Nox) mit reichlich Luft zur rechten Border</li>
  * </ul>
  * </p>
  */
 public class IntensityModuleView extends VBox {
 
-    /** Feste, unveränderliche Breite des Intensitätsmoduls (270px für perfekten Freiraum). */
-    public static final double FIXED_WIDTH = 270.0;
+    /** Feste, unveränderliche Breite des Intensitätsmoduls (300px für perfekten Randabstand). */
+    public static final double FIXED_WIDTH = 300.0;
 
     private final String title = "Intensität";
 
@@ -53,7 +53,7 @@ public class IntensityModuleView extends VBox {
         lblTitle.getStyleClass().add("module-card-title");
         header.getChildren().add(lblTitle);
 
-        // 2. Fader (Dimmer & Strobo) - 54px Spalten mit reichlich Platz
+        // 2. Fader (Dimmer & Strobo) - 50px Spalten mit reichlich Platz
         this.dimmerSlider = new Slider(0, 100, 100);
         dimmerSlider.setOrientation(Orientation.VERTICAL);
         dimmerSlider.getStyleClass().add("fader-slider");
@@ -68,7 +68,7 @@ public class IntensityModuleView extends VBox {
         VBox.setVgrow(strobeSlider, Priority.ALWAYS);
         VBox strobeCol = createFaderCol("Strobo", strobeSlider);
 
-        // 3. Links: 5er Tastenleiste (VL, 70, 50, 30, 0) - 46px breit, eckig mit Umrandung
+        // 3. Links: 5er Tastenleiste (VL, 70, 50, 30, 0) - 44px breit, eckig mit Umrandung
         VBox quickBox = new VBox(1);
         quickBox.setAlignment(Pos.CENTER);
         VBox.setVgrow(quickBox, Priority.ALWAYS);
@@ -80,9 +80,9 @@ public class IntensityModuleView extends VBox {
             final double pct = percentages[i];
             Button btn = new Button(labels[i]);
             btn.getStyleClass().add("module-quick-btn");
-            btn.setPrefWidth(46);
-            btn.setMinWidth(42);
-            btn.setMaxWidth(50);
+            btn.setPrefWidth(44);
+            btn.setMinWidth(40);
+            btn.setMaxWidth(48);
             btn.setMaxHeight(Double.MAX_VALUE);
             VBox.setVgrow(btn, Priority.ALWAYS);
             btn.setOnAction(e -> dimmerSlider.setValue(pct));
@@ -97,22 +97,22 @@ public class IntensityModuleView extends VBox {
         quickCol.setAlignment(Pos.CENTER);
         VBox.setVgrow(quickCol, Priority.ALWAYS);
 
-        // 4. Rechts: 2x2 Tastenblock (Auf, Zu, Lumos, Nox) - großzügige Breiten
-        // Spalte 1: Auf & Zu (56px breit)
+        // 4. Rechts: 2x2 Tastenblock (Auf, Zu, Lumos, Nox)
+        // Spalte 1: Auf & Zu (52px breit)
         this.btnAuf = new Button("Auf");
         btnAuf.getStyleClass().add("module-small-btn");
-        btnAuf.setPrefWidth(56);
-        btnAuf.setMinWidth(50);
-        btnAuf.setMaxWidth(62);
+        btnAuf.setPrefWidth(52);
+        btnAuf.setMinWidth(46);
+        btnAuf.setMaxWidth(56);
         btnAuf.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(btnAuf, Priority.ALWAYS);
         btnAuf.setOnAction(e -> dimmerSlider.setValue(100.0));
 
         this.btnZu = new Button("Zu");
         btnZu.getStyleClass().add("module-small-btn");
-        btnZu.setPrefWidth(56);
-        btnZu.setMinWidth(50);
-        btnZu.setMaxWidth(62);
+        btnZu.setPrefWidth(52);
+        btnZu.setMinWidth(46);
+        btnZu.setMaxWidth(56);
         btnZu.setPrefHeight(32);
         btnZu.setOnAction(e -> dimmerSlider.setValue(0.0));
 
@@ -120,21 +120,21 @@ public class IntensityModuleView extends VBox {
         colAufZu.setAlignment(Pos.CENTER);
         VBox.setVgrow(colAufZu, Priority.ALWAYS);
 
-        // Spalte 2: Lumos & Nox (66px breit für perfektes Text-Padding)
+        // Spalte 2: Lumos & Nox (62px breit für saubere Textdarstellung und Randabstand)
         this.btnLumos = new Button("Lumos");
         btnLumos.getStyleClass().add("module-small-btn");
-        btnLumos.setPrefWidth(66);
-        btnLumos.setMinWidth(60);
-        btnLumos.setMaxWidth(72);
+        btnLumos.setPrefWidth(62);
+        btnLumos.setMinWidth(56);
+        btnLumos.setMaxWidth(68);
         btnLumos.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(btnLumos, Priority.ALWAYS);
         btnLumos.setOnAction(e -> dimmerSlider.setValue(100.0));
 
         this.btnNox = new Button("Nox");
         btnNox.getStyleClass().add("module-small-btn");
-        btnNox.setPrefWidth(66);
-        btnNox.setMinWidth(60);
-        btnNox.setMaxWidth(72);
+        btnNox.setPrefWidth(62);
+        btnNox.setMinWidth(56);
+        btnNox.setMaxWidth(68);
         btnNox.setPrefHeight(32);
         btnNox.setOnAction(e -> dimmerSlider.setValue(0.0));
 
@@ -154,7 +154,7 @@ public class IntensityModuleView extends VBox {
         actionCol.setAlignment(Pos.CENTER);
         VBox.setVgrow(actionCol, Priority.ALWAYS);
 
-        // Bündiger, luftiger Aufbau mit 8px Spacing über die 270px
+        // Bündiger, luftiger Aufbau mit 8px Spacing über 300px
         HBox body = new HBox(8, quickCol, dimmerCol, strobeCol, actionCol);
         body.setAlignment(Pos.CENTER);
         VBox.setVgrow(body, Priority.ALWAYS);
@@ -165,9 +165,9 @@ public class IntensityModuleView extends VBox {
     private VBox createFaderCol(String labelText, Slider slider) {
         VBox col = new VBox(2);
         col.setAlignment(Pos.CENTER);
-        col.setPrefWidth(54);
-        col.setMinWidth(50);
-        col.setMaxWidth(60);
+        col.setPrefWidth(50);
+        col.setMinWidth(48);
+        col.setMaxWidth(54);
         VBox.setVgrow(slider, Priority.ALWAYS);
         VBox.setVgrow(col, Priority.ALWAYS);
 

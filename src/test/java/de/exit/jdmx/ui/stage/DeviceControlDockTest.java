@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für das untere 24/7 Steuerungs-Dock (DeviceControlDock).
- * Prüft die feste Entkopplung des Intensitätsmoduls (270px) und die
+ * Prüft die feste Entkopplung des Intensitätsmoduls (300px) und die
  * dynamische 50/50 Teilung für Farb- und Positionsmodul.
  */
 class DeviceControlDockTest {
@@ -39,14 +39,14 @@ class DeviceControlDockTest {
     }
 
     @Test
-    @DisplayName("Sollte Intensitätsmodul auf feste 270px fixieren (horizontal starr entkoppelt)")
+    @DisplayName("Sollte Intensitätsmodul auf feste 300px fixieren (horizontal starr entkoppelt)")
     void shouldFixIntensityModuleWidth() {
         DeviceControlDock dock = new DeviceControlDock();
 
         assertThat(dock.getIntensityModule().getMinWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
         assertThat(dock.getIntensityModule().getMaxWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
         assertThat(dock.getIntensityModule().getPrefWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
-        assertThat(IntensityModuleView.FIXED_WIDTH).isEqualTo(270.0);
+        assertThat(IntensityModuleView.FIXED_WIDTH).isEqualTo(300.0);
     }
 
     @Test
@@ -59,11 +59,11 @@ class DeviceControlDockTest {
     }
 
     @Test
-    @DisplayName("Sollte eine flache, kompakte Höhe für das 24/7 Dock definieren")
+    @DisplayName("Sollte eine flache, feste Mindesthöhe für das 24/7 Dock definieren")
     void shouldHaveCompactHeight() {
         DeviceControlDock dock = new DeviceControlDock();
 
-        assertThat(dock.getMinHeight()).isGreaterThanOrEqualTo(100.0);
-        assertThat(dock.getPrefHeight()).isLessThanOrEqualTo(145.0);
+        assertThat(dock.getMinHeight()).isEqualTo(DeviceControlDock.DOCK_HEIGHT);
+        assertThat(dock.getPrefHeight()).isEqualTo(DeviceControlDock.DOCK_HEIGHT);
     }
 }
