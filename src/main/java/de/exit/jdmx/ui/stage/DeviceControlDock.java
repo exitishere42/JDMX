@@ -1,30 +1,34 @@
 package de.exit.jdmx.ui.stage;
 
-import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.control.SplitPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 
 /**
  * Das untere 24/7 Steuerungs-Dock für Tab 1 (Stage & Fixtures).
  * <p>
- * Beherbergt 3 nebeneinanderliegende Steuerungskarten im DMXControl-Stil:
+ * Robuste, jitterfreie Hybrid-Architektur (DMXControl-Standard):
  * <ul>
- *     <li><b>Modul 1 (Intensität):</b> Feste Breite von 245px, horizontal in beide Richtungen
- *         vollständig gesperrt (weder nach links noch nach rechts verschiebbar)</li>
- *     <li><b>Modul 2 (Farbe):</b> Großer dynamischer HSV-Farbkreis mit anpassbaren Preset-Buttons</li>
- *     <li><b>Modul 3 (Position):</b> Großes 2D XY-Pad mit zentriertem Pan/Tilt und Home-Button</li>
+ *     <li><b>Links (Fest):</b> {@link IntensityModuleView} mit fester Breite von 270px,
+ *         vollständig entkoppelt vom SplitPane (kann horizontal in keine Richtung verschoben werden)</li>
+ *     <li><b>Rechts (Dynamisch):</b> Horizontales {@link SplitPane} mit {@link ColorModuleView} und
+ *         {@link PositionModuleView}, die sich den verbleibenden Platz stabil 50/50 teilen und
+ *         deren Teiler frei verschiebbar ist (ohne jedes gegenseitiges Verdünnen!)</li>
  * </ul>
- * Der Teiler zwischen Farbe und Position bleibt frei horizontal verschiebbar.
  * </p>
  */
-public class DeviceControlDock extends SplitPane {
+public class DeviceControlDock extends HBox {
 
     private final IntensityModuleView intensityModule;
     private final ColorModuleView colorModule;
     private final PositionModuleView positionModule;
+    private final SplitPane dynamicSplitPane;
 
     public DeviceControlDock() {
-        setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("device-control-dock");
         setMinHeight(115.0);
         setPrefHeight(135.0);
@@ -33,41 +37,17 @@ public class DeviceControlDock extends SplitPane {
         this.colorModule = new ColorModuleView();
         this.positionModule = new PositionModuleView();
 
-        // 3 Module hinzufügen
-        getItems().addAll(intensityModule, colorModule, positionModule);
+        // Dynamisches SplitPane für die restlichen Module (Farbe & Position)
+        this.dynamicSplitPane = new SplitPane();
+        dynamicSplitPane.setOrientation(Orientation.HORIZONTAL);
+        dynamicSplitPane.getStyleClass().add("device-control-dock-split");
+        HBox.setHgrow(dynamicSplitPane, Priority.ALWAYS);
 
-        // Intensitätsmodul darf bei Fenster-Resizing horizontal nicht mitwachsen/schrumpfen
-        SplitPane.setResizableWithParent(intensityModule, false);
+        dynamicSplitPane.getItems().addAll(colorModule, positionModule);
+        dynamicSplitPane.setDividerPositions(0.50);
 
-        // Initiale Teilung: Intensitätsmodul fest auf FIXED_WIDTH (245px)
-        Platform.runLater(this::lockIntensityDivider);
-
-        // Divider 0 (nach Intensität) in beide Richtungen starr sperren
-        if (!getDividers().isEmpty()) {
-            SplitPane.Divider firstDivider = getDividers().getFirst();
-            firstDivider.positionProperty().addListener((obs, oldVal, newVal) -> {
-                double totalWidth = getWidth();
-                if (totalWidth > 0) {
-                    double targetRatio = IntensityModuleView.FIXED_WIDTH / totalWidth;
-                    if (Math.abs(newVal.doubleValue() - targetRatio) > 0.001) {
-                        firstDivider.setPosition(targetRatio);
-                    }
-                }
-            });
-        }
-
-        // Bei Fensterbreiten-Änderungen den ersten Teiler stets exakt auf 245px halten
-        widthProperty().addListener((obs, oldW, newW) -> lockIntensityDivider());
-    }
-
-    private void lockIntensityDivider() {
-        double totalWidth = getWidth();
-        if (totalWidth > IntensityModuleView.FIXED_WIDTH && getDividers().size() >= 2) {
-            double div0 = IntensityModuleView.FIXED_WIDTH / totalWidth;
-            double remaining = 1.0 - div0;
-            double div1 = div0 + (remaining * 0.50);
-            setDividerPositions(div0, div1);
-        }
+        // Links festes Intensitätsmodul, rechts das flexible SplitPane
+        getChildren().addAll(intensityModule, dynamicSplitPane);
     }
 
     public IntensityModuleView getIntensityModule() {
@@ -80,5 +60,23 @@ public class DeviceControlDock extends SplitPane {
 
     public PositionModuleView getPositionModule() {
         return positionModule;
+    }
+
+    public SplitPane getDynamicSplitPane() {
+        return dynamicSplitPane;
+    }
+
+    /**
+     * Liefert die horizontale Orientierung des dynamischen Modulbereichs.
+     */
+    public Orientation getOrientation() {
+        return dynamicSplitPane.getOrientation();
+    }
+
+    /**
+     * Liefert die 3 Steuerungskarten des Docks für Test- und Inspektionszwecke.
+     */
+    public ObservableList<Node> getItems() {
+        return FXCollections.observableArrayList(intensityModule, colorModule, positionModule);
     }
 }

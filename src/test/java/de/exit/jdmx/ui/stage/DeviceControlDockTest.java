@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für das untere 24/7 Steuerungs-Dock (DeviceControlDock).
- * Prüft, dass das Intensitätsmodul horizontal auf eine feste Breite fixiert ist
- * und nicht verschoben werden kann.
+ * Prüft die feste Entkopplung des Intensitätsmoduls (270px) und die
+ * dynamische 50/50 Teilung für Farb- und Positionsmodul.
  */
 class DeviceControlDockTest {
 
@@ -25,7 +25,7 @@ class DeviceControlDockTest {
     }
 
     @Test
-    @DisplayName("Sollte 3 Module nebeneinander in einem horizontalen SplitPane initialisieren")
+    @DisplayName("Sollte 3 Module initialisieren mit entkoppeltem SplitPane für Farbe und Position")
     void shouldInitializeWithThreeControlModules() {
         DeviceControlDock dock = new DeviceControlDock();
 
@@ -35,20 +35,22 @@ class DeviceControlDockTest {
         assertThat(dock.getIntensityModule()).isNotNull();
         assertThat(dock.getColorModule()).isNotNull();
         assertThat(dock.getPositionModule()).isNotNull();
+        assertThat(dock.getDynamicSplitPane()).isNotNull();
     }
 
     @Test
-    @DisplayName("Sollte Intensitätsmodul auf feste 245px fixieren (horizontal starr gesperrt)")
+    @DisplayName("Sollte Intensitätsmodul auf feste 270px fixieren (horizontal starr entkoppelt)")
     void shouldFixIntensityModuleWidth() {
         DeviceControlDock dock = new DeviceControlDock();
 
         assertThat(dock.getIntensityModule().getMinWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
         assertThat(dock.getIntensityModule().getMaxWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
         assertThat(dock.getIntensityModule().getPrefWidth()).isEqualTo(IntensityModuleView.FIXED_WIDTH);
+        assertThat(IntensityModuleView.FIXED_WIDTH).isEqualTo(270.0);
     }
 
     @Test
-    @DisplayName("Sollte für Farb- und Positionsmodul Mindestbreiten festlegen")
+    @DisplayName("Sollte für Farb- und Positionsmodul Mindestbreiten im dynamischen SplitPane festlegen")
     void shouldSetMinimumWidthsOnModules() {
         DeviceControlDock dock = new DeviceControlDock();
 
