@@ -10,7 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für den Haupt-Workspace von Tab 1 (StageWorkspaceView).
- * Stellt sicher, dass die leere Stage oben immer mehr als 60% des Platzes behält.
+ * Stellt sicher, dass das Dock nur nach oben (größer) gezogen werden kann
+ * und nach unten exakt an der Standardposition stoppt.
  */
 class StageWorkspaceViewTest {
 
@@ -40,20 +41,30 @@ class StageWorkspaceViewTest {
     void shouldGuaranteeStageKeepsMoreThanSixtyPercentHeight() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
-        // Standard-Teilung: ca. 80-85% für die Stage, 15-20% für die kompakte Leiste
         double defaultDividerPos = workspace.getDividerPosition();
         assertThat(defaultDividerPos).isGreaterThan(0.60);
     }
 
     @Test
-    @DisplayName("Sollte die Divider-Position auf mindestens 60% begrenzen (Clamping-Schutz)")
+    @DisplayName("Sollte die Divider-Position nach oben auf mindestens 60% begrenzen")
     void shouldClampDividerPositionToMinimumSixtyPercent() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
-        // Versuch, den Divider auf 0.40 (40% für die Stage) zu ziehen
+        // Versuch, den Divider auf 0.40 (40% für die Stage) nach oben zu ziehen
         workspace.requestDividerPosition(0.40);
 
-        // Muss automatisch auf mindestens 0.60 geklammert werden
-        assertThat(workspace.getDividerPosition()).isGreaterThanOrEqualTo(0.60);
+        assertThat(workspace.getDividerPosition()).isGreaterThanOrEqualTo(StageWorkspaceView.MIN_STAGE_RATIO);
+    }
+
+    @Test
+    @DisplayName("Sollte das Dock nach unten auf die Standardposition begrenzen (darf nicht kleiner als Standard werden)")
+    void shouldClampDividerPositionToMaximumDefaultRatio() {
+        StageWorkspaceView workspace = new StageWorkspaceView();
+
+        // Versuch, den Divider weiter nach unten auf 0.95 (Dock noch kleiner machen) zu schieben
+        workspace.requestDividerPosition(0.95);
+
+        // Muss automatisch auf DEFAULT_STAGE_RATIO geklammert werden
+        assertThat(workspace.getDividerPosition()).isLessThanOrEqualTo(StageWorkspaceView.DEFAULT_STAGE_RATIO);
     }
 }

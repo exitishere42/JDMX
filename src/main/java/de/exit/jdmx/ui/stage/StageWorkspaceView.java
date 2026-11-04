@@ -9,8 +9,11 @@ import javafx.scene.control.SplitPane;
  * Beherbergt oben die saubere Arbeitsfläche der Bühne und unten das 24/7 geöffnete,
  * kompakte Steuerungs-Dock mit den 3 Modulen (Intensität, Farbe, Position).
  * <p>
- * Garantiert über harte Clamping-Logik, dass die obere Bühne <b>immer mehr als 60%</b>
- * des vertikalen Platzes behält und nicht erdrückt werden kann.
+ * Begrenzungs-Garantie:
+ * <ul>
+ *     <li>Nach unten kann das Dock <b>niemals kleiner</b> als seine Standard-Startposition werden.</li>
+ *     <li>Nach oben kann das Dock gezogen werden, wobei die Bühne <b>immer mindestens 60%</b> behält.</li>
+ * </ul>
  * </p>
  */
 public class StageWorkspaceView extends SplitPane {
@@ -33,26 +36,32 @@ public class StageWorkspaceView extends SplitPane {
 
         getItems().addAll(stageCanvasView, controlDock);
 
-        // Standard-Teilung: 82% für die Bühne (mehr als 60%)
+        // Standard-Teilung: 82% für die Bühne
         setDividerPositions(DEFAULT_STAGE_RATIO);
 
-        // Clamping-Schutz: Verhindert, dass das Dock weiter als 40% nach oben gezogen werden kann
+        // Clamping-Schutz:
+        // Nach oben begrenzt auf MIN_STAGE_RATIO (Bühne behält mind. 60%)
+        // Nach unten begrenzt auf DEFAULT_STAGE_RATIO (Dock kann nicht kleiner als Startzustand werden)
         if (!getDividers().isEmpty()) {
             getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
-                if (newVal.doubleValue() < MIN_STAGE_RATIO) {
+                double val = newVal.doubleValue();
+                if (val < MIN_STAGE_RATIO) {
                     setDividerPositions(MIN_STAGE_RATIO);
+                } else if (val > DEFAULT_STAGE_RATIO) {
+                    setDividerPositions(DEFAULT_STAGE_RATIO);
                 }
             });
         }
     }
 
     /**
-     * Setzt die Divider-Position mit garantierter Einhaltung des 60%-Mindestplatzes für die Stage.
+     * Setzt die Divider-Position mit garantierter Einhaltung des Bereichs zwischen
+     * MIN_STAGE_RATIO (60%) und DEFAULT_STAGE_RATIO (Startposition).
      *
-     * @param requestedPosition Gewünschte Teilung (z. B. 0.82)
+     * @param requestedPosition Gewünschte Teilung
      */
     public void requestDividerPosition(double requestedPosition) {
-        double clamped = Math.max(MIN_STAGE_RATIO, requestedPosition);
+        double clamped = Math.max(MIN_STAGE_RATIO, Math.min(DEFAULT_STAGE_RATIO, requestedPosition));
         setDividerPositions(clamped);
     }
 

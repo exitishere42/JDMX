@@ -14,9 +14,9 @@ import javafx.scene.paint.Color;
 /**
  * Kompaktes Steuerungsmodul für Position (DMXControl-Stil).
  * <p>
- * Scharfkantig (0px Radius auf der Modulkarte) mit großem 2D XY-Pad (dynamisch bis ca. 0.5cm Rand),
- * Pan-Slider exakt zentriert und bündig darunter, Tilt-Slider bündig rechts daneben
- * sowie Home-Button im Header.
+ * Scharfkantig (0px Radius auf der Modulkarte) mit großem 2D XY-Pad (dynamisch bis ca. 0.5cm Rand).
+ * Der Tilt-Slider (nach oben/unten) ist exakt vertikal auf gleicher Höhe wie das XY-Pad zentriert,
+ * der Pan-Slider (links/rechts) sitzt exakt bündig darunter.
  * </p>
  */
 public class PositionModuleView extends VBox {
@@ -34,19 +34,19 @@ public class PositionModuleView extends VBox {
         setMinWidth(150.0);
         setPrefWidth(185.0);
 
-        // 1. Sliders & 2D XY-Pad (Standard: 96x96 px)
-        this.xyPadCanvas = new Canvas(96, 96);
+        // 1. Sliders & 2D XY-Pad
+        this.xyPadCanvas = new Canvas(100, 100);
         xyPadCanvas.getStyleClass().add("xy-pad-canvas");
 
         this.panSlider = new Slider(0, 100, 50);
-        panSlider.setPrefWidth(96);
-        panSlider.setMaxWidth(96);
+        panSlider.setPrefWidth(100);
+        panSlider.setMaxWidth(100);
         panSlider.getStyleClass().add("fader-slider-horizontal");
 
         this.tiltSlider = new Slider(0, 100, 50);
         tiltSlider.setOrientation(Orientation.VERTICAL);
-        tiltSlider.setPrefHeight(96);
-        tiltSlider.setMaxHeight(96);
+        tiltSlider.setPrefHeight(100);
+        tiltSlider.setMaxHeight(100);
         tiltSlider.getStyleClass().add("fader-slider");
 
         xyPadCanvas.setOnMousePressed(this::handlePadDrag);
@@ -77,21 +77,25 @@ public class PositionModuleView extends VBox {
 
         header.getChildren().addAll(lblTitle, spacer, btnHome);
 
-        // 3. Geometrisch perfekt zentrierter Aufbau:
-        // Pad und Pan-Slider in einer vertikalen Spalte (Pan exakt unter dem Pad!)
-        VBox padAndPanCol = new VBox(2, xyPadCanvas, panSlider);
-        padAndPanCol.setAlignment(Pos.CENTER);
+        // 3. Perfekt zentriertes Raster:
+        // Zeile 0: Pad (Spalte 0) und Tilt-Slider (Spalte 1) -> exakt gleiche Zeile, 100% bündig zentriert!
+        // Zeile 1: Pan-Slider (Spalte 0) -> exakt unter dem Pad!
+        GridPane posGrid = new GridPane();
+        posGrid.setHgap(4);
+        posGrid.setVgap(4);
+        posGrid.setAlignment(Pos.CENTER);
 
-        // Tilt-Slider bündig rechts neben dem Pad
-        HBox padGroup = new HBox(4, padAndPanCol, tiltSlider);
-        padGroup.setAlignment(Pos.CENTER);
-        VBox.setVgrow(padGroup, Priority.ALWAYS);
+        posGrid.add(xyPadCanvas, 0, 0);
+        posGrid.add(tiltSlider, 1, 0);
+        posGrid.add(panSlider, 0, 1);
+
+        VBox.setVgrow(posGrid, Priority.ALWAYS);
 
         // Dynamisches Mitwachsen mit der Modulhöhe
-        padGroup.heightProperty().addListener((obs, oldV, newV) -> {
+        posGrid.heightProperty().addListener((obs, oldV, newV) -> {
             double h = newV.doubleValue();
             if (h > 50) {
-                double size = Math.max(92.0, Math.min(125.0, h - 22.0));
+                double size = Math.max(94.0, Math.min(130.0, h - 24.0));
                 xyPadCanvas.setWidth(size);
                 xyPadCanvas.setHeight(size);
                 panSlider.setPrefWidth(size);
@@ -102,7 +106,7 @@ public class PositionModuleView extends VBox {
             }
         });
 
-        HBox body = new HBox(padGroup);
+        HBox body = new HBox(posGrid);
         body.setAlignment(Pos.CENTER);
         VBox.setVgrow(body, Priority.ALWAYS);
 
