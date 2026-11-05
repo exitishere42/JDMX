@@ -76,6 +76,15 @@ public class LucideIcon extends StackPane {
     }
 
     /**
+     * Liefert den aktuellen Icon-Namen.
+     *
+     * @return Icon-Name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
      * Aktualisiert den SVG-Pfad und die Skalierung entsprechend des Icon-Namens.
      */
     private void updateSvg(Color color) {
@@ -136,6 +145,21 @@ public class LucideIcon extends StackPane {
             case "arrow-right-left", "arrows-horizontal", "io" ->
                 // Lucide arrow-right-left
                 "M16 3l4 4-4 4 M20 7H4 M8 21l-4-4 4-4 M4 17h16";
+            case "arrow-right-to-line" ->
+                // Lucide arrow-right-to-line
+                "M17 12H3 M11 18l6-6-6-6 M21 5v14";
+            case "arrow-left-to-line" ->
+                // Lucide arrow-left-to-line
+                "M3 5v14 M13 6l-6 6 6 6 M7 12h14";
+            case "layers" ->
+                // Lucide layers
+                "m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z M22 12.5l-8.58 3.9a2 2 0 0 1-1.66 0L2 12.5 M22 17.5l-8.58 3.9a2 2 0 0 1-1.66 0L2 17.5";
+            case "list-music" ->
+                // Lucide list-music
+                "M21 15V6 M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z M12 12H3 M16 6H3 M12 18H3";
+            case "sparkles" ->
+                // Lucide sparkles
+                "m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z M5 3v4 M19 17v4 M3 5h4 M17 19h4";
             case "cable", "network" ->
                 // Lucide cable
                 "M4 12v6 M16 12v6 M8 12v2 M12 12v2 M3 18h18 M18 6h-4a2 2 0 0 0-2 2v4 M6 6h4a2 2 0 0 1 2 2v4";

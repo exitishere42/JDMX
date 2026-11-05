@@ -50,4 +50,28 @@ class ProjectExplorerViewTest {
         assertThat(explorer.getMinWidth()).isLessThanOrEqualTo(150.0);
         assertThat(explorer.getPrefWidth()).isGreaterThanOrEqualTo(220.0);
     }
+
+    @Test
+    @DisplayName("Sollte Einklapp-Button mit arrow-right-to-line neben dem Titel ohne störendes Vor-Icon besitzen")
+    void shouldHaveCollapseButtonNextToTitleWithoutLeadingIcon() {
+        ProjectExplorerView explorer = new ProjectExplorerView();
+
+        // Kein Vor-Icon vor dem Titel
+        assertThat(explorer.getHeaderBox().getChildren()).hasSize(2);
+        assertThat(explorer.getHeaderBox().getChildren().get(0)).isInstanceOf(javafx.scene.control.Label.class);
+        assertThat(((javafx.scene.control.Label) explorer.getHeaderBox().getChildren().get(0)).getText())
+                .isEqualTo("Project Explorer");
+
+        // Einklapp-Button mit arrow-right-to-line direkt daneben
+        assertThat(explorer.getBtnCollapse()).isNotNull();
+        assertThat(explorer.getBtnCollapse().getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+        de.exit.jdmx.ui.icon.LucideIcon icon = (de.exit.jdmx.ui.icon.LucideIcon) explorer.getBtnCollapse().getGraphic();
+        assertThat(icon.getName()).isEqualTo("arrow-right-to-line");
+
+        // Event-Auslösung prüfen
+        boolean[] called = new boolean[1];
+        explorer.setOnToggleCollapse(() -> called[0] = true);
+        explorer.getBtnCollapse().fire();
+        assertThat(called[0]).isTrue();
+    }
 }

@@ -868,6 +868,34 @@
     -fx-letter-spacing: 0.5px;
 }
 
+.project-explorer-toggle-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-padding: 2 4;
+    -fx-cursor: hand;
+}
+
+.project-explorer-toggle-btn:hover {
+    -fx-background-color: #262626;
+    -fx-border-color: #383838;
+}
+
+.project-explorer-expand-btn {
+    -fx-background-color: #171717;
+    -fx-border-color: #333333;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-padding: 3 6;
+    -fx-cursor: hand;
+}
+
+.project-explorer-expand-btn:hover {
+    -fx-background-color: #262626;
+    -fx-border-color: #4B5563;
+}
+
 .project-explorer-tree {
     -fx-background-color: transparent;
     -fx-border-color: transparent;

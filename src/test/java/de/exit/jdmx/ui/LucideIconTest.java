@@ -32,6 +32,18 @@ class LucideIconTest {
     }
 
     @Test
+    @DisplayName("Sollte arrow-right-to-line und arrow-left-to-line Icons für Sidebar-Collapse bereitstellen")
+    void shouldProvideArrowToLineIcons() {
+        LucideIcon collapseIcon = new LucideIcon("arrow-right-to-line", 14, Color.web("#9CA3AF"));
+        assertThat(collapseIcon.getName()).isEqualTo("arrow-right-to-line");
+        assertThat(LucideIcon.getSvgPathData("arrow-right-to-line")).contains("M17 12H3");
+
+        LucideIcon expandIcon = new LucideIcon("arrow-left-to-line", 14, Color.web("#9CA3AF"));
+        assertThat(expandIcon.getName()).isEqualTo("arrow-left-to-line");
+        assertThat(LucideIcon.getSvgPathData("arrow-left-to-line")).contains("M3 5v14");
+    }
+
+    @Test
     @DisplayName("Sollte lightbulb Icon für App-Logo korrekt erzeugen")
     void shouldCreateLightbulbIcon() {
         LucideIcon icon = new LucideIcon("lightbulb", 18, Color.web("#FEDC94"));

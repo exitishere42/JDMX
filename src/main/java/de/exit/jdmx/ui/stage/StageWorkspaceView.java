@@ -1,13 +1,16 @@
 package de.exit.jdmx.ui.stage;
 
-import javafx.application.Platform;
+import de.exit.jdmx.ui.icon.LucideIcon;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
-import javafx.scene.Node;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 
 /**
  * Der primäre Arbeitsbereich von Tab 1 (Stage & Fixtures).
@@ -19,9 +22,10 @@ import javafx.scene.layout.VBox;
  * </ul>
  * Features:
  * <ul>
- *     <li>Flexibel dicker oder dünner ziehbar</li>
- *     <li>One-Click-Toggle: Klick auf die vertikale Haupt-Dragbar klappt den Project Explorer zu 100% auf 0px zu</li>
- *     <li>Andere Dragbars (z. B. im Steuerungsdock) werden durch strikte Parent-Prüfung nicht beeinflusst</li>
+ *     <li>Flexibel dicker oder dünner ziehbar über die vertikale Haupt-Dragbar</li>
+ *     <li>Einklappen über das Symbol {@code arrow-right-to-line} neben dem Text {@code Project Explorer}</li>
+ *     <li>Ausklappen über das Symbol {@code arrow-left-to-line} an der rechten Kante der Bühne</li>
+ *     <li>Strikte Entkopplung: Klick auf die Dragbars dient ausschließlich dem Ziehen</li>
  * </ul>
  * </p>
  */
@@ -40,12 +44,10 @@ public class StageWorkspaceView extends SplitPane {
     private final DeviceControlDock controlDock;
     private final SplitPane stageAndDockPane;
     private final ProjectExplorerView projectExplorerView;
+    private final Button btnExpandProjectExplorer;
 
     private double lastExpandedRatio = DEFAULT_HORIZONTAL_RATIO;
     private boolean isCollapsed = false;
-
-    private double dragStartX = 0;
-    private double dragStartY = 0;
 
     public StageWorkspaceView() {
         setOrientation(Orientation.HORIZONTAL);
@@ -54,6 +56,19 @@ public class StageWorkspaceView extends SplitPane {
         // 1. Linker Hauptbereich (Bühne oben + 220px Steuerungsdock unten)
         this.stageCanvasView = new StageCanvasView();
         this.controlDock = new DeviceControlDock();
+
+        // Ausklapp-Button an der rechten Kante der Bühne vorbereiten (arrow-left-to-line)
+        this.btnExpandProjectExplorer = new Button();
+        btnExpandProjectExplorer.getStyleClass().add("project-explorer-expand-btn");
+        btnExpandProjectExplorer.setGraphic(new LucideIcon("arrow-left-to-line", 14, Color.web("#9CA3AF")));
+        btnExpandProjectExplorer.setTooltip(new Tooltip("Ausklappen"));
+        btnExpandProjectExplorer.setVisible(false);
+        btnExpandProjectExplorer.setManaged(false);
+        btnExpandProjectExplorer.setOnAction(e -> toggleProjectExplorer());
+
+        StackPane.setAlignment(btnExpandProjectExplorer, Pos.TOP_RIGHT);
+        StackPane.setMargin(btnExpandProjectExplorer, new Insets(6, 6, 0, 0));
+        stageCanvasView.getChildren().add(btnExpandProjectExplorer);
 
         this.stageAndDockPane = new SplitPane();
         stageAndDockPane.setOrientation(Orientation.VERTICAL);
@@ -78,44 +93,12 @@ public class StageWorkspaceView extends SplitPane {
 
         // 2. Rechter Bereich: Project Explorer über die volle Höhe
         this.projectExplorerView = new ProjectExplorerView();
+        projectExplorerView.setOnToggleCollapse(this::toggleProjectExplorer);
 
         // 3. Horizontales Haupt-SplitPane zusammenbauen
         getItems().addAll(stageAndDockPane, projectExplorerView);
         SplitPane.setResizableWithParent(projectExplorerView, false);
         setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
-
-        // 4. One-Click Toggle ausschließlich auf die vertikale Haupt-Dragbar verdrahten
-        setupDividerClickHandler();
-    }
-
-    private void setupDividerClickHandler() {
-        Platform.runLater(() -> {
-            for (Node node : lookupAll(".split-pane-divider")) {
-                // Strikte Isolierung: Nur den Divider registrieren, der direkt zu diesem SplitPane gehört!
-                if (node.getParent() != this) {
-                    continue;
-                }
-
-                node.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
-                    if (e.getButton() == MouseButton.PRIMARY) {
-                        dragStartX = e.getScreenX();
-                        dragStartY = e.getScreenY();
-                    }
-                });
-
-                node.addEventFilter(MouseEvent.MOUSE_RELEASED, e -> {
-                    if (e.getButton() == MouseButton.PRIMARY) {
-                        double deltaX = Math.abs(e.getScreenX() - dragStartX);
-                        double deltaY = Math.abs(e.getScreenY() - dragStartY);
-                        // Wenn es ein Klick war (weniger als 4px Bewegung) -> Zuklappen / Aufklappen
-                        if (deltaX < 4 && deltaY < 4) {
-                            toggleProjectExplorer();
-                            e.consume();
-                        }
-                    }
-                });
-            }
-        });
     }
 
     /**
@@ -135,8 +118,12 @@ public class StageWorkspaceView extends SplitPane {
                 projectExplorerView.setManaged(false);
                 setDividerPositions(1.0);
                 isCollapsed = true;
+                btnExpandProjectExplorer.setVisible(true);
+                btnExpandProjectExplorer.setManaged(true);
             } else {
                 // Vollständig wieder auf vorherige Breite aufklappen
+                btnExpandProjectExplorer.setVisible(false);
+                btnExpandProjectExplorer.setManaged(false);
                 projectExplorerView.setVisible(true);
                 projectExplorerView.setManaged(true);
                 projectExplorerView.setMinWidth(140.0);
@@ -161,6 +148,10 @@ public class StageWorkspaceView extends SplitPane {
 
     public ProjectExplorerView getProjectExplorerView() {
         return projectExplorerView;
+    }
+
+    public Button getBtnExpandProjectExplorer() {
+        return btnExpandProjectExplorer;
     }
 
     public SplitPane getStageAndDockPane() {

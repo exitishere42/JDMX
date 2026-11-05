@@ -44,20 +44,23 @@ class StageWorkspaceViewTest {
 
         assertThat(workspace.isProjectExplorerCollapsed()).isFalse();
         assertThat(workspace.getProjectExplorerView().isVisible()).isTrue();
+        assertThat(workspace.getBtnExpandProjectExplorer().isVisible()).isFalse();
 
-        // 1. Zuklappen (zu 100% auf 0px)
-        workspace.toggleProjectExplorer();
+        // 1. Zuklappen über Button im Project Explorer
+        workspace.getProjectExplorerView().getBtnCollapse().fire();
         assertThat(workspace.isProjectExplorerCollapsed()).isTrue();
         assertThat(workspace.getProjectExplorerView().isVisible()).isFalse();
         assertThat(workspace.getProjectExplorerView().getMinWidth()).isEqualTo(0.0);
         assertThat(workspace.getProjectExplorerView().getMaxWidth()).isEqualTo(0.0);
+        assertThat(workspace.getBtnExpandProjectExplorer().isVisible()).isTrue();
 
-        // 2. Wieder aufklappen
-        workspace.toggleProjectExplorer();
+        // 2. Wieder aufklappen über den Ausklapp-Button an der rechten Kante
+        workspace.getBtnExpandProjectExplorer().fire();
         assertThat(workspace.isProjectExplorerCollapsed()).isFalse();
         assertThat(workspace.getProjectExplorerView().isVisible()).isTrue();
         assertThat(workspace.getProjectExplorerView().getMinWidth()).isGreaterThanOrEqualTo(140.0);
         assertThat(workspace.getProjectExplorerView().getMaxWidth()).isGreaterThanOrEqualTo(500.0);
+        assertThat(workspace.getBtnExpandProjectExplorer().isVisible()).isFalse();
     }
 
     @Test
