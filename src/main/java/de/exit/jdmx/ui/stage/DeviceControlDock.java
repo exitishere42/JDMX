@@ -24,7 +24,7 @@ import javafx.scene.layout.Priority;
 public class DeviceControlDock extends HBox {
 
     /** Standard- und Mindesthöhe des unteren Dashboards. */
-    public static final double DOCK_HEIGHT = 135.0;
+    public static final double DOCK_HEIGHT = 220;
 
     private final IntensityModuleView intensityModule;
     private final ColorModuleView colorModule;

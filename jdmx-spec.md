@@ -130,7 +130,7 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 3. **Rechte Leiste (ausklappbar):**
    - File Explorer für Schnellzugriff auf gespeicherte Positions-Presets, Farb-Paletten und Gruppen.
 4. **24/7 Steuerungs-Dock unten (Kompaktes DMXControl 3 Style Device Control):**
-   - **Kompakte Leiste:** Flache Bauform (~125–135px), scharfkantiges Moduldesign (0px Radius nur auf den Modulkarten), garantiert >60% vertikalen Raum für die obere Arbeitsfläche.
+   - **Kompakte Leiste:** Bauform mit 220px Höhe (`DOCK_HEIGHT = 220.0`), scharfkantiges Moduldesign (0px Radius nur auf den Modulkarten), garantiert >60% vertikalen Raum für die obere Arbeitsfläche.
    - **Intensität:** 5er-Schnelltasten (`VL`=100%, `70`, `50`, `30`, `0`) vollflächig gestapelt, 2 vertikale Fader (`Dimmer`, `Strobo` – ohne Shutter), 2x2 Tasterblock (`Auf`, `Zu`, `Lumos` [100%], `Nox` [0%]).
    - **Farbe:** Großer **HSV-Farbkreis (98x98px)** bis ca. 0.5cm an den Rand (ohne HSV-Schriftzug) sowie je 4 anpassbare Preset-Buttons links und rechts vom Rad (Linksklick: anwenden, Rechtsklick: speichern).
    - **Position:** Großes **2D-XY-Fadenkreuz (96x96px)** bis ca. 0.5cm an den Rand mit Pan-Slider darunter und Tilt-Slider rechts sowie einem extra **`Home`**-Button im Header zur schnellen Zentrierung auf 50%/50%.
@@ -247,5 +247,6 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 | Datum | Komponente / Anforderung | Änderung / Spezifikation |
 | :--- | :--- | :--- |
-| **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock auf feste Mindesthöhe von 135px verankert (kann vertikal nach unten nicht kleiner als Startposition geschoben werden, nur nach oben vergrößert werden). Modul 1: `Intensität` horizontal auf feste 300px entkoppelt mit großzügigem Randabstand zur Farbkante, Tasten komplett eckig mit 1px Umrandung im Hardware-Look, 5er-Tastenleiste auf 44px, 2 Fader mit voll ausgeschriebenem `Dimmer`-Schriftzug (50px Spalte) und breiten Funktionstasten (`Auf`, `Zu`, `Lumos` mit 62px, `Nox`). Modul 2 & 3: `Farbe` und `Position` teilen sich im dynamischen SplitPane stabil 50/50 den restlichen Raum ohne Jitter/Wander-Effekt. |
+| **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock auf feste Mindesthöhe von 135px verankert. Modul 1: `Intensität` horizontal auf feste 300px entkoppelt mit großzügigem Randabstand zur Farbkante, Tasten komplett eckig mit 1px Umrandung im Hardware-Look. Modul 2 & 3: `Farbe` und `Position` teilen sich im dynamischen SplitPane stabil 50/50 den restlichen Raum ohne Jitter/Wander-Effekt. |
+| **2026-11-05** | **Tab 1: Dashboard-Höhe auf 220px skaliert** | Standard- und Mindesthöhe des Steuerungsdocks von 135px auf **220px** angehoben (`DOCK_HEIGHT = 220.0`), um Fader, Farbrad und 2D-XY-Pad noch mehr vertikalen Raum und Bedienkomfort zu bieten. |
 
