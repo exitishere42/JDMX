@@ -7,7 +7,7 @@
 
     <groupId>de.exit</groupId>
     <artifactId>jdmx</artifactId>
-    <version>1.2.2</version>
+    <version>1.2.3</version>
     <packaging>jar</packaging>
 
     <name>jdmx</name>

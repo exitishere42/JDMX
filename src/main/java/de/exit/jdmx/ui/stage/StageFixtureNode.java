@@ -68,6 +68,7 @@ public class StageFixtureNode extends Pane {
     private boolean strobePhase = false;
 
     private final BooleanProperty selected = new SimpleBooleanProperty(false);
+    private boolean hoveredState = false;
 
     private double dragStartX;
     private double dragStartY;
@@ -119,12 +120,13 @@ public class StageFixtureNode extends Pane {
         StackPane.setAlignment(lens, Pos.CENTER);
         StackPane.setAlignment(trackerDot, Pos.CENTER);
 
-        // 5. Klick-basierter Namens-Badge mit Border (nur sichtbar wenn selektiert)
+        // 5. Namens-Badge mit Border (erscheint bei Hover oder dauerhaft bei Selektion)
         String badgeText = buildBadgeText();
         this.nameBadge = new Label(badgeText);
         nameBadge.getStyleClass().add("stage-fixture-badge");
         nameBadge.setLayoutY(SQUARE_SIZE + 3.0);
         nameBadge.setVisible(false);
+        nameBadge.setMouseTransparent(true);
 
         // Zentrierung des Badges unter dem 36px Gehäuse
         nameBadge.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
@@ -216,16 +218,31 @@ public class StageFixtureNode extends Pane {
                 e.consume();
             }
         });
+
+        // Hover-Events: Name erscheint bei Mauszeigerkontakt und verschwindet beim Verlassen,
+        // sofern das Fixture nicht durch Klick selektiert ist.
+        setOnMouseEntered(e -> {
+            hoveredState = true;
+            updateBadgeVisibility();
+        });
+
+        setOnMouseExited(e -> {
+            hoveredState = false;
+            updateBadgeVisibility();
+        });
+    }
+
+    private void updateBadgeVisibility() {
+        nameBadge.setVisible(isSelected() || hoveredState);
     }
 
     private void updateSelectionVisuals(boolean isSel) {
         if (isSel) {
             square.getStyleClass().setAll("stage-fixture-square-selected");
-            nameBadge.setVisible(true);
         } else {
             square.getStyleClass().setAll("stage-fixture-square");
-            nameBadge.setVisible(false);
         }
+        updateBadgeVisibility();
     }
 
     /**

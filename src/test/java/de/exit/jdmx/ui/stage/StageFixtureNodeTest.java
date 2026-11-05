@@ -87,6 +87,48 @@ class StageFixtureNodeTest {
     }
 
     @Test
+    @DisplayName("Sollte Namens-Badge bei Hover einblenden und bei Klick/Selektion dauerhaft geöffnet halten")
+    void shouldShowBadgeOnHoverAndPersistWhileSelected() {
+        ExplorerItem item = new ExplorerItem("mh-1", "MH Spot 1", ExplorerItemType.FIXTURE, false, "box", Color.web("#60A5FA"));
+        StageFixtureNode node = new StageFixtureNode(item, 100.0, 100.0);
+
+        // 1. Initial: nicht selektiert & nicht gehovert -> Name verborgen
+        assertThat(node.isSelected()).isFalse();
+        assertThat(node.getNameBadge().isVisible()).isFalse();
+
+        // 2. Hover (Maus fährt über Scheinwerfer) -> Name blendet sich ein
+        javafx.event.Event.fireEvent(node, new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_ENTERED,
+                0, 0, 0, 0, javafx.scene.input.MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null));
+        assertThat(node.getNameBadge().isVisible()).isTrue();
+
+        // 3. Maus verlässt Scheinwerfer (ohne Selektion) -> Name blendet sich wieder aus
+        javafx.event.Event.fireEvent(node, new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_EXITED,
+                0, 0, 0, 0, javafx.scene.input.MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null));
+        assertThat(node.getNameBadge().isVisible()).isFalse();
+
+        // 4. Scheinwerfer anklicken / selektieren
+        node.setSelected(true);
+        assertThat(node.isSelected()).isTrue();
+        assertThat(node.getNameBadge().isVisible()).isTrue();
+
+        // 5. Maus verlässt selektierten Scheinwerfer -> Name bleibt dauerhaft sichtbar!
+        javafx.event.Event.fireEvent(node, new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_EXITED,
+                0, 0, 0, 0, javafx.scene.input.MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null));
+        assertThat(node.getNameBadge().isVisible()).isTrue();
+
+        // 6. Deselektion (Klick ins Leere / anderes Fixture) -> Name verschwindet wieder
+        node.setSelected(false);
+        assertThat(node.isSelected()).isFalse();
+        assertThat(node.getNameBadge().isVisible()).isFalse();
+    }
+
+    @Test
     @DisplayName("Sollte Moving Head mit Tracker-Punkt ausstatten und bei Dimmer weglassen")
     void shouldShowTrackerDotOnlyForPanTiltFixtures() {
         // Moving Head mit Pan/Tilt
