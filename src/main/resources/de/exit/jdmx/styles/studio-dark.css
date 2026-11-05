@@ -926,6 +926,13 @@
     -fx-text-fill: #FFFFFF;
 }
 
+.project-explorer-tree .tree-cell.tree-cell-drop-target {
+    -fx-border-color: #3B82F6;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-color: rgba(59, 130, 246, 0.15);
+}
+
 .project-explorer-tree .tree-cell:empty {
     -fx-background-color: transparent;
 }
@@ -953,4 +960,37 @@
 
 .project-explorer-tree .tree-cell:filled:hover .tree-disclosure-node .arrow {
     -fx-background-color: #E5E7EB;
+}
+
+/* 2D Stage Canvas & Drag-Over */
+.stage-canvas-view {
+    -fx-background-color: #121212;
+}
+
+.stage-canvas-drag-over {
+    -fx-border-color: #3B82F6;
+    -fx-border-width: 2px;
+    -fx-background-color: rgba(59, 130, 246, 0.05);
+}
+
+.stage-fixture-node {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #383838;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 8;
+    -fx-cursor: move;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.4), 8, 0, 0, 2);
+}
+
+.stage-fixture-node:hover {
+    -fx-border-color: #60A5FA;
+    -fx-background-color: #262626;
+}
+
+.stage-fixture-label {
+    -fx-text-fill: #E5E7EB;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
 }

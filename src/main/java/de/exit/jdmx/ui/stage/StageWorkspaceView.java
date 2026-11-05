@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -11,6 +12,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+
+import java.util.Objects;
 
 /**
  * Der primäre Arbeitsbereich von Tab 1 (Stage & Fixtures).
@@ -45,16 +48,22 @@ public class StageWorkspaceView extends SplitPane {
     private final SplitPane stageAndDockPane;
     private final ProjectExplorerView projectExplorerView;
     private final Button btnExpandProjectExplorer;
+    private final ProjectExplorerService explorerService;
 
     private double lastExpandedRatio = DEFAULT_HORIZONTAL_RATIO;
     private boolean isCollapsed = false;
 
     public StageWorkspaceView() {
+        this(new ProjectExplorerService());
+    }
+
+    public StageWorkspaceView(ProjectExplorerService explorerService) {
+        this.explorerService = Objects.requireNonNull(explorerService, "explorerService must not be null");
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("stage-workspace-view");
 
         // 1. Linker Hauptbereich (Bühne oben + 220px Steuerungsdock unten)
-        this.stageCanvasView = new StageCanvasView();
+        this.stageCanvasView = new StageCanvasView(explorerService);
         this.controlDock = new DeviceControlDock();
 
         // Ausklapp-Button an der rechten Kante der Bühne vorbereiten (arrow-left-to-line)
@@ -92,7 +101,7 @@ public class StageWorkspaceView extends SplitPane {
         }
 
         // 2. Rechter Bereich: Project Explorer über die volle Höhe
-        this.projectExplorerView = new ProjectExplorerView();
+        this.projectExplorerView = new ProjectExplorerView(explorerService);
         projectExplorerView.setOnToggleCollapse(this::toggleProjectExplorer);
 
         // 3. Horizontales Haupt-SplitPane zusammenbauen
@@ -156,5 +165,9 @@ public class StageWorkspaceView extends SplitPane {
 
     public SplitPane getStageAndDockPane() {
         return stageAndDockPane;
+    }
+
+    public ProjectExplorerService getExplorerService() {
+        return explorerService;
     }
 }

@@ -3,13 +3,13 @@
 <img src="jdmx.png" alt="jdmx Logo" width="128" height="128" />
 
 ```text
-                        _     _                 
-                       (_)   | |                
-                        _  __| |_ __ _____  __  
-                       | |/ _` | '_ ` _ \ \/ /  
-                       | | (_| | | | | | |>  <   
-                      _/ |\__,_|_| |_| |_/_/\_\ 
-                     |__/                       
+                                            _     _                 
+                                           (_)   | |                
+                                            _  __| |_ __ _____  __  
+                                           | |/ _` | '_ ` _ \ \/ /  
+                                           | | (_| | | | | | |>  <   
+                                          _/ |\__,_|_| |_| |_/_/\_\ 
+                                         |__/                       
 ```
 
 **Modular Desktop DMX512 Lighting Controller & Real-Time Stage Visualizer**  
