@@ -776,6 +776,12 @@
     -fx-border-color: #4B5563;
 }
 
+.position-home-btn {
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 2 6;
+}
+
 .module-inner-tab-label {
     -fx-font-size: 10px;
     -fx-font-weight: bold;

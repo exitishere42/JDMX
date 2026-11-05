@@ -36,6 +36,7 @@ class PositionModuleViewTest {
         assertThat(module.getPanSlider()).isNotNull();
         assertThat(module.getTiltSlider()).isNotNull();
         assertThat(module.getBtnHome()).isNotNull();
+        assertThat(module.getBtnHome().getStyleClass()).contains("position-home-btn");
     }
 
     @Test

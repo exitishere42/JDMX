@@ -69,7 +69,7 @@ public class PositionModuleView extends VBox {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         this.btnHome = new Button("Home");
-        btnHome.getStyleClass().add("module-small-btn");
+        btnHome.getStyleClass().addAll("module-small-btn", "position-home-btn");
         btnHome.setOnAction(e -> {
             panSlider.setValue(50.0);
             tiltSlider.setValue(50.0);
