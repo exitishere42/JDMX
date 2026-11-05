@@ -76,14 +76,14 @@ class ProjectExplorerViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Tree-Item-Icons um 1,4x vergrößert auf 18px skalieren")
-    void shouldScaleItemIconsByFactor1Point4() {
+    @DisplayName("Sollte Tree-Item-Icons um 1,2x vergrößert auf 16px skalieren")
+    void shouldScaleItemIconsByFactor1Point2() {
         ProjectExplorerView explorer = new ProjectExplorerView();
 
         TreeItem<String> firstCategory = explorer.getTreeView().getRoot().getChildren().get(0);
         assertThat(firstCategory.getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
         de.exit.jdmx.ui.icon.LucideIcon icon = (de.exit.jdmx.ui.icon.LucideIcon) firstCategory.getGraphic();
-        assertThat(icon.getSize()).isEqualTo(18.0);
+        assertThat(icon.getSize()).isEqualTo(16.0);
     }
 
     @Test

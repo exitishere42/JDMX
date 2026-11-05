@@ -905,9 +905,9 @@
 .project-explorer-tree .tree-cell {
     -fx-background-color: transparent;
     -fx-text-fill: #D1D5DB;
-    -fx-font-size: 16px;
-    -fx-padding: 6 8;
-    -fx-graphic-text-gap: 8px;
+    -fx-font-size: 14px;
+    -fx-padding: 4 6;
+    -fx-graphic-text-gap: 6px;
 }
 
 .project-explorer-tree .tree-cell:filled:hover {

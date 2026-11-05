@@ -19,13 +19,13 @@ import javafx.scene.paint.Color;
  * Beherbergt auf der gesamten rechten Seite der Arbeitsfläche die strukturierte
  * Baumansicht aller Geräte, Gruppen, Presets, Szenenlisten und Effekte.
  * Lässt sich flexibel in der Breite skalieren oder über das Symbol (arrow-right-to-line) zuklappen.
- * Die Items sind ergonomisch um 1,4x vergrößert, und leere Zellen werden nicht gehovert.
+ * Die Items sind ergonomisch um 1,2x vergrößert, und leere Zellen werden nicht gehovert.
  * </p>
  */
 public class ProjectExplorerView extends VBox {
 
-    /** Standardmäßige Vektor-Icongröße der Kategorie-Einträge (1,4x vergrößert auf 18px). */
-    public static final double ITEM_ICON_SIZE = 18.0;
+    /** Standardmäßige Vektor-Icongröße der Kategorie-Einträge (1,2x vergrößert auf 16px). */
+    public static final double ITEM_ICON_SIZE = 16.0;
 
     private final String title = "Project Explorer";
 
