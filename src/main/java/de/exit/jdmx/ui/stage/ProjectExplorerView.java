@@ -355,5 +355,38 @@ public class ProjectExplorerView extends VBox {
                 }
             }
         }
+
+        @Override
+        protected void layoutChildren() {
+            super.layoutChildren();
+            Node graphic = getGraphic();
+            if (graphic != null && !isEmpty()) {
+                TreeItem<ExplorerItem> ti = getTreeItem();
+                boolean hasChildren = ti != null && !ti.getChildren().isEmpty();
+                // Wenn keine Unterelemente vorhanden sind (leere Standard-Ordner oder Leaf-Items),
+                // zwingend exakt linksbündig gemäß Hierarchie-Level ausrichten (umgeht OpenJFX TreeCellSkin Hardcoding)!
+                if (!hasChildren) {
+                    int level = (getTreeView() != null && ti != null) ? getTreeView().getTreeItemLevel(ti) : 0;
+                    if (getTreeView() != null && !getTreeView().isShowRoot()) {
+                        level = Math.max(0, level - 1);
+                    }
+                    double indent = 16.0;
+                    double left = snappedLeftInset() + (level * indent);
+                    double top = snappedTopInset();
+                    double availH = getHeight() - top - snappedBottomInset();
+                    double gh = graphic.getLayoutBounds().getHeight();
+                    double gw = graphic.getLayoutBounds().getWidth();
+                    graphic.relocate(left, top + Math.max(0, (availH - gh) / 2.0));
+
+                    for (Node child : getChildrenUnmodifiable()) {
+                        if (child != graphic && child.getStyleClass().contains("text")) {
+                            double gap = getGraphicTextGap();
+                            double th = child.getLayoutBounds().getHeight();
+                            child.relocate(left + gw + gap, top + Math.max(0, (availH - th) / 2.0));
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -916,6 +916,7 @@
     -fx-padding: 4 4;
     -fx-graphic-text-gap: 8px;
     -fx-background-radius: 4px;
+    -fx-indent: 0;
 }
 
 .project-explorer-tree .tree-cell:filled:hover {

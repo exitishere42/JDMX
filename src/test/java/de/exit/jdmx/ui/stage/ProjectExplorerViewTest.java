@@ -155,4 +155,34 @@ class ProjectExplorerViewTest {
         cell.updateItem(emptyFolder, false);
         assertThat(cell.getDisclosureNode()).isNull();
     }
+
+    @Test
+    @DisplayName("Sollte Top-Level Items im Explorer extrem nah am linken Rand ausrichten (minX <= 6px)")
+    void shouldAlignTopLevelItemsTightlyToLeftMargin() throws Exception {
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+        boolean[] success = new boolean[1];
+        Platform.runLater(() -> {
+            try {
+                ProjectExplorerView view = new ProjectExplorerView();
+                javafx.scene.Scene scene = new javafx.scene.Scene(view, 300, 600);
+                scene.getStylesheets().add(getClass().getResource("/de/exit/jdmx/styles/studio-dark.css").toExternalForm());
+                view.applyCss();
+                view.layout();
+
+                int checked = 0;
+                for (javafx.scene.Node n : view.getTreeView().lookupAll(".tree-cell")) {
+                    if (n instanceof ProjectExplorerView.ProjectExplorerTreeCell cell && cell.getItem() != null) {
+                        assertThat(cell.getGraphic().getBoundsInParent().getMinX()).isLessThanOrEqualTo(6.0);
+                        checked++;
+                    }
+                }
+                assertThat(checked).isGreaterThan(0);
+                success[0] = true;
+            } finally {
+                latch.countDown();
+            }
+        });
+        latch.await(3, java.util.concurrent.TimeUnit.SECONDS);
+        assertThat(success[0]).isTrue();
+    }
 }
