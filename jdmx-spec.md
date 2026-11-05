@@ -3,7 +3,7 @@
 > **Verbindliche Master-Spezifikation für die Software-Entwicklung**  
 > Zielplattform: **Native JavaFX 21 LTS Desktop-Anwendung** (Apache Maven, Java 21 LTS).  
 > Konzipiert für den Vereins- und Showbetrieb (Reihener Carnevals Verein) mit statischem Licht und Moving Lights an einer **U-Traverse gegen eine Projektionswand**.  
-> Vereint die besten Ergonomie-Konzepte aus **QLC+ (Simple Desk & Fixture Library)**, **DMXControl 3 (Device Control Dock)** und **FL Studio (Timeline Playlist & Browser)**.
+> Vereint die besten Ergonomie-Konzepte aus **QLC+ (LightDesk Fader-Pult & Fixture Library)**, **DMXControl 3 (Device Control Dock)** und **FL Studio (Timeline Playlist & Browser)**.
 
 ---
 
@@ -26,7 +26,7 @@ Um maximale vertikale Arbeitsfläche für Bühne, Fader und Timeline zu garantie
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ [ jdmx ]  │  [Stage & Fixtures]  [Simple Desk]  [Button Matrix]  [Show-Timeline]  [Input/Output]  │  [● BLACKOUT]  40 DMX/s  [■ STOP] │
+│ [ jdmx ]  │  [Stage & Fixtures]  [LightDesk]  [Button Matrix]  [Show-Timeline]  [Input/Output]  │  [● BLACKOUT]  40 DMX/s  [■ STOP] │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -44,7 +44,7 @@ Um maximale vertikale Arbeitsfläche für Bühne, Fader und Timeline zu garantie
      - *(Hinweis: Die Liste ist modular aufgebaut und kann jederzeit um weitere Einträge wie z. B. About erweitert werden).*
 2. **Tab-Umschalter (Die 5 Haupt-Arbeitsbereiche):**
    - `[Stage & Fixtures]` (Tab 1)
-   - `[Simple Desk]` (Tab 2)
+   - `[LightDesk]` (Tab 2)
    - `[Button Matrix]` (Tab 3)
    - `[Show-Timeline]` (Tab 4)
    - `[Input/Output]` (Tab 5)
@@ -54,7 +54,7 @@ Um maximale vertikale Arbeitsfläche für Bühne, Fader und Timeline zu garantie
    - **`[■ STOP]` (Globaler Release / Not-Aus):** Großer, roter Haupt-Stop-Button:
      - Stoppt sofort alle aktiven Chaser, Fades und Effekt-Engines.
      - Deaktiviert alle aktiven Tasten in der Button Matrix.
-     - Gibt alle manuellen Fader-Overrides im Simple Desk frei.
+     - Gibt alle manuellen Fader-Overrides im LightDesk frei.
      - Bringt das gesamte Universum mit 1 Klick in den definierten Ruhezustand.
 
 ---
@@ -155,7 +155,7 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 ---
 
-### Tab 2: Simple Desk (QLC+ Fader-Pult)
+### Tab 2: LightDesk (QLC+ Fader-Pult)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -256,7 +256,7 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 - [ ] **Phase 3: Relationale Persistenz & Fixture-Verwaltung** (H2 Schema, JDBC Repositories, Fixture-Library, Kollisionsprüfung).
 - [ ] **Phase 4: Hardware-Inputs & Audio-Sync** (Natives MIDI mit Live-Learn, Audio-Playback Engine via JavaFX Media).
 - [ ] **Phase 5: JavaFX Desktop UI & All-in-One Header** (`MainWindow`, Studio Dark Theme, `LucideIcon.java`, Single Top-Bar).
-- [ ] **Phase 6: Die 5 Workspace-Tabs** (Stage & Fixtures, Simple Desk, Button Matrix, Show-Timeline, Input/Output).
+- [ ] **Phase 6: Die 5 Workspace-Tabs** (Stage & Fixtures, LightDesk, Button Matrix, Show-Timeline, Input/Output).
 - [ ] **Phase 7: Dokumentation & Packaging** (`ONBOARDING.md`, `ARCHITECTURE.md`, `README.md`, Fat-JAR).
 
 ---
@@ -267,5 +267,6 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 | :--- | :--- | :--- |
 | **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock auf feste Mindesthöhe von 135px verankert. Modul 1: `Intensität` horizontal auf feste 300px entkoppelt mit großzügigem Randabstand zur Farbkante, Tasten komplett eckig mit 1px Umrandung im Hardware-Look. Modul 2 & 3: `Farbe` und `Position` teilen sich im dynamischen SplitPane stabil 50/50 den restlichen Raum ohne Jitter/Wander-Effekt. |
 | **2026-11-05** | **Tab 1: Dashboard-Höhe auf 220px skaliert** | Standard- und Mindesthöhe des Steuerungsdocks von 135px auf **220px** angehoben (`DOCK_HEIGHT = 220.0`), um Fader, Farbrad und 2D-XY-Pad noch mehr vertikalen Raum und Bedienkomfort zu bieten. |
-| **2026-11-05** | **Tab 1: Project Explorer (Rechte Seitenleiste)** | Durchgehender `Project Explorer` über die gesamte rechte Fensterhöhe (neben Bühne und Dock). 5 aufklappbare Standard-Ordner (`Geräte`, `Gerätegruppen`, `Presets`, `Szenenlisten`, `Effekte`) mit Drag & Drop-Sortierung, unkategorisierten Items unterhalb, Drag & Drop-Platzierung von Fixtures direkt auf die 2D-Bühne (`StageCanvasView`) und Einklapp-Button (`arrow-right-to-line` / `arrow-left-to-line`). |
+| **2026-11-05** | **Tab 1: Project Explorer (Rechte Seitenleiste)** | Durchgehender `Project Explorer` über die gesamte rechte Fensterhöhe (neben Bühne und Dock). 5 aufklappbare Standard-Ordner (`Geräte`, `Gerätegruppen`, `Presets`, `Szenenlisten`, `Effekte`) mit Drag & Drop-Sortierung, unkategorisierten Items unterhalb, zentriertem grünem `[ + ]` Hinzufügen-Menü (`ExplorerAddMenu`) und Einklapp-Button (`arrow-right-to-line` / `arrow-left-to-line`). Drag & Drop ist strikt auf die Baumstruktur im Explorer beschränkt. |
+| **2026-11-05** | **Tab 2: Umbenennung in LightDesk** | Tab 2 von `Simple Desk` in **`LightDesk`** umbenannt, um eine moderne, eigenständige Nomenklatur zu gewährleisten. |
 

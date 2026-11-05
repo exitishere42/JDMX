@@ -197,7 +197,7 @@ public class MainWindow extends StackPane {
             FixturePatchDialog.show(this, fixtureLibraryService, stageView.getExplorerService(), stageView.getStageCanvasView());
         });
         tabViews[0] = stageView;
-        tabViews[1] = createTabPlaceholder("Simple Desk", "sliders", StudioTheme.COLOR_ICON_FADER);
+        tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
         tabViews[4] = createTabPlaceholder("Input/Output", "arrow-right-left", StudioTheme.COLOR_ICON_IO);

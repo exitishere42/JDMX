@@ -12,7 +12,7 @@ public enum ShortcutAction {
     REDO("Wiederholen", "redo-2"),
     FULLSCREEN("Vollbild umschalten", "maximize"),
     TAB_STAGE("Tab: Stage & Fixtures", "stage"),
-    TAB_DESK("Tab: Simple Desk", "sliders"),
+    TAB_DESK("Tab: LightDesk", "sliders"),
     TAB_MATRIX("Tab: Button Matrix", "layout-grid"),
     TAB_TIMELINE("Tab: Show-Timeline", "audio-lines"),
     TAB_IO("Tab: Input/Output", "arrow-right-left");

@@ -1051,15 +1051,9 @@
     -fx-background-color: #FFFFFF;
 }
 
-/* 2D Stage Canvas & Drag-Over */
+/* 2D Stage Canvas */
 .stage-canvas-view {
     -fx-background-color: #121212;
-}
-
-.stage-canvas-drag-over {
-    -fx-border-color: #3B82F6;
-    -fx-border-width: 2px;
-    -fx-background-color: rgba(59, 130, 246, 0.05);
 }
 
 .stage-fixture-node {

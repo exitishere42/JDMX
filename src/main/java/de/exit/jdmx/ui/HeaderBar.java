@@ -22,6 +22,7 @@ import javafx.scene.shape.Line;
 import javafx.scene.text.Text;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -142,7 +143,7 @@ public class HeaderBar extends HBox {
 
         String[] tabNames = {
                 "Stage & Fixtures",
-                "Simple Desk",
+                "LightDesk",
                 "Button Matrix",
                 "Show-Timeline",
                 "Input/Output"
@@ -307,5 +308,9 @@ public class HeaderBar extends HBox {
 
     public BooleanProperty blackoutActiveProperty() {
         return blackoutActive;
+    }
+
+    public List<ToggleButton> getTabButtons() {
+        return Collections.unmodifiableList(tabButtons);
     }
 }

@@ -7,9 +7,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseButton;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
@@ -53,47 +51,7 @@ public class StageCanvasView extends StackPane {
         this.stageSurface = new Pane();
         stageSurface.getStyleClass().add("stage-surface-pane");
 
-        setupDropTarget();
-
         getChildren().add(stageSurface);
-    }
-
-    private void setupDropTarget() {
-        setOnDragOver(event -> {
-            Dragboard db = event.getDragboard();
-            if (db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
-                event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-                if (!getStyleClass().contains("stage-canvas-drag-over")) {
-                    getStyleClass().add("stage-canvas-drag-over");
-                }
-            }
-            event.consume();
-        });
-
-        setOnDragExited(event -> {
-            getStyleClass().remove("stage-canvas-drag-over");
-            event.consume();
-        });
-
-        setOnDragDropped(event -> {
-            getStyleClass().remove("stage-canvas-drag-over");
-
-            Dragboard db = event.getDragboard();
-            String itemId = (String) (db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                    ? db.getContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                    : db.getString());
-
-            if (itemId != null && explorerService != null) {
-                ExplorerItem item = explorerService.findItemById(itemId);
-                if (item != null) {
-                    double targetX = Math.max(10, event.getX() - 25);
-                    double targetY = Math.max(10, event.getY() - 15);
-                    placeFixture(item, targetX, targetY);
-                    event.setDropCompleted(true);
-                }
-            }
-            event.consume();
-        });
     }
 
     /**

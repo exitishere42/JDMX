@@ -37,4 +37,12 @@ class HeaderBarTest {
         assertThat(brandBtn.getGraphic()).isNotNull();
         assertThat(brandBtn.getStyleClass()).contains("brand-button");
     }
+
+    @Test
+    @DisplayName("Sollte Tab 2 als LightDesk benennen")
+    void shouldNameSecondTabLightDesk() {
+        HeaderBar headerBar = new HeaderBar();
+        assertThat(headerBar.getTabButtons()).hasSize(5);
+        assertThat(headerBar.getTabButtons().get(1).getText()).isEqualTo("LightDesk");
+    }
 }

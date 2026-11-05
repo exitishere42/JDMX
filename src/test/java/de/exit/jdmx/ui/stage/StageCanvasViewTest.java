@@ -33,6 +33,8 @@ class StageCanvasViewTest {
         assertThat(canvas.getPlacedFixtures()).isEmpty();
         assertThat(canvas.getMinHeight()).isGreaterThanOrEqualTo(150.0);
         assertThat(canvas.getStageSurface()).isNotNull();
+        assertThat(canvas.getOnDragOver()).isNull();
+        assertThat(canvas.getOnDragDropped()).isNull();
     }
 
     @Test
