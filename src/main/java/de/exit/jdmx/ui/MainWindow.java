@@ -7,6 +7,7 @@ import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.io.IOWorkspaceView;
 import de.exit.jdmx.ui.stage.StageWorkspaceView;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
@@ -205,7 +206,7 @@ public class MainWindow extends StackPane {
         tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
-        tabViews[4] = createTabPlaceholder("Input/Output", "arrow-right-left", StudioTheme.COLOR_ICON_IO);
+        tabViews[4] = new IOWorkspaceView();
     }
 
     public FixtureLibraryService getFixtureLibraryService() {

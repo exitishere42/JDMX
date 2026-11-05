@@ -1101,3 +1101,261 @@
     -fx-font-weight: 500;
     -fx-effect: null;
 }
+
+/* ==========================================================================
+   Tab 5: Input / Output & Signal-Routing
+   ========================================================================== */
+
+.io-workspace-view {
+    -fx-background-color: #121212;
+}
+
+/* Flache Signalfluss-Leiste */
+.signal-routing-pane {
+    -fx-background-color: transparent;
+}
+
+.routing-box {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #2C2C2C;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.routing-box-core {
+    -fx-border-color: rgba(56, 189, 248, 0.35);
+}
+
+.routing-box-output {
+    -fx-border-color: rgba(16, 185, 129, 0.35);
+}
+
+.routing-box-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
+}
+
+.routing-badge-muted {
+    -fx-background-color: #27272A;
+    -fx-text-fill: #71717A;
+    -fx-font-size: 10px;
+    -fx-padding: 1 6;
+    -fx-background-radius: 3px;
+    -fx-border-color: #383838;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+}
+
+.routing-badge-active {
+    -fx-background-color: rgba(5, 46, 22, 0.7);
+    -fx-text-fill: #34D399;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 6;
+    -fx-background-radius: 3px;
+    -fx-border-color: #065F46;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+}
+
+.routing-stat-highlight {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34D399;
+}
+
+.routing-stat-normal {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #E4E4E7;
+}
+
+.routing-subtext {
+    -fx-font-size: 10px;
+    -fx-text-fill: #71717A;
+}
+
+.routing-subtext-green {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #10B981;
+}
+
+.routing-field-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #A1A1AA;
+}
+
+.routing-arrow-box {
+    -fx-alignment: center;
+}
+
+.routing-arrow-caption {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+}
+
+.routing-checkbox {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
+}
+
+.routing-radio {
+    -fx-font-size: 11px;
+    -fx-text-fill: #D4D4D8;
+}
+
+.routing-combo {
+    -fx-background-color: #141414;
+    -fx-border-color: #333333;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-font-size: 11px;
+    -fx-padding: 0 4;
+}
+
+.routing-combo .list-cell {
+    -fx-text-fill: #E4E4E7;
+    -fx-background-color: #141414;
+}
+
+.routing-spinner {
+    -fx-background-color: #141414;
+    -fx-border-color: #333333;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-font-size: 11px;
+}
+
+.routing-text-field {
+    -fx-background-color: #141414;
+    -fx-border-color: #333333;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 11px;
+    -fx-padding: 2 6;
+}
+
+/* Untere Hälfte: DMX Matrix */
+.dmx-matrix-view {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #2C2C2C;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.matrix-title-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
+}
+
+.matrix-universe-tab {
+    -fx-background-color: #141414;
+    -fx-border-color: #282828;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-text-fill: #71717A;
+    -fx-font-size: 11px;
+    -fx-padding: 3 8;
+    -fx-cursor: hand;
+}
+
+.matrix-universe-tab:selected {
+    -fx-background-color: #2A2A2A;
+    -fx-border-color: #3F3F46;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+}
+
+.matrix-filter-btn {
+    -fx-background-color: #141414;
+    -fx-border-color: #282828;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-text-fill: #71717A;
+    -fx-font-size: 11px;
+    -fx-padding: 3 8;
+    -fx-cursor: hand;
+}
+
+.matrix-filter-btn:selected {
+    -fx-background-color: #262626;
+    -fx-border-color: #383838;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+}
+
+.matrix-rate-pill {
+    -fx-background-color: #142318;
+    -fx-border-color: #064E3B;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-text-fill: #34D399;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 8;
+}
+
+.dmx-matrix-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.dmx-matrix-scroll > .viewport {
+    -fx-background-color: #141414;
+    -fx-border-color: #262626;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.dmx-matrix-grid {
+    -fx-background-color: transparent;
+}
+
+/* Einzelne DMX-Kanal-Vierecke */
+.dmx-channel-cell {
+    -fx-background-color: #181818;
+    -fx-border-color: #282828;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-alignment: center;
+    -fx-cursor: default;
+}
+
+.dmx-channel-cell:hover {
+    -fx-border-color: #52525B;
+    -fx-scale-x: 1.08;
+    -fx-scale-y: 1.08;
+}
+
+.dmx-channel-cell-active:hover {
+    -fx-border-color: #34D399;
+    -fx-scale-x: 1.08;
+    -fx-scale-y: 1.08;
+}
+
+.dmx-channel-number {
+    -fx-font-size: 9px;
+    -fx-text-fill: #52525B;
+    -fx-font-family: monospace;
+}
+
+.dmx-channel-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: #52525B;
+    -fx-font-family: monospace;
+}

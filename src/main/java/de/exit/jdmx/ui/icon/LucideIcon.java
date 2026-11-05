@@ -154,6 +154,9 @@ public class LucideIcon extends StackPane {
             case "arrow-right-left", "arrows-horizontal", "io" ->
                 // Lucide arrow-right-left
                 "M16 3l4 4-4 4 M20 7H4 M8 21l-4-4 4-4 M4 17h16";
+            case "arrow-right" ->
+                // Lucide arrow-right
+                "M5 12h14 M12 5l7 7-7 7";
             case "arrow-right-to-line" ->
                 // Lucide arrow-right-to-line
                 "M17 12H3 M11 18l6-6-6-6 M21 5v14";
