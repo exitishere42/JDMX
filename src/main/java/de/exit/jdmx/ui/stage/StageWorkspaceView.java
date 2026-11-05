@@ -20,7 +20,8 @@ import javafx.scene.layout.VBox;
  * Features:
  * <ul>
  *     <li>Flexibel dicker oder dünner ziehbar</li>
- *     <li>One-Click-Toggle: Klick auf die vertikale Dragbar klappt den Project Explorer komplett zu oder wieder auf</li>
+ *     <li>One-Click-Toggle: Klick auf die vertikale Haupt-Dragbar klappt den Project Explorer zu 100% auf 0px zu</li>
+ *     <li>Andere Dragbars (z. B. im Steuerungsdock) werden durch strikte Parent-Prüfung nicht beeinflusst</li>
  * </ul>
  * </p>
  */
@@ -83,13 +84,18 @@ public class StageWorkspaceView extends SplitPane {
         SplitPane.setResizableWithParent(projectExplorerView, false);
         setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
 
-        // 4. One-Click Toggle auf die Dragbar verdrahten
+        // 4. One-Click Toggle ausschließlich auf die vertikale Haupt-Dragbar verdrahten
         setupDividerClickHandler();
     }
 
     private void setupDividerClickHandler() {
         Platform.runLater(() -> {
             for (Node node : lookupAll(".split-pane-divider")) {
+                // Strikte Isolierung: Nur den Divider registrieren, der direkt zu diesem SplitPane gehört!
+                if (node.getParent() != this) {
+                    continue;
+                }
+
                 node.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
                     if (e.getButton() == MouseButton.PRIMARY) {
                         dragStartX = e.getScreenX();
@@ -113,7 +119,7 @@ public class StageWorkspaceView extends SplitPane {
     }
 
     /**
-     * Schaltet die Anzeige des Project Explorers um (Zuklappen / Aufklappen).
+     * Schaltet die Anzeige des Project Explorers vollständig um (Zuklappen auf 0px / Aufklappen).
      */
     public void toggleProjectExplorer() {
         if (!getDividers().isEmpty()) {
@@ -123,10 +129,18 @@ public class StageWorkspaceView extends SplitPane {
                 if (currentPos < 0.98) {
                     lastExpandedRatio = currentPos;
                 }
+                projectExplorerView.setMinWidth(0);
+                projectExplorerView.setMaxWidth(0);
+                projectExplorerView.setVisible(false);
+                projectExplorerView.setManaged(false);
                 setDividerPositions(1.0);
                 isCollapsed = true;
             } else {
-                // Wieder auf vorherige Breite aufklappen
+                // Vollständig wieder auf vorherige Breite aufklappen
+                projectExplorerView.setVisible(true);
+                projectExplorerView.setManaged(true);
+                projectExplorerView.setMinWidth(140.0);
+                projectExplorerView.setMaxWidth(Double.MAX_VALUE);
                 setDividerPositions(lastExpandedRatio > 0 && lastExpandedRatio < 0.98 ? lastExpandedRatio : DEFAULT_HORIZONTAL_RATIO);
                 isCollapsed = false;
             }

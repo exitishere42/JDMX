@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit-Tests für den Haupt-Workspace von Tab 1 (StageWorkspaceView).
  * Prüft die horizontale Teilung mit dem durchgehenden Project Explorer rechts
- * und das vertikale Dock links.
+ * und das fehlerfreie Zuklappen zu 100%.
  */
 class StageWorkspaceViewTest {
 
@@ -38,19 +38,26 @@ class StageWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Project Explorer per Toggle zuklappen und wieder aufklappen können")
+    @DisplayName("Sollte Project Explorer vollständig auf 0px zuklappen und wieder aufklappen können")
     void shouldToggleProjectExplorerCollapseAndExpand() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
         assertThat(workspace.isProjectExplorerCollapsed()).isFalse();
+        assertThat(workspace.getProjectExplorerView().isVisible()).isTrue();
 
-        // 1. Zuklappen
+        // 1. Zuklappen (zu 100% auf 0px)
         workspace.toggleProjectExplorer();
         assertThat(workspace.isProjectExplorerCollapsed()).isTrue();
+        assertThat(workspace.getProjectExplorerView().isVisible()).isFalse();
+        assertThat(workspace.getProjectExplorerView().getMinWidth()).isEqualTo(0.0);
+        assertThat(workspace.getProjectExplorerView().getMaxWidth()).isEqualTo(0.0);
 
         // 2. Wieder aufklappen
         workspace.toggleProjectExplorer();
         assertThat(workspace.isProjectExplorerCollapsed()).isFalse();
+        assertThat(workspace.getProjectExplorerView().isVisible()).isTrue();
+        assertThat(workspace.getProjectExplorerView().getMinWidth()).isGreaterThanOrEqualTo(140.0);
+        assertThat(workspace.getProjectExplorerView().getMaxWidth()).isGreaterThanOrEqualTo(500.0);
     }
 
     @Test
