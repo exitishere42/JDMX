@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=jdmx
+Comment=jdmx - Modular Java DMX Lighting Controller
+Exec=run.sh
+Icon=jdmx
+Categories=AudioVideo;Utility;
+Terminal=false
+StartupNotify=true
+StartupWMClass=de.exit.jdmx.JdmxApplication
