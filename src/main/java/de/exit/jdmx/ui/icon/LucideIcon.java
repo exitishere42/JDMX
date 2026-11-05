@@ -232,6 +232,12 @@ public class LucideIcon extends StackPane {
             case "mouse-pointer-2", "mouse-pointer", "cursor" ->
                 // Lucide mouse-pointer-2
                 "M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.438l-1.58 6.124a.5.5 0 0 1-.947.063z";
+            case "search", "find" ->
+                // Lucide search
+                "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35";
+            case "tag" ->
+                // Lucide tag
+                "M12 2H2v10l9.29 9.29a2.41 2.41 0 0 0 3.42 0l6.58-6.58a2.41 2.41 0 0 0 0-3.42L12 2z M7 7h.01";
             case "grid-3x3" ->
                 // Lucide grid-3x3
                 "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 9h18 M3 15h18 M9 3v18 M15 3v18";

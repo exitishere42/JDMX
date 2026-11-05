@@ -249,13 +249,21 @@
 
 .dialog-close-button {
     -fx-background-color: transparent;
-    -fx-padding: 4 6;
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
     -fx-background-radius: 4px;
+    -fx-padding: 4 6;
     -fx-cursor: hand;
 }
 
 .dialog-close-button:hover {
-    -fx-background-color: #2A2A2A;
+    -fx-background-color: rgba(239, 68, 68, 0.16);
+    -fx-border-color: rgba(239, 68, 68, 0.35);
+}
+
+.dialog-close-button:pressed {
+    -fx-background-color: rgba(239, 68, 68, 0.28);
 }
 
 .dialog-tab-bar {
@@ -341,13 +349,75 @@
 }
 
 .settings-textfield {
-    -fx-background-color: #151515;
-    -fx-border-color: #2E2E2E;
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
     -fx-border-radius: 4px;
     -fx-background-radius: 4px;
     -fx-text-fill: #F3F4F6;
-    -fx-font-size: 12px;
+    -fx-font-size: 13px;
     -fx-padding: 6 10;
+}
+
+/* Suchfeld mit hellerem, klarem Look und Fokus-Effekt */
+.settings-search-box {
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3 8;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.settings-search-box:focused-within {
+    -fx-border-color: #38BDF8;
+    -fx-background-color: #282828;
+}
+
+.settings-search-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #F3F4F6;
+    -fx-prompt-text-fill: #9CA3AF;
+    -fx-font-size: 13px;
+    -fx-padding: 4 4;
+}
+
+.settings-sublabel {
+    -fx-text-fill: #9CA3AF;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+/* Spinner (DMX Adressen & Universen) */
+.spinner {
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.spinner .text-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #F3F4F6;
+    -fx-font-size: 13px;
+    -fx-padding: 4 6;
+}
+
+.spinner .increment-arrow-button, .spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 3 6;
+    -fx-cursor: hand;
+}
+
+.spinner .increment-arrow-button:hover, .spinner .decrement-arrow-button:hover {
+    -fx-background-color: #333333;
+}
+
+.spinner .increment-arrow, .spinner .decrement-arrow {
+    -fx-background-color: #9CA3AF;
 }
 
 /* Custom ComboBox (Lesbarer heller Text statt dunklem Brei) */

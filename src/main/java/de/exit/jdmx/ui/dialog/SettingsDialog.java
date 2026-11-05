@@ -45,6 +45,7 @@ public class SettingsDialog {
 
     private VBox generalView;
     private VBox shortcutsView;
+    private Button btnClose;
 
     // Aktuell zur Aufnahme ausgewählte Shortcut-Aktion (null, wenn inaktiv)
     private ShortcutAction recordingAction = null;
@@ -114,9 +115,9 @@ public class SettingsDialog {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnClose = new Button();
+        this.btnClose = new Button();
         btnClose.getStyleClass().add("dialog-close-button");
-        btnClose.setGraphic(new LucideIcon("x", 16, StudioTheme.COLOR_TEXT_MED));
+        btnClose.setGraphic(new LucideIcon("x", 15, StudioTheme.COLOR_ICON_RED));
         btnClose.setCursor(Cursor.HAND);
         btnClose.setOnAction(e -> mainWindow.hideOverlay());
 
@@ -445,5 +446,9 @@ public class SettingsDialog {
      */
     public Node getView() {
         return card;
+    }
+
+    public Button getBtnClose() {
+        return btnClose;
     }
 }

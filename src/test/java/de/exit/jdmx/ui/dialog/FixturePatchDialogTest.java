@@ -42,6 +42,10 @@ class FixturePatchDialogTest {
         assertThat(dialog.getSpinnerAddress()).isNotNull();
         assertThat(dialog.getSpinnerQuantity()).isNotNull();
         assertThat(dialog.getBtnImportFile()).isNotNull();
+        assertThat(dialog.getBtnClose()).isNotNull();
+        assertThat(dialog.getBtnClose().getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+        de.exit.jdmx.ui.icon.LucideIcon closeIcon = (de.exit.jdmx.ui.icon.LucideIcon) dialog.getBtnClose().getGraphic();
+        assertThat(closeIcon.getName()).isEqualTo("x");
         assertThat(dialog.getBtnPatch()).isNotNull();
 
         // Herstellerliste sollte Generic enthalten

@@ -35,6 +35,10 @@ class SettingsDialogTest {
 
         assertThat(card).isNotNull();
         assertThat(card.getStyleClass()).contains("settings-dialog-card");
+        assertThat(dialog.getBtnClose()).isNotNull();
+        assertThat(dialog.getBtnClose().getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+        de.exit.jdmx.ui.icon.LucideIcon icon = (de.exit.jdmx.ui.icon.LucideIcon) dialog.getBtnClose().getGraphic();
+        assertThat(icon.getName()).isEqualTo("x");
     }
 
     @Test

@@ -44,10 +44,12 @@ class LucideIconTest {
     }
 
     @Test
-    @DisplayName("Sollte Toolbar-Icons wie mouse-pointer-2, grid-3x3, sun-dim und chevrons ohne Circle-Fallback auflösen")
+    @DisplayName("Sollte Toolbar- und Formular-Icons wie search, tag, mouse-pointer-2 ohne Circle-Fallback auflösen")
     void shouldResolveToolbarIconsWithoutCircleFallback() {
         String circleFallback = LucideIcon.getSvgPathData("unknown-dummy-name");
 
+        assertThat(LucideIcon.getSvgPathData("search")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("tag")).isNotEqualTo(circleFallback);
         assertThat(LucideIcon.getSvgPathData("mouse-pointer-2")).isNotEqualTo(circleFallback);
         assertThat(LucideIcon.getSvgPathData("grid-3x3")).isNotEqualTo(circleFallback);
         assertThat(LucideIcon.getSvgPathData("sun-dim")).isNotEqualTo(circleFallback);

@@ -49,6 +49,7 @@ public class FixturePatchDialog {
     private Spinner<Integer> spinnerQuantity;
 
     private Button btnImportFile;
+    private Button btnClose;
     private Button btnCancel;
     private Button btnPatch;
 
@@ -82,79 +83,86 @@ public class FixturePatchDialog {
 
         // 2. Formular-Raster
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
+        grid.setHgap(12);
+        grid.setVgap(12);
         grid.setPadding(new Insets(10, 0, 10, 0));
 
         // Suchfeld & Import-Button oben
         this.searchField = new TextField();
         searchField.setPromptText("Hersteller oder Modell suchen...");
-        searchField.getStyleClass().add("settings-input");
+        searchField.getStyleClass().add("settings-search-field");
         searchField.textProperty().addListener((obs, oldVal, newVal) -> onSearchChanged(newVal));
+        HBox.setHgrow(searchField, Priority.ALWAYS);
+
+        LucideIcon searchIcon = new LucideIcon("search", 14, Color.web("#9CA3AF"));
+        HBox searchBox = new HBox(6, searchIcon, searchField);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        searchBox.getStyleClass().add("settings-search-box");
+        HBox.setHgrow(searchBox, Priority.ALWAYS);
 
         this.btnImportFile = new Button("Datei importieren...");
         btnImportFile.getStyleClass().add("settings-btn-secondary");
-        btnImportFile.setGraphic(new LucideIcon("folder-open", 14, Color.web("#D1D5DB")));
+        btnImportFile.setGraphic(new LucideIcon("folder-open", 14, Color.web("#38BDF8")));
         btnImportFile.setOnAction(e -> onImportFileClicked());
 
-        HBox searchRow = new HBox(8, searchField, btnImportFile);
-        HBox.setHgrow(searchField, Priority.ALWAYS);
+        HBox searchRow = new HBox(8, searchBox, btnImportFile);
+        searchRow.setAlignment(Pos.CENTER_LEFT);
         grid.add(searchRow, 0, 0, 2, 1);
 
-        // Hersteller
-        Label lblMfg = new Label("Hersteller:");
-        lblMfg.getStyleClass().add("settings-label");
+        // Hersteller mit Tag-Icon
+        HBox lblMfgBox = createFieldLabel("Hersteller:", "tag", Color.web("#38BDF8"));
         this.comboManufacturer = new ComboBox<>();
         comboManufacturer.getStyleClass().add("settings-combo");
         comboManufacturer.setMaxWidth(Double.MAX_VALUE);
         comboManufacturer.getItems().setAll(libraryService.getManufacturers());
         comboManufacturer.valueProperty().addListener((obs, oldV, newV) -> onManufacturerSelected(newV));
-        grid.add(lblMfg, 0, 1);
+        grid.add(lblMfgBox, 0, 1);
         grid.add(comboManufacturer, 1, 1);
 
-        // Modell
-        Label lblModel = new Label("Modell:");
-        lblModel.getStyleClass().add("settings-label");
+        // Modell mit Box-Icon
+        HBox lblModelBox = createFieldLabel("Modell:", "box", Color.web("#FEDC94"));
         this.comboModel = new ComboBox<>();
         comboModel.getStyleClass().add("settings-combo");
         comboModel.setMaxWidth(Double.MAX_VALUE);
         comboModel.valueProperty().addListener((obs, oldV, newV) -> onModelSelected(newV));
-        grid.add(lblModel, 0, 2);
+        grid.add(lblModelBox, 0, 2);
         grid.add(comboModel, 1, 2);
 
-        // DMX Modus
-        Label lblMode = new Label("DMX-Modus:");
-        lblMode.getStyleClass().add("settings-label");
+        // DMX Modus mit Sliders-Icon
+        HBox lblModeBox = createFieldLabel("DMX-Modus:", "sliders", Color.web("#F59E0B"));
         this.comboMode = new ComboBox<>();
         comboMode.getStyleClass().add("settings-combo");
         comboMode.setMaxWidth(Double.MAX_VALUE);
-        grid.add(lblMode, 0, 3);
+        grid.add(lblModeBox, 0, 3);
         grid.add(comboMode, 1, 3);
 
-        // Universum & Startadresse
-        Label lblAddr = new Label("Startadresse:");
-        lblAddr.getStyleClass().add("settings-label");
+        // Universum & Startadresse mit Cable-Icon
+        HBox lblAddrBox = createFieldLabel("Startadresse:", "cable", Color.web("#2DD4BF"));
 
         this.spinnerUniverse = new Spinner<>(1, 16, 1);
         spinnerUniverse.setEditable(true);
-        spinnerUniverse.setPrefWidth(80);
+        spinnerUniverse.setPrefWidth(85);
 
         this.spinnerAddress = new Spinner<>(1, 512, 1);
         spinnerAddress.setEditable(true);
-        spinnerAddress.setPrefWidth(100);
+        spinnerAddress.setPrefWidth(95);
 
-        HBox addrBox = new HBox(8, new Label("U:"), spinnerUniverse, new Label("Adr:"), spinnerAddress);
+        Label lblU = new Label("U:");
+        lblU.getStyleClass().add("settings-sublabel");
+        Label lblA = new Label("Adr:");
+        lblA.getStyleClass().add("settings-sublabel");
+
+        HBox addrBox = new HBox(8, lblU, spinnerUniverse, lblA, spinnerAddress);
         addrBox.setAlignment(Pos.CENTER_LEFT);
-        grid.add(lblAddr, 0, 4);
+        grid.add(lblAddrBox, 0, 4);
         grid.add(addrBox, 1, 4);
 
-        // Anzahl
-        Label lblQty = new Label("Anzahl:");
-        lblQty.getStyleClass().add("settings-label");
+        // Anzahl mit Layers-Icon
+        HBox lblQtyBox = createFieldLabel("Anzahl:", "layers", Color.web("#10B981"));
         this.spinnerQuantity = new Spinner<>(1, 32, 1);
         spinnerQuantity.setEditable(true);
-        spinnerQuantity.setPrefWidth(100);
-        grid.add(lblQty, 0, 5);
+        spinnerQuantity.setPrefWidth(95);
+        grid.add(lblQtyBox, 0, 5);
         grid.add(spinnerQuantity, 1, 5);
 
         // Standardmäßig ersten Hersteller selektieren
@@ -169,21 +177,32 @@ public class FixturePatchDialog {
         card.getChildren().addAll(header, grid, footer);
     }
 
+    private HBox createFieldLabel(String text, String iconName, Color color) {
+        LucideIcon icon = new LucideIcon(iconName, 14, color);
+        Label label = new Label(text);
+        label.getStyleClass().add("settings-label");
+        HBox box = new HBox(6, icon, label);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setMinWidth(115);
+        return box;
+    }
+
     private HBox buildHeader() {
         HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("settings-dialog-header");
 
-        LucideIcon icon = new LucideIcon("plus", 18, Color.web("#60A5FA"));
+        LucideIcon icon = new LucideIcon("plus", 18, Color.web("#38BDF8"));
         Label title = new Label("Scheinwerfer hinzufügen");
         title.getStyleClass().add("settings-dialog-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnClose = new Button();
-        btnClose.getStyleClass().add("dialog-close-btn");
-        btnClose.setGraphic(new LucideIcon("x", 14, Color.web("#9CA3AF")));
+        this.btnClose = new Button();
+        btnClose.getStyleClass().add("dialog-close-button");
+        btnClose.setGraphic(new LucideIcon("x", 15, Color.web("#EF4444")));
+        btnClose.setCursor(javafx.scene.Cursor.HAND);
         btnClose.setOnAction(e -> close());
 
         header.getChildren().addAll(icon, title, spacer, btnClose);
@@ -341,6 +360,10 @@ public class FixturePatchDialog {
 
     public Button getBtnImportFile() {
         return btnImportFile;
+    }
+
+    public Button getBtnClose() {
+        return btnClose;
     }
 
     public Button getBtnPatch() {
