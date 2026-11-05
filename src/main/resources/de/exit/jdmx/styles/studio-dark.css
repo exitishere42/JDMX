@@ -1056,24 +1056,47 @@
     -fx-background-color: #121212;
 }
 
+.stage-canvas-drag-over {
+    -fx-border-color: #10B981;
+    -fx-border-width: 2px;
+    -fx-border-style: dashed;
+}
+
 .stage-fixture-node {
+    -fx-cursor: hand;
+}
+
+.stage-fixture-square {
     -fx-background-color: #1E1E1E;
     -fx-border-color: #383838;
     -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-    -fx-padding: 4 8;
-    -fx-cursor: move;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.4), 8, 0, 0, 2);
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.5), 6, 0, 0, 2);
 }
 
-.stage-fixture-node:hover {
-    -fx-border-color: #60A5FA;
-    -fx-background-color: #262626;
+.stage-fixture-square:hover {
+    -fx-border-color: #64748B;
 }
 
-.stage-fixture-label {
-    -fx-text-fill: #E5E7EB;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
+.stage-fixture-square-selected {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #38BDF8;
+    -fx-border-width: 1.5px;
+    -fx-background-radius: 2px;
+    -fx-border-radius: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(56, 189, 248, 0.5), 8, 0.25, 0, 0);
+}
+
+.stage-fixture-badge {
+    -fx-background-color: #18181B;
+    -fx-border-color: #38BDF8;
+    -fx-border-width: 1px;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-padding: 2 6;
+    -fx-text-fill: #F3F4F6;
+    -fx-font-size: 10px;
+    -fx-font-weight: 500;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.7), 6, 0, 0, 2);
 }

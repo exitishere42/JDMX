@@ -306,14 +306,16 @@ public class FixturePatchDialog {
             String id = "fixture-" + UUID.randomUUID().toString().substring(0, 8);
             String name = def.getModel() + (quantity > 1 ? " " + (i + 1) : "");
 
+            double startX = 180.0 + (i * 85.0);
+            double startY = 160.0;
+            FixtureInstance instance = new FixtureInstance(id, name, def, mode, universe, currentAddr, startX, startY);
+
             // 1. In Project Explorer eintragen (unter Geräte-Ordner)
             String iconName = def.getModel().toLowerCase().contains("dimmer") ? "sun" : "lamp";
-            ExplorerItem item = new ExplorerItem(id, name, ExplorerItemType.FIXTURE, false, iconName, Color.web("#60A5FA"));
+            ExplorerItem item = new ExplorerItem(id, name, ExplorerItemType.FIXTURE, false, iconName, Color.web("#60A5FA"), instance);
             explorerService.addItemToFolder("folder-devices", item);
 
             // 2. Auf 2D-Bühne platzieren (sauber nebeneinander entlang der Traverse)
-            double startX = 180.0 + (i * 85.0);
-            double startY = 160.0;
             stageCanvas.placeFixture(item, startX, startY);
         }
 

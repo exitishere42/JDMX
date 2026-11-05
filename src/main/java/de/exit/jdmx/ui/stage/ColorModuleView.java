@@ -207,6 +207,15 @@ public class ColorModuleView extends VBox {
         drawColorWheel();
     }
 
+    /**
+     * Setzt die aktive Farbe des Farbmoduls (Alias für {@link #selectColor(Color)}).
+     *
+     * @param color Die auszuwählende Farbe
+     */
+    public void setColor(Color color) {
+        selectColor(color);
+    }
+
     private void drawColorWheel() {
         GraphicsContext gc = colorWheelCanvas.getGraphicsContext2D();
         double w = colorWheelCanvas.getWidth();

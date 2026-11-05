@@ -136,7 +136,20 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
      - **Intelligente Spawning- & Kollisionslogik:** Bei z. B. `Quantity: 4` spawnen die 4 Fixtures sauber nebeneinander in der Mitte der Traverse und werden automatisch im Project Explorer unter `Geräte` registriert.
 2. **Hauptbereich (Mitte):**
    - 2D-Fläche mit der **U-Traverse gegen die Projektionswand** – vollständig frei von störenden Overlays oder schwebenden Toolbars für maximale Sicht.
-   - Scheinwerfer frei per Drag & Drop auf den U-Schenkeln und der Mitte platzierbar.
+   - **Visuelle Scheinwerfer-Repräsentation (`StageFixtureNode`):**
+     - **Gehäuse:** 36x36px Quadrat mit dezenten **`2px` Eckenrundungen** (`-fx-background-radius: 2px; -fx-border-radius: 2px;`), Hardware-Dark `#1E1E1E`, dezenter Rahmen `#383838`.
+     - **Linse:** 34px Durchmesser Innenkreis, bündig an allen 4 Innenkanten zentriert (ohne Randlücken, ohne Herausragen).
+     - **Dimmer & Farbe:** Zeigt dynamisch die Farbe und Helligkeit (0–100%). Bei klassischen Scheinwerfern/Dimmern ohne RGB-Kanäle wird schönes 3200K Halogen-Warmweiß (`#FFE4B5`) statt Digitalweiß verwendet.
+     - **Strobe-Pulsieren:** Linse blitzt im Strobe-Takt zwischen Lichtfarbe und Dunkel (`#141414`), wenn Strobe aktiv ist.
+     - **Positions-Punkt (Pan/Tilt Tracker Dot):**
+       - Nur bei Moving Lights / Scheinwerfern mit Pan/Tilt sichtbar.
+       - Wandert im Linsenkreis synchron zum 2D-XY-Pad des Positions-Docks.
+       - **Automatischer Kontrast:** Schaltet nach relativer WCAG-Luminanz dynamisch zwischen Schwarz (auf hellen Farben) und Weiß (auf dunklen Farben) um, um immer gestochen scharf erkennbar zu sein.
+     - **Klick-basierter Namens-Badge:**
+       - Im Normalzustand ausgeblendet für eine 100% aufgeräumte, blendfreie Bühne.
+       - Bei Klick (Selektion) blendet sich direkt unter dem 36x36px Viereck ein eleganter Badge mit Border, Name und Adresse ein (`#18181B`, `border: 1px solid #38BDF8`).
+       - Gehäuse erhält bei Selektion einen leuchtenden Cyan-Rahmen (`#38BDF8`).
+   - Scheinwerfer frei per Drag & Drop aus dem Project Explorer auf der Bühne platzierbar und mit der Maus verschiebbar.
    - Vektor-Beams simulieren Abstrahlrichtung, Pan/Tilt-Winkel, Farbe und Helligkeit in Echtzeit an die Wand.
 3. **Rechte Leiste (Project Explorer):**
    - Durchgehende Seitenleiste über die volle Höhe rechts neben Bühne und Dock.

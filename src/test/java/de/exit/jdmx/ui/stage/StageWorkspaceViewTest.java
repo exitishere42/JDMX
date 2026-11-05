@@ -70,4 +70,29 @@ class StageWorkspaceViewTest {
 
         assertThat(workspace.getControlDock().getMinHeight()).isEqualTo(DeviceControlDock.DOCK_HEIGHT);
     }
+
+    @Test
+    @DisplayName("Sollte Slider- und Farbänderungen im Steuerungs-Dock auf das selektierte Fixture übertragen")
+    void shouldSynchronizeControlDockWithSelectedFixture() {
+        StageWorkspaceView workspace = new StageWorkspaceView();
+
+        de.exit.jdmx.core.model.ExplorerItem spot = new de.exit.jdmx.core.model.ExplorerItem(
+                "mh-spot", "Moving Head Spot", de.exit.jdmx.core.model.ExplorerItemType.FIXTURE, false, "box", javafx.scene.paint.Color.web("#60A5FA"));
+        StageFixtureNode node = workspace.getStageCanvasView().placeFixture(spot, 100.0, 100.0);
+
+        // Selektieren
+        node.setSelected(true);
+
+        // Dimmer im Dock ändern -> Node übernimmt Helligkeit
+        workspace.getControlDock().getIntensityModule().getDimmerSlider().setValue(50.0);
+        assertThat(node.getDimmer()).isEqualTo(0.5);
+
+        // Farbe im Dock ändern -> Node übernimmt Farbe
+        workspace.getControlDock().getColorModule().setColor(javafx.scene.paint.Color.RED);
+        assertThat(node.getBaseColor()).isEqualTo(javafx.scene.paint.Color.RED);
+
+        // Strobo im Dock ändern -> Node übernimmt Strobo
+        workspace.getControlDock().getIntensityModule().getStrobeSlider().setValue(30.0);
+        assertThat(node.isStrobing()).isTrue();
+    }
 }

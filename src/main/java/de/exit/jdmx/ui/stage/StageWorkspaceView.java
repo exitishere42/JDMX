@@ -108,6 +108,93 @@ public class StageWorkspaceView extends SplitPane {
         getItems().addAll(stageAndDockPane, projectExplorerView);
         SplitPane.setResizableWithParent(projectExplorerView, false);
         setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
+
+        // 4. Reaktive Synchronisation zwischen Steuerungs-Dock und selektierten Scheinwerfern
+        setupControlDockBinding();
+    }
+
+    private boolean isSyncing = false;
+
+    private void setupControlDockBinding() {
+        // Dimmer-Änderung im Dock auf selektiertes Fixture übertragen
+        controlDock.getIntensityModule().getDimmerSlider().valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (isSyncing) return;
+            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                if (node.isSelected()) {
+                    node.setDimmer(newVal.doubleValue() / 100.0);
+                }
+            }
+        });
+
+        // Strobo-Änderung im Dock auf selektiertes Fixture übertragen
+        controlDock.getIntensityModule().getStrobeSlider().valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (isSyncing) return;
+            boolean active = newVal.doubleValue() > 5.0;
+            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                if (node.isSelected() && node.hasStrobe()) {
+                    node.setStrobing(active);
+                }
+            }
+        });
+
+        // Farb-Änderung im Dock auf selektiertes Fixture übertragen
+        controlDock.getColorModule().selectedColorProperty().addListener((obs, oldVal, newVal) -> {
+            if (isSyncing || newVal == null) return;
+            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                if (node.isSelected() && node.hasColorChannels()) {
+                    node.setColor(newVal);
+                }
+            }
+        });
+
+        // Positions-Änderung (Pan/Tilt) im Dock auf selektiertes Fixture übertragen
+        Runnable updatePosition = () -> {
+            if (isSyncing) return;
+            double pan = controlDock.getPositionModule().getPanSlider().getValue() / 100.0;
+            double tilt = (100.0 - controlDock.getPositionModule().getTiltSlider().getValue()) / 100.0;
+            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                if (node.isSelected() && node.hasPanTilt()) {
+                    node.setPosition(pan, tilt);
+                }
+            }
+        };
+
+        controlDock.getPositionModule().getPanSlider().valueProperty().addListener((obs, o, n) -> updatePosition.run());
+        controlDock.getPositionModule().getTiltSlider().valueProperty().addListener((obs, o, n) -> updatePosition.run());
+
+        // Bei Neuplatzierung von Fixtures: Selektions-Listener registrieren
+        stageCanvasView.setOnFixturePlaced((item, point) -> registerFixtureSelectionSync());
+    }
+
+    private void registerFixtureSelectionSync() {
+        for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+            node.selectedProperty().removeListener(this::onFixtureSelectionChanged);
+            node.selectedProperty().addListener(this::onFixtureSelectionChanged);
+        }
+    }
+
+    private void onFixtureSelectionChanged(javafx.beans.value.ObservableValue<? extends Boolean> obs, Boolean oldVal, Boolean newVal) {
+        if (Boolean.TRUE.equals(newVal)) {
+            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                if (node.isSelected()) {
+                    syncDockToFixture(node);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void syncDockToFixture(StageFixtureNode node) {
+        isSyncing = true;
+        try {
+            controlDock.getIntensityModule().getDimmerSlider().setValue(node.getDimmer() * 100.0);
+            controlDock.getIntensityModule().getStrobeSlider().setValue(node.isStrobing() ? 50.0 : 0.0);
+            if (node.hasColorChannels()) {
+                controlDock.getColorModule().setColor(node.getBaseColor());
+            }
+        } finally {
+            isSyncing = false;
+        }
     }
 
     /**
