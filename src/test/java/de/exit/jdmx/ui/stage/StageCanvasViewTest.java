@@ -32,6 +32,7 @@ class StageCanvasViewTest {
 
         assertThat(canvas.getPlacedFixtures()).isEmpty();
         assertThat(canvas.getMinHeight()).isGreaterThanOrEqualTo(150.0);
+        assertThat(canvas.getFloatingToolbar()).isNotNull();
     }
 
     @Test

@@ -990,6 +990,52 @@
     -fx-background-color: #262626;
 }
 
+/* Floating Pill Toolbar (Penpot / Figma-Stil) */
+.stage-floating-toolbar {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #333333;
+    -fx-border-width: 1px;
+    -fx-border-radius: 24px;
+    -fx-background-radius: 24px;
+    -fx-padding: 3 6;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.65), 14, 0, 0, 4);
+}
+
+.stage-floating-toolbar.collapsed {
+    -fx-padding: 3 4;
+}
+
+.pill-toolbar-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 16px;
+    -fx-background-radius: 16px;
+    -fx-padding: 4 7;
+    -fx-cursor: hand;
+}
+
+.pill-toolbar-btn:hover {
+    -fx-background-color: #2A2A2A;
+}
+
+.pill-toolbar-btn.active {
+    -fx-background-color: #1E293B;
+}
+
+.btn-pill-add {
+    -fx-background-color: #1E293B;
+}
+
+.btn-pill-add:hover {
+    -fx-background-color: #2E3E56;
+}
+
+.pill-toolbar-divider .line {
+    -fx-border-color: #333333;
+    -fx-border-width: 0 1px 0 0;
+    -fx-background-color: transparent;
+}
+
 .stage-fixture-label {
     -fx-text-fill: #E5E7EB;
     -fx-font-size: 11px;

@@ -117,12 +117,22 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 └───────────────────────────────┴───────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 
-1. **Linke Leiste (`+` Button):**
-   - Öffnet den **3-Schritte Fixture-Patch-Dialog** (QLC+ Style):
-     1. **Marke auswählen:** Durchsuchbare Herstellerliste (`[ 🔍 Suchen... ]`: U'King, Showtec, Eurolite, Cameo, Stairville, Generic etc.) mit `[ + ]` für Custom Fixtures.
-     2. **Modell / Profil auswählen:** DMX-Modi des Herstellers (z. B. `11CH`, `14CH`).
-     3. **Properties konfigurieren:** Name, Universe (Standard: 1), Startadresse (1–512), Quantity (Anzahl), Channel Mode, Address Gap $\rightarrow$ Button **`[ Fixtures hinzufügen ]`**.
-   - **Intelligente Spawning- & Kollisionslogik:** Bei z. B. `Quantity: 4` spawnen die 4 Fixtures **sauber nebeneinander in der Mitte der Traverse**, statt aufeinander zu liegen.
+1. **Floating Pill-Toolbar (Penpot / Figma-Stil oben mittig):**
+   - Schwebende Pill-Toolbar (`StageFloatingToolbar`) oben zentriert über der 2D-Bühne mit abgerundetem Pill-Design (24px Radius) und Material 2 Elevation:
+     - `[ + ]` (Plus-Button): Öffnet das universelle **In-App Fixture-Patch-Dialog** Modal.
+     - `[ Auswählen ]` (Lucide `mouse-pointer-2`): Modus zur Scheinwerferauswahl auf der Bühne.
+     - `[ Raster ]` (Lucide `grid-3x3`): Schaltet das Fang- und Hilfsraster ein/aus.
+     - `[ Beams ]` (Lucide `sun-dim`): Schaltet die Live-Lichtkegel-Simulation ein/aus.
+     - `[ ⌃ / ⌄ ]` (Einklapp-/Ausklapp-Button): Klappt die Leiste platzsparend auf eine minimale 28px-Pille zusammen und wieder aus.
+   - **Universeller Fixture-Import & Bibliotheks-System:**
+     - Nativer XML-Parser für **QLC+ Fixtures (`.qxf`)**.
+     - Nativer ZIP/XML-Parser für **GDTF Fixtures (`.gdtf`)** (`description.xml`).
+     - Vorinstallierte Standard-Profile (`Generic Dimmer`, `Generic RGB Par`, `Generic RGBW Par`, `Generic Moving Head Spot`).
+     - Datei-Import (`FileChooser`) für beliebige externe `.qxf`- und `.gdtf`-Dateien.
+   - **In-App Fixture-Patch-Dialog:**
+     - 1-Klick-Auswahl aus Hersteller, Modell und DMX-Modus.
+     - Konfiguration von Startadresse (1–512), Universum (1–4) und Anzahl (Quantity).
+     - **Intelligente Spawning- & Kollisionslogik:** Bei z. B. `Quantity: 4` spawnen die 4 Fixtures sauber nebeneinander in der Mitte der Traverse und werden automatisch im Project Explorer unter `Geräte` registriert.
 2. **Hauptbereich (Mitte):**
    - 2D-Fläche mit der **U-Traverse gegen die Projektionswand**.
    - Scheinwerfer frei per Drag & Drop auf den U-Schenkeln und der Mitte platzierbar.

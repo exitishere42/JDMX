@@ -1,7 +1,9 @@
 package de.exit.jdmx.ui;
 
 import de.exit.jdmx.service.ShortcutAction;
+import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.ShortcutService;
+import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.stage.StageWorkspaceView;
@@ -53,6 +55,9 @@ public class MainWindow extends StackPane {
     /** Zentraler Shortcut-Service für konfigurierbare Tastaturkürzel. */
     private final ShortcutService shortcutService;
 
+    /** Scheinwerfer-Bibliothek (vorinstallierte Standardgeräte und importierte Profile). */
+    private final FixtureLibraryService fixtureLibraryService;
+
     /**
      * Erstellt das Hauptfenster und initialisiert alle Basis-Komponenten.
      */
@@ -65,6 +70,7 @@ public class MainWindow extends StackPane {
      */
     public MainWindow(ShortcutService shortcutService) {
         this.shortcutService = shortcutService;
+        this.fixtureLibraryService = new FixtureLibraryService();
         getStyleClass().add("main-window");
 
         this.contentPane = new BorderPane();
@@ -186,11 +192,19 @@ public class MainWindow extends StackPane {
      * Initialisiert die 5 Workspace-Tabs.
      */
     private void initTabViews() {
-        tabViews[0] = new StageWorkspaceView();
+        StageWorkspaceView stageView = new StageWorkspaceView();
+        stageView.getStageCanvasView().getFloatingToolbar().setOnAddFixture(() -> {
+            FixturePatchDialog.show(this, fixtureLibraryService, stageView.getExplorerService(), stageView.getStageCanvasView());
+        });
+        tabViews[0] = stageView;
         tabViews[1] = createTabPlaceholder("Simple Desk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
         tabViews[4] = createTabPlaceholder("Input/Output", "arrow-right-left", StudioTheme.COLOR_ICON_IO);
+    }
+
+    public FixtureLibraryService getFixtureLibraryService() {
+        return fixtureLibraryService;
     }
 
     /**
