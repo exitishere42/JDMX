@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.stage;
 
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -14,21 +15,17 @@ import javafx.scene.paint.Color;
 import java.util.function.Consumer;
 
 /**
- * Schwebende Werkzeugleiste für die 2D-Bühne im Figma-Toolbar-Stil.
+ * Schwebende Werkzeugleiste für die 2D-Bühne im JDMX Studio Dark Design.
  * <p>
  * Oben mittig über dem Canvas platziert mit:
  * <ul>
- *     <li>[ + ] Button zum Hinzufügen / Importieren von Scheinwerfern</li>
- *     <li>Figma-Style Canvas-Werkzeugen (Auswahl, Gitter/Grid, Lichtkegel)</li>
- *     <li>Einklapp- & Ausklapp-Mechanik für uneingeschränkte Sicht auf die Traverse</li>
+ *     <li>[ + ] Button zum Hinzufügen / Importieren von Scheinwerfern (Stage-Cyan)</li>
+ *     <li>Canvas-Werkzeugen (Auswahl, Gitter/Grid, Lichtkegel/Beams) in Studio-Farben</li>
+ *     <li>Einklapp- & Ausklapp-Mechanik mit 4px Radius passend zum Gesamtsystem</li>
  * </ul>
  * </p>
  */
 public class StageFloatingToolbar extends HBox {
-
-    private static final Color ICON_COLOR = Color.web("#D1D5DB");
-    private static final Color ACCENT_COLOR = Color.web("#38BDF8");
-    private static final Color ACTIVE_ICON_COLOR = Color.WHITE;
 
     private final Button btnAddFixture;
     private final Button btnSelect;
@@ -53,10 +50,10 @@ public class StageFloatingToolbar extends HBox {
         setAlignment(Pos.CENTER);
         getStyleClass().add("stage-floating-toolbar");
         setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        setPrefHeight(40);
+        setPrefHeight(36);
 
-        // 1. Plus-Button (Scheinwerfer patchen / importieren)
-        this.btnAddFixture = createToolbarButton("plus", 16, ACCENT_COLOR, "Scheinwerfer hinzufügen");
+        // 1. Plus-Button (Scheinwerfer patchen / importieren) in JDMX Stage-Cyan
+        this.btnAddFixture = createToolbarButton("plus", 14, StudioTheme.COLOR_ICON_STAGE, "Scheinwerfer hinzufügen");
         btnAddFixture.getStyleClass().add("btn-pill-add");
         btnAddFixture.setOnAction(e -> {
             if (onAddFixture != null) {
@@ -66,24 +63,24 @@ public class StageFloatingToolbar extends HBox {
 
         this.divider1 = createDivider();
 
-        // 2. Canvas-Tools (Figma-Stil)
-        this.btnSelect = createToolbarButton("mouse-pointer-2", 15, ACTIVE_ICON_COLOR, "Auswahlwerkzeug");
+        // 2. Canvas-Tools in JDMX Studio Farben
+        this.btnSelect = createToolbarButton("mouse-pointer-2", 14, StudioTheme.COLOR_TEXT_HIGH, "Auswahlwerkzeug");
         btnSelect.getStyleClass().add("active");
 
-        this.btnGrid = createToolbarButton("grid-3x3", 15, ICON_COLOR, "Raster anzeigen");
+        this.btnGrid = createToolbarButton("grid-3x3", 14, StudioTheme.COLOR_TEXT_MED, "Raster anzeigen");
         btnGrid.setOnAction(e -> {
             gridActive = !gridActive;
-            updateToggleState(btnGrid, gridActive, "grid-3x3");
+            updateToggleState(btnGrid, gridActive, StudioTheme.COLOR_ICON_STAGE, StudioTheme.COLOR_TEXT_MED);
             if (onToggleGrid != null) {
                 onToggleGrid.accept(gridActive);
             }
         });
 
-        this.btnBeams = createToolbarButton("sun-dim", 15, ACTIVE_ICON_COLOR, "Lichtkegel anzeigen");
-        updateToggleState(btnBeams, beamsActive, "sun-dim");
+        this.btnBeams = createToolbarButton("sun-dim", 14, StudioTheme.COLOR_ICON_FADER, "Lichtkegel anzeigen");
+        updateToggleState(btnBeams, beamsActive, StudioTheme.COLOR_ICON_FADER, StudioTheme.COLOR_TEXT_LOW);
         btnBeams.setOnAction(e -> {
             beamsActive = !beamsActive;
-            updateToggleState(btnBeams, beamsActive, "sun-dim");
+            updateToggleState(btnBeams, beamsActive, StudioTheme.COLOR_ICON_FADER, StudioTheme.COLOR_TEXT_LOW);
             if (onToggleBeams != null) {
                 onToggleBeams.accept(beamsActive);
             }
@@ -92,10 +89,10 @@ public class StageFloatingToolbar extends HBox {
         this.divider2 = createDivider();
 
         // 3. Einklapp- & Ausklapp-Buttons
-        this.btnCollapse = createToolbarButton("chevron-up", 15, Color.web("#9CA3AF"), "Werkzeugleiste einklappen");
+        this.btnCollapse = createToolbarButton("chevron-up", 14, StudioTheme.COLOR_TEXT_MED, "Werkzeugleiste einklappen");
         btnCollapse.setOnAction(e -> collapse());
 
-        this.btnExpand = createToolbarButton("chevron-down", 15, Color.web("#9CA3AF"), "Werkzeugleiste ausklappen");
+        this.btnExpand = createToolbarButton("chevron-down", 14, StudioTheme.COLOR_TEXT_MED, "Werkzeugleiste ausklappen");
         btnExpand.setOnAction(e -> expand());
 
         showExpandedLayout();
@@ -104,9 +101,9 @@ public class StageFloatingToolbar extends HBox {
     private Button createToolbarButton(String iconName, double size, Color color, String tooltipText) {
         Button btn = new Button();
         btn.getStyleClass().add("pill-toolbar-btn");
-        btn.setMinSize(32, 32);
-        btn.setPrefSize(32, 32);
-        btn.setMaxSize(32, 32);
+        btn.setMinSize(28, 28);
+        btn.setPrefSize(28, 28);
+        btn.setMaxSize(28, 28);
         btn.setGraphic(new LucideIcon(iconName, size, color));
         btn.setTooltip(new Tooltip(tooltipText));
         return btn;
@@ -115,24 +112,24 @@ public class StageFloatingToolbar extends HBox {
     private Node createDivider() {
         Separator sep = new Separator(Orientation.VERTICAL);
         sep.getStyleClass().add("pill-toolbar-divider");
-        sep.setMinHeight(20);
-        sep.setPrefHeight(20);
-        sep.setMaxHeight(20);
+        sep.setMinHeight(16);
+        sep.setPrefHeight(16);
+        sep.setMaxHeight(16);
         return sep;
     }
 
-    private void updateToggleState(Button btn, boolean active, String iconName) {
+    private void updateToggleState(Button btn, boolean active, Color activeColor, Color inactiveColor) {
         if (active) {
             if (!btn.getStyleClass().contains("active")) {
                 btn.getStyleClass().add("active");
             }
             if (btn.getGraphic() instanceof LucideIcon icon) {
-                icon.setColor(ACTIVE_ICON_COLOR);
+                icon.setColor(activeColor);
             }
         } else {
             btn.getStyleClass().remove("active");
             if (btn.getGraphic() instanceof LucideIcon icon) {
-                icon.setColor(ICON_COLOR);
+                icon.setColor(inactiveColor);
             }
         }
     }
