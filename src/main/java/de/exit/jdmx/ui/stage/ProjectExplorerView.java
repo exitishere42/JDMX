@@ -409,6 +409,15 @@ public class ProjectExplorerView extends VBox {
         @Override
         protected void layoutChildren() {
             super.layoutChildren();
+
+            // Ausklapppfeil (Disclosure-Node) mathematisch exakt vertikal im Hover-Kasten zentrieren
+            Node disclosure = getDisclosureNode();
+            if (disclosure != null && disclosure.isVisible()) {
+                double dh = disclosure.getLayoutBounds().getHeight();
+                double centeredY = Math.round((getHeight() - dh) / 2.0);
+                disclosure.setLayoutY(centeredY);
+            }
+
             Node graphic = getGraphic();
             if (graphic != null && !isEmpty()) {
                 TreeItem<ExplorerItem> ti = getTreeItem();

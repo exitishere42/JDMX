@@ -62,4 +62,16 @@ class IntensityModuleViewTest {
         module.getQuickButtons().get(0).fire(); // VL
         assertThat(module.getDimmerSlider().getValue()).isEqualTo(100.0);
     }
+
+    @Test
+    @DisplayName("Sollte vergrößerte ergonomische Tastenhöhe (50px) für Zu und Nox Tasten besitzen")
+    void shouldHaveErgonomicHeightForZuAndNoxButtons() {
+        IntensityModuleView module = new IntensityModuleView();
+
+        assertThat(module.getBtnZu().getPrefHeight()).isEqualTo(50.0);
+        assertThat(module.getBtnZu().getMinHeight()).isGreaterThanOrEqualTo(44.0);
+
+        assertThat(module.getBtnNox().getPrefHeight()).isEqualTo(50.0);
+        assertThat(module.getBtnNox().getMinHeight()).isGreaterThanOrEqualTo(44.0);
+    }
 }

@@ -202,4 +202,19 @@ class ProjectExplorerViewTest {
         latch.await(3, java.util.concurrent.TimeUnit.SECONDS);
         assertThat(success[0]).isTrue();
     }
+
+    @Test
+    @DisplayName("Sollte Disclosure-Node für gefüllte Ordner bereitstellen")
+    void shouldProvideDisclosureNodeForFoldersWithChildren() {
+        ProjectExplorerView.ProjectExplorerTreeCell cell = new ProjectExplorerView.ProjectExplorerTreeCell(null);
+
+        ExplorerItem folder = new ExplorerItem("folder-1", "Moving Heads", ExplorerItemType.FOLDER, true, "folder", Color.CYAN);
+        javafx.scene.control.TreeItem<ExplorerItem> treeItem = new javafx.scene.control.TreeItem<>(folder);
+        treeItem.getChildren().add(new javafx.scene.control.TreeItem<>(new ExplorerItem("child", "Child", ExplorerItemType.FIXTURE, false, "box", Color.BLUE)));
+
+        cell.updateTreeItem(treeItem);
+        cell.updateItem(folder, false);
+
+        assertThat(cell.getDisclosureNode()).isNotNull();
+    }
 }

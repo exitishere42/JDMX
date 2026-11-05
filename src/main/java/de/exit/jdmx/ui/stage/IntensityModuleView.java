@@ -113,7 +113,8 @@ public class IntensityModuleView extends VBox {
         btnZu.setPrefWidth(52);
         btnZu.setMinWidth(46);
         btnZu.setMaxWidth(56);
-        btnZu.setPrefHeight(32);
+        btnZu.setPrefHeight(50);
+        btnZu.setMinHeight(44);
         btnZu.setOnAction(e -> dimmerSlider.setValue(0.0));
 
         VBox colAufZu = new VBox(2, btnAuf, btnZu);
@@ -135,7 +136,8 @@ public class IntensityModuleView extends VBox {
         btnNox.setPrefWidth(62);
         btnNox.setMinWidth(56);
         btnNox.setMaxWidth(68);
-        btnNox.setPrefHeight(32);
+        btnNox.setPrefHeight(50);
+        btnNox.setMinHeight(44);
         btnNox.setOnAction(e -> dimmerSlider.setValue(0.0));
 
         VBox colLumosNox = new VBox(2, btnLumos, btnNox);

@@ -5,6 +5,7 @@ import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.FixtureInstance;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
@@ -179,8 +180,11 @@ public class StageFixtureNode extends Pane {
     private void setupInteractions() {
         setOnMousePressed(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
-                dragStartX = e.getSceneX() - getLayoutX();
-                dragStartY = e.getSceneY() - getLayoutY();
+                Point2D parentPoint = getParent() != null
+                        ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
+                        : new Point2D(e.getSceneX(), e.getSceneY());
+                dragStartX = parentPoint.getX() - getLayoutX();
+                dragStartY = parentPoint.getY() - getLayoutY();
                 hasDragged = false;
                 toFront();
                 e.consume();
@@ -190,8 +194,11 @@ public class StageFixtureNode extends Pane {
         setOnMouseDragged(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
                 hasDragged = true;
-                double newX = Math.max(0, e.getSceneX() - dragStartX);
-                double newY = Math.max(0, e.getSceneY() - dragStartY);
+                Point2D parentPoint = getParent() != null
+                        ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
+                        : new Point2D(e.getSceneX(), e.getSceneY());
+                double newX = Math.max(0, parentPoint.getX() - dragStartX);
+                double newY = Math.max(0, parentPoint.getY() - dragStartY);
                 setLayoutX(newX);
                 setLayoutY(newY);
 

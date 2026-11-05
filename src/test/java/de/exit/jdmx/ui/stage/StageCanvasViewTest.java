@@ -97,4 +97,50 @@ class StageCanvasViewTest {
         assertThat(node1.getNameBadge().isVisible()).isFalse();
         assertThat(node2.getNameBadge().isVisible()).isFalse();
     }
+
+    @Test
+    @DisplayName("Sollte stufenlosen Zoom (0.5x bis 3.5x) mit zentriertem Ankerpunkt unterstützen")
+    void shouldSupportZoomAndClampWithinBounds() {
+        StageCanvasView canvas = new StageCanvasView();
+
+        // 1. Initialer Zoomfaktor 1.0 (100%)
+        assertThat(canvas.getZoom()).isEqualTo(1.0);
+        assertThat(canvas.getPanX()).isEqualTo(0.0);
+        assertThat(canvas.getPanY()).isEqualTo(0.0);
+
+        // 2. Hineinzoomen an Koordinate (200, 200) mit Faktor 1.25
+        canvas.zoomAt(200.0, 200.0, 1.25);
+        assertThat(canvas.getZoom()).isEqualTo(1.25);
+        // Durch zentriertes Zoomen verschiebt sich der Pan-Offset
+        assertThat(canvas.getPanX()).isNotEqualTo(0.0);
+        assertThat(canvas.getPanY()).isNotEqualTo(0.0);
+
+        // 3. Maximaler Zoom auf 3.5 begrenzt (Clamping)
+        canvas.setZoom(5.0);
+        assertThat(canvas.getZoom()).isEqualTo(3.5);
+
+        // 4. Minimaler Zoom auf 0.5 begrenzt (Clamping)
+        canvas.setZoom(0.1);
+        assertThat(canvas.getZoom()).isEqualTo(0.5);
+
+        // 5. Reset setzt Zoom auf 1.0 und Pan auf 0/0 zurück
+        canvas.resetView();
+        assertThat(canvas.getZoom()).isEqualTo(1.0);
+        assertThat(canvas.getPanX()).isEqualTo(0.0);
+        assertThat(canvas.getPanY()).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("Sollte Verschieben (Pan) der Bühnenansicht unterstützen")
+    void shouldSupportPanTranslation() {
+        StageCanvasView canvas = new StageCanvasView();
+
+        canvas.setPan(150.0, -80.0);
+        assertThat(canvas.getPanX()).isEqualTo(150.0);
+        assertThat(canvas.getPanY()).isEqualTo(-80.0);
+
+        canvas.panBy(50.0, 20.0);
+        assertThat(canvas.getPanX()).isEqualTo(200.0);
+        assertThat(canvas.getPanY()).isEqualTo(-60.0);
+    }
 }

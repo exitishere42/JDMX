@@ -5,10 +5,16 @@ import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.service.ProjectExplorerService;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.transform.Scale;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,8 +27,10 @@ import java.util.function.BiConsumer;
  * <p>
  * Unterstützt:
  * <ul>
- *     <li>Platzierung von Scheinwerfern (Fixtures) per Drag & Drop aus dem {@link ProjectExplorerView}</li>
- *     <li>Exakte Positionierung an den Zielkoordinaten auf der Bühnenoberfläche</li>
+ *     <li>Stufenlosen Mausrad-Zoom (0.5x bis 3.5x), zentriert an der aktuellen Mauszeigerposition</li>
+ *     <li>Kamera-Verschiebung (Pan) über Ziehen mit der mittleren Maustaste (Mausrad-Klick)</li>
+ *     <li>Platzierung von Scheinwerfern (Fixtures) per Drag & Drop aus dem {@link ProjectExplorerView}
+ *         mit automatischer Koordinatenumrechnung (sceneToLocal) auch bei aktivem Zoom und Pan</li>
  *     <li>Nachträgliches freies Verschieben platzierter Scheinwerfer auf der Bühne per Maus</li>
  *     <li>Reaktive Benachrichtigung über den Platzierungs-Callback</li>
  *     <li>Deselektion aller Scheinwerfer beim Klick auf die leere Bühnenfläche</li>
@@ -31,11 +39,28 @@ import java.util.function.BiConsumer;
  */
 public class StageCanvasView extends StackPane {
 
+    /** Minimaler Zoomfaktor (50%). */
+    public static final double MIN_ZOOM = 0.5;
+
+    /** Maximaler Zoomfaktor (350%). */
+    public static final double MAX_ZOOM = 3.5;
+
+    /** Zoom-Schrittfaktor pro Mausrad-Rastung. */
+    public static final double ZOOM_FACTOR = 1.15;
+
     private final Pane stageSurface;
+    private final Scale scaleTransform;
     private final List<StageFixtureNode> placedFixtures = new ArrayList<>();
 
     private ProjectExplorerService explorerService;
     private BiConsumer<ExplorerItem, Point2D> onFixturePlaced;
+
+    // Zustand für Kamera-Verschiebung (Pan) mit mittlerer Maustaste
+    private double panStartMouseX;
+    private double panStartMouseY;
+    private double panStartTranslateX;
+    private double panStartTranslateY;
+    private boolean isPanning = false;
 
     public StageCanvasView() {
         this(new ProjectExplorerService());
@@ -48,19 +73,171 @@ public class StageCanvasView extends StackPane {
         setMinHeight(150.0);
         setAlignment(Pos.TOP_LEFT);
 
+        // Ansicht auf die Canvas-Größe beschneiden (Clip), damit gezoomte Elemente nicht überlaufen
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(widthProperty());
+        clip.heightProperty().bind(heightProperty());
+        setClip(clip);
+
         this.stageSurface = new Pane();
         stageSurface.getStyleClass().add("stage-surface-pane");
 
+        // Skalierungstransformation mit festem Ursprung (0, 0)
+        this.scaleTransform = new Scale(1.0, 1.0, 0.0, 0.0);
+        stageSurface.getTransforms().add(scaleTransform);
+
         // Klick auf den leeren Hintergrund deselektiert alle Fixtures (Bühne wird sauber)
         stageSurface.setOnMouseClicked(event -> {
-            if (event.getTarget() == stageSurface) {
+            if (event.getTarget() == stageSurface && event.getButton() == MouseButton.PRIMARY) {
                 deselectAll();
             }
         });
 
+        setupNavigation();
         setupDropTarget();
 
         getChildren().add(stageSurface);
+    }
+
+    private void setupNavigation() {
+        // 1. Stufenloser Mausrad-Zoom zentriert am Mauszeiger
+        setOnScroll((ScrollEvent event) -> {
+            double delta = event.getDeltaY();
+            if (delta == 0) {
+                return;
+            }
+            double factor = delta > 0 ? ZOOM_FACTOR : (1.0 / ZOOM_FACTOR);
+            zoomAt(event.getX(), event.getY(), factor);
+            event.consume();
+        });
+
+        // 2. Kamera-Verschiebung (Pan) mit mittlerer Maustaste
+        addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (event.getButton() == MouseButton.MIDDLE) {
+                isPanning = true;
+                panStartMouseX = event.getX();
+                panStartMouseY = event.getY();
+                panStartTranslateX = stageSurface.getTranslateX();
+                panStartTranslateY = stageSurface.getTranslateY();
+                setCursor(Cursor.MOVE);
+                event.consume();
+            }
+        });
+
+        addEventFilter(MouseEvent.MOUSE_DRAGGED, event -> {
+            if (isPanning && event.getButton() == MouseButton.MIDDLE) {
+                double deltaX = event.getX() - panStartMouseX;
+                double deltaY = event.getY() - panStartMouseY;
+                stageSurface.setTranslateX(panStartTranslateX + deltaX);
+                stageSurface.setTranslateY(panStartTranslateY + deltaY);
+                event.consume();
+            }
+        });
+
+        addEventFilter(MouseEvent.MOUSE_RELEASED, event -> {
+            if (event.getButton() == MouseButton.MIDDLE) {
+                isPanning = false;
+                setCursor(Cursor.DEFAULT);
+                event.consume();
+            }
+        });
+    }
+
+    /**
+     * Führt einen stufenlosen Zoom zentriert an den übergebenen Viewport-Koordinaten aus.
+     *
+     * @param viewportX Horizontale Mauszeiger-Position im Arbeitsbereich
+     * @param viewportY Vertikale Mauszeiger-Position im Arbeitsbereich
+     * @param factor    Multiplikativer Skalierungsfaktor (z. B. 1.15 für Hineinzoomen)
+     */
+    public void zoomAt(double viewportX, double viewportY, double factor) {
+        double oldZoom = getZoom();
+        double targetZoom = oldZoom * factor;
+        double newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, targetZoom));
+        if (Math.abs(newZoom - oldZoom) < 0.0001) {
+            return;
+        }
+
+        // Lokaler Bühnenpunkt unter der Maus vor dem Zoomen
+        double localX = (viewportX - stageSurface.getTranslateX()) / oldZoom;
+        double localY = (viewportY - stageSurface.getTranslateY()) / oldZoom;
+
+        // Neuen Zoom setzen
+        setZoom(newZoom);
+
+        // Translation so anpassen, dass (localX, localY) exakt unter (viewportX, viewportY) bleibt
+        double newTranslateX = viewportX - (localX * newZoom);
+        double newTranslateY = viewportY - (localY * newZoom);
+        stageSurface.setTranslateX(newTranslateX);
+        stageSurface.setTranslateY(newTranslateY);
+    }
+
+    /**
+     * Gibt den aktuellen Vergrößerungsfaktor der Bühnenansicht zurück (Standard: 1.0).
+     *
+     * @return Der Zoomfaktor
+     */
+    public double getZoom() {
+        return scaleTransform.getX();
+    }
+
+    /**
+     * Setzt den Zoomfaktor der Bühnenansicht (wird zwischen {@link #MIN_ZOOM} und {@link #MAX_ZOOM} begrenzt).
+     *
+     * @param zoom Der gewünschte Zoomfaktor
+     */
+    public void setZoom(double zoom) {
+        double clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
+        scaleTransform.setX(clamped);
+        scaleTransform.setY(clamped);
+    }
+
+    /**
+     * Gibt die aktuelle horizontale Kameraverschiebung zurück.
+     *
+     * @return Horizontale Verschiebung in Pixeln
+     */
+    public double getPanX() {
+        return stageSurface.getTranslateX();
+    }
+
+    /**
+     * Gibt die aktuelle vertikale Kameraverschiebung zurück.
+     *
+     * @return Vertikale Verschiebung in Pixeln
+     */
+    public double getPanY() {
+        return stageSurface.getTranslateY();
+    }
+
+    /**
+     * Setzt die Kameraverschiebung auf die angegebenen Werte.
+     *
+     * @param panX Horizontale Zielverschiebung
+     * @param panY Vertikale Zielverschiebung
+     */
+    public void setPan(double panX, double panY) {
+        stageSurface.setTranslateX(panX);
+        stageSurface.setTranslateY(panY);
+    }
+
+    /**
+     * Verschiebt die Kamera um die angegebenen Relativwerte.
+     *
+     * @param deltaX Horizontales Inkrement
+     * @param deltaY Vertikales Inkrement
+     */
+    public void panBy(double deltaX, double deltaY) {
+        stageSurface.setTranslateX(stageSurface.getTranslateX() + deltaX);
+        stageSurface.setTranslateY(stageSurface.getTranslateY() + deltaY);
+    }
+
+    /**
+     * Setzt Zoom (1.0x) und Kamera-Position (0, 0) auf die Ausgangsansicht zurück.
+     */
+    public void resetView() {
+        setZoom(1.0);
+        setPan(0.0, 0.0);
     }
 
     private void setupDropTarget() {
@@ -91,8 +268,9 @@ public class StageCanvasView extends StackPane {
             if (itemId != null && explorerService != null) {
                 ExplorerItem item = explorerService.findItemById(itemId);
                 if (item != null && item.getType() == ExplorerItemType.FIXTURE) {
-                    double targetX = Math.max(10, event.getX() - (StageFixtureNode.SQUARE_SIZE / 2.0));
-                    double targetY = Math.max(10, event.getY() - (StageFixtureNode.SQUARE_SIZE / 2.0));
+                    Point2D localPoint = stageSurface.sceneToLocal(event.getSceneX(), event.getSceneY());
+                    double targetX = Math.max(10, localPoint.getX() - (StageFixtureNode.SQUARE_SIZE / 2.0));
+                    double targetY = Math.max(10, localPoint.getY() - (StageFixtureNode.SQUARE_SIZE / 2.0));
                     placeFixture(item, targetX, targetY);
                     event.setDropCompleted(true);
                 }
