@@ -852,7 +852,7 @@
     -fx-background-color: #171717;
     -fx-border-color: #262626;
     -fx-border-width: 0 0 0 1px;
-    -fx-padding: 6 8;
+    -fx-padding: 6 6;
 }
 
 .project-explorer-header {
@@ -900,15 +900,15 @@
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 4 0;
-    -fx-indent: 0;
+    -fx-indent: 14;
 }
 
 .project-explorer-tree .tree-cell {
     -fx-background-color: transparent;
     -fx-text-fill: #D1D5DB;
     -fx-font-size: 14px;
-    -fx-padding: 4 6;
-    -fx-graphic-text-gap: 6px;
+    -fx-padding: 4 4;
+    -fx-graphic-text-gap: 8px;
     -fx-background-radius: 4px;
 }
 
@@ -941,25 +941,19 @@
     -fx-background-color: transparent;
 }
 
-.project-explorer-tree .tree-cell:leaf > .tree-disclosure-node,
-.project-explorer-tree .tree-cell:empty > .tree-disclosure-node {
-    -fx-padding: 0;
-    -fx-min-width: 0;
-    -fx-pref-width: 0;
-    -fx-max-width: 0;
-}
-
-.project-explorer-tree .tree-cell:leaf > .tree-disclosure-node > .arrow {
-    -fx-padding: 0;
-    -fx-shape: null;
+.project-explorer-tree .tree-disclosure-node {
+    -fx-padding: 4 2 4 0;
+    -fx-background-color: transparent;
 }
 
 .project-explorer-tree .tree-disclosure-node .arrow {
-    -fx-background-color: #6B7280;
+    -fx-background-color: #9CA3AF;
+    -fx-padding: 2.5px 3px;
+    -fx-shape: "M 0 0 L 4 4 L 0 8 Z";
 }
 
 .project-explorer-tree .tree-cell:filled:hover .tree-disclosure-node .arrow {
-    -fx-background-color: #E5E7EB;
+    -fx-background-color: #FFFFFF;
 }
 
 /* 2D Stage Canvas & Drag-Over */

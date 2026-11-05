@@ -141,12 +141,18 @@ class ProjectExplorerViewTest {
     }
 
     @Test
-    @DisplayName("Sollte für Leaf-Items ohne Unterknoten keinen Disclosure-Node reservieren, um Links-Ausrichtung zu sichern")
+    @DisplayName("Sollte für Knoten ohne Unterknoten (leere Ordner oder Leaf-Items) keinen Disclosure-Node reservieren, um Links-Ausrichtung zu sichern")
     void shouldRemoveDisclosureNodeForLeafItems() {
         ProjectExplorerView.ProjectExplorerTreeCell cell = new ProjectExplorerView.ProjectExplorerTreeCell(null);
 
+        // 1. Leaf-Item (Fixture) -> kein Disclosure-Node
         ExplorerItem leaf = new ExplorerItem("spot-1", "Spot 1", ExplorerItemType.FIXTURE, false, "lamp", Color.BLUE);
         cell.updateItem(leaf, false);
+        assertThat(cell.getDisclosureNode()).isNull();
+
+        // 2. Noch leerer Standard-Ordner -> ebenfalls kein Disclosure-Node, liegt direkt links am Rand an
+        ExplorerItem emptyFolder = new ExplorerItem("folder-dev", "Geräte", ExplorerItemType.FOLDER, true, "folder", Color.CYAN);
+        cell.updateItem(emptyFolder, false);
         assertThat(cell.getDisclosureNode()).isNull();
     }
 }

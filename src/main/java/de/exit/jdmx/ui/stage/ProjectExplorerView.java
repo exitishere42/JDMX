@@ -19,6 +19,7 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
@@ -224,6 +225,20 @@ public class ProjectExplorerView extends VBox {
         public ProjectExplorerTreeCell(ProjectExplorerService service) {
             this.service = service;
             setupDragAndDrop();
+            setupClickHandler();
+        }
+
+        private void setupClickHandler() {
+            setOnMouseClicked(event -> {
+                if (isEmpty() || getItem() == null) {
+                    return;
+                }
+                TreeItem<ExplorerItem> ti = getTreeItem();
+                if (ti != null && !ti.getChildren().isEmpty() && event.getClickCount() == 1) {
+                    ti.setExpanded(!ti.isExpanded());
+                    event.consume();
+                }
+            });
         }
 
         private void setupDragAndDrop() {
@@ -308,8 +323,15 @@ public class ProjectExplorerView extends VBox {
         @Override
         public void updateItem(ExplorerItem item, boolean empty) {
             super.updateItem(item, empty);
-            if (defaultDisclosureNode == null && getDisclosureNode() != null) {
-                defaultDisclosureNode = getDisclosureNode();
+            if (defaultDisclosureNode == null) {
+                if (getDisclosureNode() != null) {
+                    defaultDisclosureNode = getDisclosureNode();
+                } else {
+                    StackPane arrow = new StackPane();
+                    arrow.getStyleClass().setAll("arrow");
+                    defaultDisclosureNode = new StackPane(arrow);
+                    defaultDisclosureNode.getStyleClass().setAll("tree-disclosure-node");
+                }
             }
 
             if (empty || item == null) {
@@ -322,12 +344,14 @@ public class ProjectExplorerView extends VBox {
                 setGraphic(ti != null ? ti.getGraphic() : null);
                 setMouseTransparent(false);
 
-                // Leaf-Items haben keine Unterknoten -> Disclosure-Node entfernen für saubere Linksausrichtung
-                // Ordner behalten ihren Disclosure-Node zum Auf-/Zuklappen
-                if (item.getType() != ExplorerItemType.FOLDER && (ti == null || ti.isLeaf())) {
-                    setDisclosureNode(null);
-                } else if (defaultDisclosureNode != null) {
+                // Wenn ein Knoten keine Unterelemente besitzt (noch leere Standard-Ordner oder Leaf-Items),
+                // Disclosure-Node zwingend auf null setzen, damit Icon und Text direkt am linken Rand anliegen.
+                // Sobald Unterelemente vorhanden sind, wird der kompakte Disclosure-Pfeil eingeblendet.
+                boolean hasChildren = ti != null && !ti.getChildren().isEmpty();
+                if (hasChildren) {
                     setDisclosureNode(defaultDisclosureNode);
+                } else {
+                    setDisclosureNode(null);
                 }
             }
         }
