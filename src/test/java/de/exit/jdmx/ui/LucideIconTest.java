@@ -44,6 +44,18 @@ class LucideIconTest {
     }
 
     @Test
+    @DisplayName("Sollte Toolbar-Icons wie mouse-pointer-2, grid-3x3, sun-dim und chevrons ohne Circle-Fallback auflösen")
+    void shouldResolveToolbarIconsWithoutCircleFallback() {
+        String circleFallback = LucideIcon.getSvgPathData("unknown-dummy-name");
+
+        assertThat(LucideIcon.getSvgPathData("mouse-pointer-2")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("grid-3x3")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("sun-dim")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("chevron-up")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("chevron-down")).isNotEqualTo(circleFallback);
+    }
+
+    @Test
     @DisplayName("Sollte lightbulb Icon für App-Logo korrekt erzeugen")
     void shouldCreateLightbulbIcon() {
         LucideIcon icon = new LucideIcon("lightbulb", 18, Color.web("#FEDC94"));

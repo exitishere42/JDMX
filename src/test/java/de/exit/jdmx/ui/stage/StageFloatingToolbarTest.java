@@ -28,6 +28,8 @@ class StageFloatingToolbarTest {
         StageFloatingToolbar toolbar = new StageFloatingToolbar();
 
         assertThat(toolbar.getStyleClass()).contains("stage-floating-toolbar");
+        assertThat(toolbar.getMaxWidth()).isEqualTo(javafx.scene.layout.Region.USE_PREF_SIZE);
+        assertThat(toolbar.getMaxHeight()).isEqualTo(javafx.scene.layout.Region.USE_PREF_SIZE);
         assertThat(toolbar.getBtnAddFixture()).isNotNull();
         assertThat(toolbar.getBtnAddFixture().getGraphic()).isInstanceOf(LucideIcon.class);
         assertThat(((LucideIcon) toolbar.getBtnAddFixture().getGraphic()).getName()).isEqualTo("plus");

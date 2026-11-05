@@ -229,6 +229,27 @@ public class LucideIcon extends StackPane {
             case "palette", "color" ->
                 // Lucide palette
                 "M12 2C6.5 2 2 6.5 2 12c0 3.6 2 5.5 4 5.5.9 0 1.5-.4 1.8-.8.3-.4.6-.7 1.2-.7H11a4 4 0 0 1 4 4v.5c0 1.9 1.6 3.5 3.5 3.5 3 0 5.5-3.8 5.5-7.5 0-5.5-4.5-10-10-10z";
+            case "mouse-pointer-2", "mouse-pointer", "cursor" ->
+                // Lucide mouse-pointer-2
+                "M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.438l-1.58 6.124a.5.5 0 0 1-.947.063z";
+            case "grid-3x3" ->
+                // Lucide grid-3x3
+                "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 9h18 M3 15h18 M9 3v18 M15 3v18";
+            case "sun-dim" ->
+                // Lucide sun-dim
+                "M12 8a4 4 0 1 0 4 4a4 4 0 0 0-4-4z M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M6.34 17.66l-1.41 1.41 M19.07 4.93l-1.41 1.41";
+            case "chevron-up" ->
+                // Lucide chevron-up
+                "m18 15-6-6-6 6";
+            case "chevron-down" ->
+                // Lucide chevron-down
+                "m6 9 6 6 6-6";
+            case "arrow-up-to-line" ->
+                // Lucide arrow-up-to-line
+                "M12 17V3 M6 9l6-6 6 6 M19 21H5";
+            case "arrow-down-to-line" ->
+                // Lucide arrow-down-to-line
+                "M12 7v14 M6 15l6 6 6-6 M19 3H5";
             case "crosshair", "move", "position" ->
                 // Lucide crosshair
                 "M12 2v4 M12 18v4 M2 12h4 M18 12h4 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z";
