@@ -908,15 +908,20 @@
     -fx-font-size: 14px;
     -fx-padding: 4 6;
     -fx-graphic-text-gap: 6px;
+    -fx-background-radius: 4px;
 }
 
 .project-explorer-tree .tree-cell:filled:hover {
     -fx-background-color: #242424;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 1 0;
     -fx-text-fill: #FFFFFF;
 }
 
 .project-explorer-tree .tree-cell:filled:selected {
     -fx-background-color: #2E2E2E;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 1 0;
     -fx-text-fill: #FFFFFF;
 }
 
