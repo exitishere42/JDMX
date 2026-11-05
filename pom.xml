@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
 
     <name>jdmx</name>
-    <description>Java DMX Controller</description>
+    <description>Modular Desktop DMX512 Lighting Controller &amp; Real-Time Stage Visualizer built with Java 21 LTS &amp; JavaFX 21</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
