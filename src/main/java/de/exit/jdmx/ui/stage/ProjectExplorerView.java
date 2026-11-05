@@ -2,6 +2,7 @@ package de.exit.jdmx.ui.stage;
 
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -83,12 +84,20 @@ public class ProjectExplorerView extends VBox {
      * <p>
      * Setzt leere Zellen auf {@code mouseTransparent = true}, damit diese
      * weder gehovert noch geklickt werden können.
+     * Entfernt für Leaf-Elemente (ohne Unterknoten) den Disclosure-Node,
+     * damit die Icons und Texte bündig und sauber links ausgerichtet sind.
      * </p>
      */
     public static class ProjectExplorerTreeCell extends TreeCell<String> {
+        private Node defaultDisclosureNode;
+
         @Override
         public void updateItem(String item, boolean empty) {
             super.updateItem(item, empty);
+            if (defaultDisclosureNode == null && getDisclosureNode() != null) {
+                defaultDisclosureNode = getDisclosureNode();
+            }
+
             if (empty || item == null) {
                 setText(null);
                 setGraphic(null);
@@ -98,6 +107,13 @@ public class ProjectExplorerView extends VBox {
                 TreeItem<String> ti = getTreeItem();
                 setGraphic(ti != null ? ti.getGraphic() : null);
                 setMouseTransparent(false);
+
+                // Leaf-Items haben keine Unterknoten -> Disclosure-Node entfernen für saubere Linksausrichtung
+                if (ti == null || ti.isLeaf()) {
+                    setDisclosureNode(null);
+                } else if (defaultDisclosureNode != null) {
+                    setDisclosureNode(defaultDisclosureNode);
+                }
             }
         }
     }

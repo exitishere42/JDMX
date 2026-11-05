@@ -102,4 +102,13 @@ class ProjectExplorerViewTest {
         assertThat(cell.isMouseTransparent()).isFalse();
         assertThat(cell.getText()).isEqualTo("Geräte");
     }
+
+    @Test
+    @DisplayName("Sollte für Leaf-Items ohne Unterknoten keinen Disclosure-Node reservieren, um Links-Ausrichtung zu sichern")
+    void shouldRemoveDisclosureNodeForLeafItems() {
+        ProjectExplorerView.ProjectExplorerTreeCell cell = new ProjectExplorerView.ProjectExplorerTreeCell();
+
+        cell.updateItem("Geräte", false);
+        assertThat(cell.getDisclosureNode()).isNull();
+    }
 }

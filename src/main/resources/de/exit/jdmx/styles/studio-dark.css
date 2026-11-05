@@ -900,6 +900,7 @@
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 4 0;
+    -fx-indent: 0;
 }
 
 .project-explorer-tree .tree-cell {
@@ -931,6 +932,19 @@
 
 .project-explorer-tree .tree-cell:empty:hover {
     -fx-background-color: transparent;
+}
+
+.project-explorer-tree .tree-cell:leaf > .tree-disclosure-node,
+.project-explorer-tree .tree-cell:empty > .tree-disclosure-node {
+    -fx-padding: 0;
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+}
+
+.project-explorer-tree .tree-cell:leaf > .tree-disclosure-node > .arrow {
+    -fx-padding: 0;
+    -fx-shape: null;
 }
 
 .project-explorer-tree .tree-disclosure-node .arrow {
