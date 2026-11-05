@@ -85,6 +85,15 @@ public class LucideIcon extends StackPane {
     }
 
     /**
+     * Liefert die konfigurierte Pixelgröße des Icons.
+     *
+     * @return Icon-Größe in Pixeln
+     */
+    public double getSize() {
+        return size;
+    }
+
+    /**
      * Aktualisiert den SVG-Pfad und die Skalierung entsprechend des Icon-Namens.
      */
     private void updateSvg(Color color) {

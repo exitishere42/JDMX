@@ -905,24 +905,33 @@
 .project-explorer-tree .tree-cell {
     -fx-background-color: transparent;
     -fx-text-fill: #D1D5DB;
-    -fx-font-size: 12px;
-    -fx-padding: 3 4;
+    -fx-font-size: 16px;
+    -fx-padding: 6 8;
+    -fx-graphic-text-gap: 8px;
 }
 
-.project-explorer-tree .tree-cell:hover {
+.project-explorer-tree .tree-cell:filled:hover {
     -fx-background-color: #242424;
     -fx-text-fill: #FFFFFF;
 }
 
-.project-explorer-tree .tree-cell:selected {
+.project-explorer-tree .tree-cell:filled:selected {
     -fx-background-color: #2E2E2E;
     -fx-text-fill: #FFFFFF;
+}
+
+.project-explorer-tree .tree-cell:empty {
+    -fx-background-color: transparent;
+}
+
+.project-explorer-tree .tree-cell:empty:hover {
+    -fx-background-color: transparent;
 }
 
 .project-explorer-tree .tree-disclosure-node .arrow {
     -fx-background-color: #6B7280;
 }
 
-.project-explorer-tree .tree-cell:hover .tree-disclosure-node .arrow {
+.project-explorer-tree .tree-cell:filled:hover .tree-disclosure-node .arrow {
     -fx-background-color: #E5E7EB;
 }

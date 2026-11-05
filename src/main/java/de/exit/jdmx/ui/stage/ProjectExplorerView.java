@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.HBox;
@@ -18,9 +19,13 @@ import javafx.scene.paint.Color;
  * Beherbergt auf der gesamten rechten Seite der Arbeitsfläche die strukturierte
  * Baumansicht aller Geräte, Gruppen, Presets, Szenenlisten und Effekte.
  * Lässt sich flexibel in der Breite skalieren oder über das Symbol (arrow-right-to-line) zuklappen.
+ * Die Items sind ergonomisch um 1,4x vergrößert, und leere Zellen werden nicht gehovert.
  * </p>
  */
 public class ProjectExplorerView extends VBox {
+
+    /** Standardmäßige Vektor-Icongröße der Kategorie-Einträge (1,4x vergrößert auf 18px). */
+    public static final double ITEM_ICON_SIZE = 18.0;
 
     private final String title = "Project Explorer";
 
@@ -67,7 +72,34 @@ public class ProjectExplorerView extends VBox {
         treeView.getStyleClass().add("project-explorer-tree");
         VBox.setVgrow(treeView, Priority.ALWAYS);
 
+        // Saubere Zellen-Konfiguration: Leere Zellen sind maus-transparent und werden nicht gehovert
+        treeView.setCellFactory(tv -> new ProjectExplorerTreeCell());
+
         getChildren().addAll(headerBox, treeView);
+    }
+
+    /**
+     * Spezifische TreeCell für den Project Explorer.
+     * <p>
+     * Setzt leere Zellen auf {@code mouseTransparent = true}, damit diese
+     * weder gehovert noch geklickt werden können.
+     * </p>
+     */
+    public static class ProjectExplorerTreeCell extends TreeCell<String> {
+        @Override
+        public void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) {
+                setText(null);
+                setGraphic(null);
+                setMouseTransparent(true);
+            } else {
+                setText(item);
+                TreeItem<String> ti = getTreeItem();
+                setGraphic(ti != null ? ti.getGraphic() : null);
+                setMouseTransparent(false);
+            }
+        }
     }
 
     private HBox createHeader() {
@@ -84,7 +116,7 @@ public class ProjectExplorerView extends VBox {
     }
 
     private TreeItem<String> createCategoryNode(String name, String iconName, Color iconColor) {
-        LucideIcon icon = new LucideIcon(iconName, 13, iconColor);
+        LucideIcon icon = new LucideIcon(iconName, ITEM_ICON_SIZE, iconColor);
         TreeItem<String> item = new TreeItem<>(name, icon);
         item.setExpanded(true);
         return item;

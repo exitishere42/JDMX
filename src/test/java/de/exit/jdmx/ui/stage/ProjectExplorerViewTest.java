@@ -74,4 +74,32 @@ class ProjectExplorerViewTest {
         explorer.getBtnCollapse().fire();
         assertThat(called[0]).isTrue();
     }
+
+    @Test
+    @DisplayName("Sollte Tree-Item-Icons um 1,4x vergrößert auf 18px skalieren")
+    void shouldScaleItemIconsByFactor1Point4() {
+        ProjectExplorerView explorer = new ProjectExplorerView();
+
+        TreeItem<String> firstCategory = explorer.getTreeView().getRoot().getChildren().get(0);
+        assertThat(firstCategory.getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+        de.exit.jdmx.ui.icon.LucideIcon icon = (de.exit.jdmx.ui.icon.LucideIcon) firstCategory.getGraphic();
+        assertThat(icon.getSize()).isEqualTo(18.0);
+    }
+
+    @Test
+    @DisplayName("Sollte leere TreeCells als maus-transparent markieren, damit sie nicht gehovert werden")
+    void shouldMakeEmptyCellsMouseTransparent() {
+        ProjectExplorerView.ProjectExplorerTreeCell cell = new ProjectExplorerView.ProjectExplorerTreeCell();
+
+        // 1. Leer -> mouseTransparent = true
+        cell.updateItem(null, true);
+        assertThat(cell.isMouseTransparent()).isTrue();
+        assertThat(cell.getText()).isNull();
+        assertThat(cell.getGraphic()).isNull();
+
+        // 2. Gefüllt -> mouseTransparent = false
+        cell.updateItem("Geräte", false);
+        assertThat(cell.isMouseTransparent()).isFalse();
+        assertThat(cell.getText()).isEqualTo("Geräte");
+    }
 }
