@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit-Tests für den Haupt-Workspace von Tab 1 (StageWorkspaceView).
- * Stellt sicher, dass das Dock nur nach oben (größer) gezogen werden kann
- * und nach unten exakt an der Standardposition stoppt.
+ * Prüft die horizontale Teilung mit dem durchgehenden Project Explorer rechts
+ * und das vertikale Dock links.
  */
 class StageWorkspaceViewTest {
 
@@ -25,46 +25,39 @@ class StageWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte vertikalen Splitter mit oberer Stage und unterem Dock aufbauen")
-    void shouldBuildVerticalSplitPane() {
+    @DisplayName("Sollte horizontales Haupt-SplitPane mit linkem Bereich und rechtem Project Explorer aufbauen")
+    void shouldBuildHorizontalMainSplitPane() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
-        assertThat(workspace.getOrientation()).isEqualTo(Orientation.VERTICAL);
+        assertThat(workspace.getOrientation()).isEqualTo(Orientation.HORIZONTAL);
         assertThat(workspace.getItems()).hasSize(2);
 
         assertThat(workspace.getStageCanvasView()).isNotNull();
         assertThat(workspace.getControlDock()).isNotNull();
+        assertThat(workspace.getProjectExplorerView()).isNotNull();
     }
 
     @Test
-    @DisplayName("Sollte der Stage standardmäßig und garantiert mehr als 60% vertikalen Platz gewähren")
-    void shouldGuaranteeStageKeepsMoreThanSixtyPercentHeight() {
+    @DisplayName("Sollte Project Explorer per Toggle zuklappen und wieder aufklappen können")
+    void shouldToggleProjectExplorerCollapseAndExpand() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
-        double defaultDividerPos = workspace.getDividerPosition();
-        assertThat(defaultDividerPos).isGreaterThan(0.60);
+        assertThat(workspace.isProjectExplorerCollapsed()).isFalse();
+
+        // 1. Zuklappen
+        workspace.toggleProjectExplorer();
+        assertThat(workspace.isProjectExplorerCollapsed()).isTrue();
+
+        // 2. Wieder aufklappen
+        workspace.toggleProjectExplorer();
+        assertThat(workspace.isProjectExplorerCollapsed()).isFalse();
     }
 
     @Test
-    @DisplayName("Sollte die Divider-Position nach oben auf mindestens 60% begrenzen")
-    void shouldClampDividerPositionToMinimumSixtyPercent() {
+    @DisplayName("Sollte das Steuerungs-Dock nach unten auf die Mindesthöhe begrenzen")
+    void shouldEnforceDockHeightLimit() {
         StageWorkspaceView workspace = new StageWorkspaceView();
 
-        // Versuch, den Divider auf 0.40 (40% für die Stage) nach oben zu ziehen
-        workspace.requestDividerPosition(0.40);
-
-        assertThat(workspace.getDividerPosition()).isGreaterThanOrEqualTo(StageWorkspaceView.MIN_STAGE_RATIO);
-    }
-
-    @Test
-    @DisplayName("Sollte das Dock nach unten auf die Standardposition begrenzen (darf nicht kleiner als Standard werden)")
-    void shouldClampDividerPositionToMaximumDefaultRatio() {
-        StageWorkspaceView workspace = new StageWorkspaceView();
-
-        // Versuch, den Divider weiter nach unten auf 0.95 (Dock noch kleiner machen) zu schieben
-        workspace.requestDividerPosition(0.95);
-
-        // Muss automatisch auf DEFAULT_STAGE_RATIO geklammert werden
-        assertThat(workspace.getDividerPosition()).isLessThanOrEqualTo(StageWorkspaceView.DEFAULT_STAGE_RATIO);
+        assertThat(workspace.getControlDock().getMinHeight()).isEqualTo(DeviceControlDock.DOCK_HEIGHT);
     }
 }

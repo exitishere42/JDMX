@@ -1,81 +1,140 @@
 package de.exit.jdmx.ui.stage;
 
+import javafx.application.Platform;
 import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.control.SplitPane;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
 /**
  * Der primäre Arbeitsbereich von Tab 1 (Stage & Fixtures).
  * <p>
- * Beherbergt oben die saubere Arbeitsfläche der Bühne und unten das 24/7 geöffnete,
- * kompakte Steuerungs-Dock mit den 3 Modulen (Intensität, Farbe, Position).
- * <p>
- * Begrenzungs-Garantie:
+ * Aufteilung:
  * <ul>
- *     <li>Nach unten kann das Dock <b>niemals kleiner</b> als seine Standard-Startposition werden.</li>
- *     <li>Nach oben kann das Dock gezogen werden, wobei die Bühne <b>immer mindestens 60%</b> behält.</li>
+ *     <li><b>Links (Hauptbereich):</b> Vertikales SplitPane mit oberer Bühne und unterem Steuerungs-Dock (220px)</li>
+ *     <li><b>Rechts (Volle Höhe):</b> {@link ProjectExplorerView} durchgehend von ganz oben bis ganz unten</li>
+ * </ul>
+ * Features:
+ * <ul>
+ *     <li>Flexibel dicker oder dünner ziehbar</li>
+ *     <li>One-Click-Toggle: Klick auf die vertikale Dragbar klappt den Project Explorer komplett zu oder wieder auf</li>
  * </ul>
  * </p>
  */
 public class StageWorkspaceView extends SplitPane {
 
+    /** Standard-Teilung des horizontalen Haupt-Splitters (78% Bühne/Dock, 22% Explorer). */
+    public static final double DEFAULT_HORIZONTAL_RATIO = 0.78;
+
     /** Mindestanteil der vertikalen Höhe, die der oberen Bühne zusteht (60%). */
     public static final double MIN_STAGE_RATIO = 0.60;
 
-    /** Standard-Startposition des vertikalen Splitters (ca. 82% Bühne, 18% Dock). */
-    public static final double DEFAULT_STAGE_RATIO = 0.82;
+    /** Standard-Startposition des vertikalen Splitters im linken Bereich (ca. 78% Bühne, 22% Dock). */
+    public static final double DEFAULT_STAGE_RATIO = 0.78;
 
     private final StageCanvasView stageCanvasView;
     private final DeviceControlDock controlDock;
+    private final SplitPane stageAndDockPane;
+    private final ProjectExplorerView projectExplorerView;
+
+    private double lastExpandedRatio = DEFAULT_HORIZONTAL_RATIO;
+    private boolean isCollapsed = false;
+
+    private double dragStartX = 0;
+    private double dragStartY = 0;
 
     public StageWorkspaceView() {
-        setOrientation(Orientation.VERTICAL);
+        setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("stage-workspace-view");
 
+        // 1. Linker Hauptbereich (Bühne oben + 220px Steuerungsdock unten)
         this.stageCanvasView = new StageCanvasView();
         this.controlDock = new DeviceControlDock();
 
-        getItems().addAll(stageCanvasView, controlDock);
+        this.stageAndDockPane = new SplitPane();
+        stageAndDockPane.setOrientation(Orientation.VERTICAL);
+        stageAndDockPane.getStyleClass().add("stage-and-dock-split");
+        VBox.setVgrow(stageAndDockPane, Priority.ALWAYS);
 
-        // Das Dashboard darf beim Resizing des Fensters nicht unkontrolliert schrumpfen
+        stageAndDockPane.getItems().addAll(stageCanvasView, controlDock);
         SplitPane.setResizableWithParent(controlDock, false);
+        stageAndDockPane.setDividerPositions(DEFAULT_STAGE_RATIO);
 
-        // Standard-Teilung: 82% für die Bühne
-        setDividerPositions(DEFAULT_STAGE_RATIO);
-
-        // Clamping-Schutz:
-        // Nach oben begrenzt auf MIN_STAGE_RATIO (Bühne behält mind. 60%)
-        // Nach unten fest arretiert auf DEFAULT_STAGE_RATIO (Dock kann nicht kleiner als Startzustand werden)
-        if (!getDividers().isEmpty()) {
-            getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
+        // Clamping-Schutz im linken Bereich:
+        if (!stageAndDockPane.getDividers().isEmpty()) {
+            stageAndDockPane.getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
                 double val = newVal.doubleValue();
                 if (val < MIN_STAGE_RATIO) {
-                    setDividerPositions(MIN_STAGE_RATIO);
+                    stageAndDockPane.setDividerPositions(MIN_STAGE_RATIO);
                 } else if (val > DEFAULT_STAGE_RATIO) {
-                    setDividerPositions(DEFAULT_STAGE_RATIO);
+                    stageAndDockPane.setDividerPositions(DEFAULT_STAGE_RATIO);
                 }
             });
         }
+
+        // 2. Rechter Bereich: Project Explorer über die volle Höhe
+        this.projectExplorerView = new ProjectExplorerView();
+
+        // 3. Horizontales Haupt-SplitPane zusammenbauen
+        getItems().addAll(stageAndDockPane, projectExplorerView);
+        SplitPane.setResizableWithParent(projectExplorerView, false);
+        setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
+
+        // 4. One-Click Toggle auf die Dragbar verdrahten
+        setupDividerClickHandler();
+    }
+
+    private void setupDividerClickHandler() {
+        Platform.runLater(() -> {
+            for (Node node : lookupAll(".split-pane-divider")) {
+                node.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+                    if (e.getButton() == MouseButton.PRIMARY) {
+                        dragStartX = e.getScreenX();
+                        dragStartY = e.getScreenY();
+                    }
+                });
+
+                node.addEventFilter(MouseEvent.MOUSE_RELEASED, e -> {
+                    if (e.getButton() == MouseButton.PRIMARY) {
+                        double deltaX = Math.abs(e.getScreenX() - dragStartX);
+                        double deltaY = Math.abs(e.getScreenY() - dragStartY);
+                        // Wenn es ein Klick war (weniger als 4px Bewegung) -> Zuklappen / Aufklappen
+                        if (deltaX < 4 && deltaY < 4) {
+                            toggleProjectExplorer();
+                            e.consume();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     /**
-     * Setzt die Divider-Position mit garantierter Einhaltung des Bereichs zwischen
-     * MIN_STAGE_RATIO (60%) und DEFAULT_STAGE_RATIO (Startposition).
-     *
-     * @param requestedPosition Gewünschte Teilung
+     * Schaltet die Anzeige des Project Explorers um (Zuklappen / Aufklappen).
      */
-    public void requestDividerPosition(double requestedPosition) {
-        double clamped = Math.max(MIN_STAGE_RATIO, Math.min(DEFAULT_STAGE_RATIO, requestedPosition));
-        setDividerPositions(clamped);
-    }
-
-    /**
-     * Liefert die aktuelle Position des vertikalen Splitters.
-     */
-    public double getDividerPosition() {
+    public void toggleProjectExplorer() {
         if (!getDividers().isEmpty()) {
-            return getDividers().getFirst().getPosition();
+            if (!isCollapsed) {
+                // Aktuelle Position merken und auf 1.0 (ganz zu) setzen
+                double currentPos = getDividers().getFirst().getPosition();
+                if (currentPos < 0.98) {
+                    lastExpandedRatio = currentPos;
+                }
+                setDividerPositions(1.0);
+                isCollapsed = true;
+            } else {
+                // Wieder auf vorherige Breite aufklappen
+                setDividerPositions(lastExpandedRatio > 0 && lastExpandedRatio < 0.98 ? lastExpandedRatio : DEFAULT_HORIZONTAL_RATIO);
+                isCollapsed = false;
+            }
         }
-        return DEFAULT_STAGE_RATIO;
+    }
+
+    public boolean isProjectExplorerCollapsed() {
+        return isCollapsed;
     }
 
     public StageCanvasView getStageCanvasView() {
@@ -84,5 +143,13 @@ public class StageWorkspaceView extends SplitPane {
 
     public DeviceControlDock getControlDock() {
         return controlDock;
+    }
+
+    public ProjectExplorerView getProjectExplorerView() {
+        return projectExplorerView;
+    }
+
+    public SplitPane getStageAndDockPane() {
+        return stageAndDockPane;
     }
 }

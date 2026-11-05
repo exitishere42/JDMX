@@ -846,3 +846,55 @@
     -fx-border-color: #FFFFFF;
     -fx-effect: dropshadow(three-pass-box, rgba(255,255,255,0.5), 3, 0, 0, 0);
 }
+
+/* Project Explorer (Rechte Seitenleiste) */
+.project-explorer-view {
+    -fx-background-color: #171717;
+    -fx-border-color: #262626;
+    -fx-border-width: 0 0 0 1px;
+    -fx-padding: 6 8;
+}
+
+.project-explorer-header {
+    -fx-border-color: transparent transparent #262626 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 0 6 2;
+}
+
+.project-explorer-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #9CA3AF;
+    -fx-letter-spacing: 0.5px;
+}
+
+.project-explorer-tree {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 0;
+}
+
+.project-explorer-tree .tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #D1D5DB;
+    -fx-font-size: 12px;
+    -fx-padding: 3 4;
+}
+
+.project-explorer-tree .tree-cell:hover {
+    -fx-background-color: #242424;
+    -fx-text-fill: #FFFFFF;
+}
+
+.project-explorer-tree .tree-cell:selected {
+    -fx-background-color: #2E2E2E;
+    -fx-text-fill: #FFFFFF;
+}
+
+.project-explorer-tree .tree-disclosure-node .arrow {
+    -fx-background-color: #6B7280;
+}
+
+.project-explorer-tree .tree-cell:hover .tree-disclosure-node .arrow {
+    -fx-background-color: #E5E7EB;
+}
