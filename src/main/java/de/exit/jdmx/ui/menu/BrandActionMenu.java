@@ -56,6 +56,7 @@ public class BrandActionMenu extends Popup {
 
         // 3. System & Ansicht
         Button btnSettings = createMenuItem("settings", "Settings", "settings", StudioTheme.COLOR_MENU_SETTINGS);
+        Button btnUpdates = createMenuItem("check_updates", "Updates", "arrow-up-circle", Color.web("#38BDF8"));
         Button btnFullscreen = createMenuItem("fullscreen", "Fullscreen", "maximize", StudioTheme.COLOR_MENU_FULLSCREEN);
 
         root.getChildren().addAll(
@@ -67,6 +68,7 @@ public class BrandActionMenu extends Popup {
                 undoRedoRow,
                 createMenuSeparator(),
                 btnSettings,
+                btnUpdates,
                 btnFullscreen
         );
 

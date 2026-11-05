@@ -3,6 +3,7 @@ package de.exit.jdmx.ui;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.ShortcutService;
+import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
@@ -139,6 +140,10 @@ public class MainWindow extends StackPane {
 
         headerBar.getActionMenu().setOnAction("settings", () -> {
             SettingsDialog.show(this);
+        });
+
+        headerBar.getActionMenu().setOnAction("check_updates", () -> {
+            AboutUpdateDialog.show(this);
         });
 
         // 7. Globale Tastenkürzel und Overlay-Steuerung

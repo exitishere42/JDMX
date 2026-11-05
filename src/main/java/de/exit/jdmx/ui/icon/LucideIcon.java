@@ -256,6 +256,15 @@ public class LucideIcon extends StackPane {
             case "arrow-down-to-line" ->
                 // Lucide arrow-down-to-line
                 "M12 7v14 M6 15l6 6 6-6 M19 3H5";
+            case "arrow-up-circle" ->
+                // Lucide arrow-up-circle
+                "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z M12 16V8 M8 12l4-4 4 4";
+            case "download" ->
+                // Lucide download
+                "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3";
+            case "refresh-cw" ->
+                // Lucide refresh-cw
+                "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M3 21v-5h5";
             case "crosshair", "move", "position" ->
                 // Lucide crosshair
                 "M12 2v4 M12 18v4 M2 12h4 M18 12h4 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z";

@@ -62,6 +62,10 @@ class BrandActionMenuTest {
         assertThat(btnSettings).isNotNull();
         assertThat(btnSettings.getText()).isEqualTo("Settings");
 
+        Button btnUpdates = menu.getItem("check_updates");
+        assertThat(btnUpdates).isNotNull();
+        assertThat(btnUpdates.getText()).isEqualTo("Updates");
+
         Button btnFullscreen = menu.getItem("fullscreen");
         assertThat(btnFullscreen).isNotNull();
         assertThat(btnFullscreen.getText()).isEqualTo("Fullscreen");
