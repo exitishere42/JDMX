@@ -34,7 +34,6 @@ import java.util.function.BiConsumer;
 public class StageCanvasView extends StackPane {
 
     private final Pane stageSurface;
-    private final StageFloatingToolbar floatingToolbar;
     private final List<PlacedFixtureNode> placedFixtures = new ArrayList<>();
 
     private ProjectExplorerService explorerService;
@@ -54,17 +53,9 @@ public class StageCanvasView extends StackPane {
         this.stageSurface = new Pane();
         stageSurface.getStyleClass().add("stage-surface-pane");
 
-        this.floatingToolbar = new StageFloatingToolbar();
-        StackPane.setAlignment(floatingToolbar, Pos.TOP_CENTER);
-        StackPane.setMargin(floatingToolbar, new Insets(12, 0, 0, 0));
-
         setupDropTarget();
 
-        getChildren().addAll(stageSurface, floatingToolbar);
-    }
-
-    public StageFloatingToolbar getFloatingToolbar() {
-        return floatingToolbar;
+        getChildren().add(stageSurface);
     }
 
     private void setupDropTarget() {

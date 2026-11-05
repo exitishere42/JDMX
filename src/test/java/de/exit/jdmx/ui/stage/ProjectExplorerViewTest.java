@@ -61,17 +61,20 @@ class ProjectExplorerViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Einklapp-Button mit arrow-right-to-line neben dem Titel ohne störendes Vor-Icon besitzen")
+    @DisplayName("Sollte Einklapp-Button mit arrow-right-to-line und grünen Add-Button neben dem Titel besitzen")
     void shouldHaveCollapseButtonNextToTitleWithoutLeadingIcon() {
         ProjectExplorerView explorer = new ProjectExplorerView();
 
-        // Kein Vor-Icon vor dem Titel
-        assertThat(explorer.getHeaderBox().getChildren()).hasSize(2);
+        // Header enthält Titel, grünen Add-Button, Spacer und Einklapp-Button
+        assertThat(explorer.getHeaderBox().getChildren()).hasSize(4);
         assertThat(explorer.getHeaderBox().getChildren().get(0)).isInstanceOf(Label.class);
         assertThat(((Label) explorer.getHeaderBox().getChildren().get(0)).getText())
                 .isEqualTo("Project Explorer");
+        assertThat(explorer.getHeaderBox().getChildren().get(1)).isEqualTo(explorer.getBtnAdd());
+        assertThat(explorer.getBtnAdd().getGraphic()).isInstanceOf(LucideIcon.class);
+        assertThat(((LucideIcon) explorer.getBtnAdd().getGraphic()).getName()).isEqualTo("plus");
 
-        // Einklapp-Button mit arrow-right-to-line direkt daneben
+        // Einklapp-Button mit arrow-right-to-line
         assertThat(explorer.getBtnCollapse()).isNotNull();
         assertThat(explorer.getBtnCollapse().getGraphic()).isInstanceOf(LucideIcon.class);
         LucideIcon icon = (LucideIcon) explorer.getBtnCollapse().getGraphic();
@@ -82,6 +85,20 @@ class ProjectExplorerViewTest {
         explorer.setOnToggleCollapse(() -> called[0] = true);
         explorer.getBtnCollapse().fire();
         assertThat(called[0]).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte grünen Plus-Button mit ExplorerAddMenu besitzen")
+    void shouldHaveGreenAddButtonWithMenu() {
+        ProjectExplorerView explorer = new ProjectExplorerView();
+
+        assertThat(explorer.getBtnAdd()).isNotNull();
+        assertThat(explorer.getAddMenu()).isNotNull();
+
+        boolean[] fixtureTriggered = new boolean[1];
+        explorer.getAddMenu().setOnAction("fixture", () -> fixtureTriggered[0] = true);
+        explorer.getAddMenu().triggerAction("fixture");
+        assertThat(fixtureTriggered[0]).isTrue();
     }
 
     @Test

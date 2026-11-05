@@ -117,13 +117,14 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 └───────────────────────────────┴───────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 
-1. **Floating Pill-Toolbar (Penpot / Figma-Stil oben mittig):**
-   - Schwebende Pill-Toolbar (`StageFloatingToolbar`) oben zentriert über der 2D-Bühne mit abgerundetem Pill-Design (24px Radius) und Material 2 Elevation:
-     - `[ + ]` (Plus-Button): Öffnet das universelle **In-App Fixture-Patch-Dialog** Modal.
-     - `[ Auswählen ]` (Lucide `mouse-pointer-2`): Modus zur Scheinwerferauswahl auf der Bühne.
-     - `[ Raster ]` (Lucide `grid-3x3`): Schaltet das Fang- und Hilfsraster ein/aus.
-     - `[ Beams ]` (Lucide `sun-dim`): Schaltet die Live-Lichtkegel-Simulation ein/aus.
-     - `[ ⌃ / ⌄ ]` (Einklapp-/Ausklapp-Button): Klappt die Leiste platzsparend auf eine minimale 28px-Pille zusammen und wieder aus.
+1. **Zentrales Hinzufügen-Menü im Project Explorer:**
+   - Direkt neben dem Titel `Project Explorer` befindet sich ein dezentes, grünes **`[ + ]`** Icon (`btn-add` mit Lucide `plus` in Smaragdgrün `#10B981`).
+   - Ein Klick darauf öffnet ein kompaktes Action-Dropdown-Menü (`ExplorerAddMenu`) im Stil des `BrandActionMenu`:
+     - **`Gerät`** (Icon: `box`, Cyan): Öffnet den universellen **In-App Fixture-Patch-Dialog** zum Hinzufügen/Importieren von Scheinwerfern.
+     - **`Gerätegruppe`** (Icon: `layers`, Grün): Erstellt eine neue Gruppe im Ordner `Gerätegruppen`.
+     - **`Chaser`** (Icon: `list-music`, Amber): Erstellt eine neue Szenenliste / Chaser im Ordner `Szenenlisten`.
+     - **`Effekt`** (Icon: `sparkles`, Violett): Erstellt einen neuen Effekt im Ordner `Effekte`.
+     - **`Preset`** (Icon: `star`, Orange): Erstellt ein neues Preset im Ordner `Presets`.
    - **Universeller Fixture-Import & Bibliotheks-System:**
      - Nativer XML-Parser für **QLC+ Fixtures (`.qxf`)**.
      - Nativer ZIP/XML-Parser für **GDTF Fixtures (`.gdtf`)** (`description.xml`).
@@ -134,7 +135,7 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
      - Konfiguration von Startadresse (1–512), Universum (1–4) und Anzahl (Quantity).
      - **Intelligente Spawning- & Kollisionslogik:** Bei z. B. `Quantity: 4` spawnen die 4 Fixtures sauber nebeneinander in der Mitte der Traverse und werden automatisch im Project Explorer unter `Geräte` registriert.
 2. **Hauptbereich (Mitte):**
-   - 2D-Fläche mit der **U-Traverse gegen die Projektionswand**.
+   - 2D-Fläche mit der **U-Traverse gegen die Projektionswand** – vollständig frei von störenden Overlays oder schwebenden Toolbars für maximale Sicht.
    - Scheinwerfer frei per Drag & Drop auf den U-Schenkeln und der Mitte platzierbar.
    - Vektor-Beams simulieren Abstrahlrichtung, Pan/Tilt-Winkel, Farbe und Helligkeit in Echtzeit an die Wand.
 3. **Rechte Leiste (Project Explorer):**

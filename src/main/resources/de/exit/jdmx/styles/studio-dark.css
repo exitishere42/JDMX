@@ -874,11 +874,29 @@
     -fx-letter-spacing: 0.5px;
 }
 
+.project-explorer-add-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 2 4;
+    -fx-cursor: hand;
+}
+
+.project-explorer-add-btn:hover {
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
+}
+
+.project-explorer-add-btn:pressed {
+    -fx-background-color: #2E2E2E;
+}
+
 .project-explorer-toggle-btn {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-border-radius: 3px;
-    -fx-background-radius: 3px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
     -fx-padding: 2 4;
     -fx-cursor: hand;
 }
@@ -988,74 +1006,6 @@
 .stage-fixture-node:hover {
     -fx-border-color: #60A5FA;
     -fx-background-color: #262626;
-}
-
-/* Floating Toolbar (JDMX Studio Dark Design) */
-.stage-floating-toolbar {
-    -fx-background-color: #1A1A1A;
-    -fx-border-color: #2E2E2E;
-    -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-padding: 3 5;
-    -fx-alignment: center;
-    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.5), 10, 0, 0, 3);
-}
-
-.stage-floating-toolbar.collapsed {
-    -fx-padding: 3 4;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-}
-
-.pill-toolbar-btn {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-    -fx-min-width: 28px;
-    -fx-min-height: 28px;
-    -fx-pref-width: 28px;
-    -fx-pref-height: 28px;
-    -fx-max-width: 28px;
-    -fx-max-height: 28px;
-    -fx-padding: 0;
-    -fx-alignment: center;
-    -fx-cursor: hand;
-}
-
-.pill-toolbar-btn:hover {
-    -fx-background-color: #242424;
-}
-
-/* Aktives Werkzeug: Studio-Style mit feinem Rand & leicht aufgehellter Fläche wie aktive Tabs */
-.pill-toolbar-btn.active {
-    -fx-background-color: #282828;
-    -fx-border-color: #4B5563;
-}
-
-.btn-pill-add {
-    -fx-background-color: #222222;
-    -fx-border-color: #333333;
-}
-
-.btn-pill-add:hover {
-    -fx-background-color: #2A2A2A;
-    -fx-border-color: #4B5563;
-}
-
-.pill-toolbar-divider {
-    -fx-padding: 0 2;
-    -fx-pref-height: 16px;
-    -fx-max-height: 16px;
-    -fx-min-height: 16px;
-}
-
-.pill-toolbar-divider .line {
-    -fx-border-color: #2E2E2E;
-    -fx-border-width: 0 1px 0 0;
-    -fx-background-color: transparent;
 }
 
 .stage-fixture-label {

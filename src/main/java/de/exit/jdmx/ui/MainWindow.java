@@ -193,7 +193,7 @@ public class MainWindow extends StackPane {
      */
     private void initTabViews() {
         StageWorkspaceView stageView = new StageWorkspaceView();
-        stageView.getStageCanvasView().getFloatingToolbar().setOnAddFixture(() -> {
+        stageView.getProjectExplorerView().getAddMenu().setOnAction("fixture", () -> {
             FixturePatchDialog.show(this, fixtureLibraryService, stageView.getExplorerService(), stageView.getStageCanvasView());
         });
         tabViews[0] = stageView;

@@ -4,7 +4,10 @@ import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.menu.ExplorerAddMenu;
+import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -19,6 +22,7 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -54,7 +58,9 @@ public class ProjectExplorerView extends VBox {
 
     private final ProjectExplorerService service;
     private final HBox headerBox;
+    private final Button btnAdd;
     private final Button btnCollapse;
+    private final ExplorerAddMenu addMenu;
     private final TreeView<ExplorerItem> treeView;
     private final TreeItem<ExplorerItem> rootItem;
 
@@ -72,7 +78,25 @@ public class ProjectExplorerView extends VBox {
         setMinWidth(140.0);
         setPrefWidth(260.0);
 
-        // 1. Header (Titel ohne störendes Vor-Icon + Einklapp-Button mit arrow-right-to-line)
+        // 1. Header (Titel + grünes Plus-Zeichen mit Add-Dropdown + Einklapp-Button)
+        this.addMenu = new ExplorerAddMenu();
+        initDefaultAddActions();
+
+        this.btnAdd = new Button();
+        btnAdd.getStyleClass().add("project-explorer-add-btn");
+        btnAdd.setGraphic(new LucideIcon("plus", 13, StudioTheme.COLOR_ICON_TIMELINE));
+        btnAdd.setTooltip(new Tooltip("Hinzufügen"));
+        btnAdd.setOnAction(e -> {
+            if (addMenu.isShowing()) {
+                addMenu.hide();
+            } else {
+                Bounds bounds = btnAdd.localToScreen(btnAdd.getBoundsInLocal());
+                if (bounds != null && btnAdd.getScene() != null && btnAdd.getScene().getWindow() != null) {
+                    addMenu.show(btnAdd.getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
+                }
+            }
+        });
+
         this.btnCollapse = new Button();
         btnCollapse.getStyleClass().add("project-explorer-toggle-btn");
         btnCollapse.setGraphic(new LucideIcon("arrow-right-to-line", 14, javafx.scene.paint.Color.web("#9CA3AF")));
@@ -178,15 +202,33 @@ public class ProjectExplorerView extends VBox {
         rootItem.getChildren().setAll(newChildren);
     }
 
+    private void initDefaultAddActions() {
+        addMenu.setOnAction("group", () -> {
+            service.addItemToFolder("groups", new ExplorerItem("group-" + System.currentTimeMillis(), "Neue Gruppe", ExplorerItemType.GROUP, false, "layers", StudioTheme.COLOR_ICON_TIMELINE));
+        });
+        addMenu.setOnAction("chaser", () -> {
+            service.addItemToFolder("cue_lists", new ExplorerItem("chaser-" + System.currentTimeMillis(), "Neuer Chaser", ExplorerItemType.CUELIST, false, "list-music", StudioTheme.COLOR_ICON_FADER));
+        });
+        addMenu.setOnAction("effect", () -> {
+            service.addItemToFolder("effects", new ExplorerItem("effect-" + System.currentTimeMillis(), "Neuer Effekt", ExplorerItemType.EFFECT, false, "sparkles", StudioTheme.COLOR_ICON_MATRIX));
+        });
+        addMenu.setOnAction("preset", () -> {
+            service.addItemToFolder("presets", new ExplorerItem("preset-" + System.currentTimeMillis(), "Neues Preset", ExplorerItemType.PRESET, false, "star", javafx.scene.paint.Color.web("#FB923C")));
+        });
+    }
+
     private HBox createHeader() {
-        HBox header = new HBox(8);
+        HBox header = new HBox(6);
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("project-explorer-header");
 
         Label lblTitle = new Label(title);
         lblTitle.getStyleClass().add("project-explorer-title");
 
-        header.getChildren().addAll(lblTitle, btnCollapse);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        header.getChildren().addAll(lblTitle, btnAdd, spacer, btnCollapse);
         return header;
     }
 
@@ -196,6 +238,14 @@ public class ProjectExplorerView extends VBox {
 
     public HBox getHeaderBox() {
         return headerBox;
+    }
+
+    public Button getBtnAdd() {
+        return btnAdd;
+    }
+
+    public ExplorerAddMenu getAddMenu() {
+        return addMenu;
     }
 
     public Button getBtnCollapse() {
