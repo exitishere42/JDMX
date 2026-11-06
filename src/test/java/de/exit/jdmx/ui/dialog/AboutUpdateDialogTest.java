@@ -40,6 +40,7 @@ class AboutUpdateDialogTest {
         assertThat(view.getStyleClass()).contains("settings-dialog-card");
         assertThat(dialog.getLblCurrentVersion().getText()).contains(UpdateService.CURRENT_VERSION);
         assertThat(dialog.getBtnClose()).isNotNull();
+        assertThat(dialog.getMarkdownChangelog()).isNotNull();
     }
 
     @Test

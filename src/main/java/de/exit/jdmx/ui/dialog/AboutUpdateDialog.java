@@ -2,6 +2,7 @@ package de.exit.jdmx.ui.dialog;
 
 import de.exit.jdmx.service.UpdateService;
 import de.exit.jdmx.ui.MainWindow;
+import de.exit.jdmx.ui.component.MarkdownView;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -11,7 +12,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -42,7 +42,7 @@ public class AboutUpdateDialog {
     private Label lblLatestVersion;
     private Label lblStatus;
     private ProgressIndicator spinner;
-    private TextArea txtChangelog;
+    private MarkdownView markdownChangelog;
     private ProgressBar progressBar;
     private Label lblProgressDetail;
     private HBox actionButtonBox;
@@ -65,9 +65,9 @@ public class AboutUpdateDialog {
 
         this.card = new VBox(14);
         card.getStyleClass().add("settings-dialog-card");
-        card.setMinWidth(480);
-        card.setPrefWidth(500);
-        card.setMaxWidth(520);
+        card.setMinWidth(520);
+        card.setPrefWidth(550);
+        card.setMaxWidth(580);
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
@@ -161,14 +161,12 @@ public class AboutUpdateDialog {
         lblStatus.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px;");
         statusRow.getChildren().addAll(spinner, lblStatus);
 
-        // Changelog / Release Notes
-        this.txtChangelog = new TextArea();
-        txtChangelog.setEditable(false);
-        txtChangelog.setWrapText(true);
-        txtChangelog.setPrefRowCount(5);
-        txtChangelog.setStyle("-fx-control-inner-background: #121212; -fx-text-fill: #E5E7EB; -fx-font-size: 11px; -fx-border-color: #27272A; -fx-border-radius: 3px; -fx-background-radius: 3px;");
-        txtChangelog.setVisible(false);
-        txtChangelog.setManaged(false);
+        // Changelog / Release Notes als native formatierte MarkdownView
+        this.markdownChangelog = new MarkdownView();
+        markdownChangelog.setMaxHeight(200);
+        markdownChangelog.setPrefHeight(180);
+        markdownChangelog.setVisible(false);
+        markdownChangelog.setManaged(false);
 
         // Fortschrittsbalken für Download
         this.progressBar = new ProgressBar(0);
@@ -186,7 +184,7 @@ public class AboutUpdateDialog {
         this.actionButtonBox = new HBox(8);
         actionButtonBox.setAlignment(Pos.CENTER_RIGHT);
 
-        statusCard.getChildren().addAll(statusRow, txtChangelog, progressBar, lblProgressDetail, actionButtonBox);
+        statusCard.getChildren().addAll(statusRow, markdownChangelog, progressBar, lblProgressDetail, actionButtonBox);
         return statusCard;
     }
 
@@ -219,8 +217,8 @@ public class AboutUpdateDialog {
         lblStatus.setText("Prüfe auf Updates...");
         lblStatus.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px;");
         lblLatestVersion.setText("Prüfen...");
-        txtChangelog.setVisible(false);
-        txtChangelog.setManaged(false);
+        markdownChangelog.setVisible(false);
+        markdownChangelog.setManaged(false);
         progressBar.setVisible(false);
         progressBar.setManaged(false);
         lblProgressDetail.setVisible(false);
@@ -245,9 +243,9 @@ public class AboutUpdateDialog {
             lblStatus.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 12px; -fx-font-weight: bold;");
 
             if (release.body() != null && !release.body().isBlank()) {
-                txtChangelog.setText(release.body());
-                txtChangelog.setVisible(true);
-                txtChangelog.setManaged(true);
+                markdownChangelog.setMarkdown(release.body());
+                markdownChangelog.setVisible(true);
+                markdownChangelog.setManaged(true);
             }
 
             Button btnUpdate = new Button("Jetzt aktualisieren");
@@ -346,5 +344,9 @@ public class AboutUpdateDialog {
 
     public Button getBtnClose() {
         return btnClose;
+    }
+
+    public MarkdownView getMarkdownChangelog() {
+        return markdownChangelog;
     }
 }
