@@ -174,6 +174,22 @@ class StageFixtureNodeTest {
     }
 
     @Test
+    @DisplayName("Sollte beim Spawnen/Patchen komplett deaktiviert sein: Dimmer 0%, Linse dunkel, Position Home")
+    void shouldInitializeDeactivatedWithDimmerZeroAndHomePosition() {
+        FixtureInstance mhInstance = createMovingHeadInstance("mh-1", "Spot 1");
+        ExplorerItem mhItem = new ExplorerItem("mh-1", "Spot 1", ExplorerItemType.FIXTURE, false, "box", Color.web("#60A5FA"), mhInstance);
+        StageFixtureNode node = new StageFixtureNode(mhItem, 100.0, 100.0);
+
+        // Dimmer 0%
+        assertThat(node.getDimmer()).isEqualTo(0.0);
+        // Linse dunkel/schwarz (#141414)
+        assertThat(node.getLens().getFill()).isEqualTo(StageFixtureNode.COLOR_DARK_OFF);
+        // Position Home (0, 0)
+        assertThat(node.getTrackerDot().getTranslateX()).isEqualTo(0.0);
+        assertThat(node.getTrackerDot().getTranslateY()).isEqualTo(0.0);
+    }
+
+    @Test
     @DisplayName("Sollte Tracker-Punkt synchron im Kreis bewegen und innerhalb der Linse begrenzen")
     void shouldMoveTrackerDotWithinLensBounds() {
         FixtureInstance mhInstance = createMovingHeadInstance("mh-1", "Spot 1");

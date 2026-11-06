@@ -81,9 +81,9 @@ public class ColorModuleView extends VBox {
         // 3. Linke 4 Preset-Buttons (ca. 1cm vom Rand entfernt)
         Color[] defaultLeft = {
                 Color.web("#FFFFFF"), // Weiß
-                Color.web("#FFF0D4"), // Warmweiß
+                Color.web("#000000"), // Schwarz
                 Color.web("#EF4444"), // Rot
-                Color.web("#F59E0B")  // Gelb
+                Color.web("#10B981")  // Grün
         };
         VBox leftBox = new VBox(4);
         leftBox.setAlignment(Pos.CENTER);
@@ -102,10 +102,10 @@ public class ColorModuleView extends VBox {
 
         // 4. Rechte 4 Preset-Buttons (ca. 1cm vom Rand entfernt)
         Color[] defaultRight = {
-                Color.web("#10B981"), // Grün
-                Color.web("#06B6D4"), // Cyan
                 Color.web("#3B82F6"), // Blau
-                Color.web("#EC4899")  // Magenta
+                null,                 // Leer
+                null,                 // Leer
+                null                  // Leer
         };
         VBox rightBox = new VBox(4);
         rightBox.setAlignment(Pos.CENTER);
@@ -140,13 +140,15 @@ public class ColorModuleView extends VBox {
         VBox.setVgrow(btn, Priority.ALWAYS);
         applyColorToButton(btn, initialColor);
 
-        Tooltip tip = new Tooltip("Klick: Farbe wählen | Rechtsklick: Aktuelle Farbe speichern");
+        Tooltip tip = new Tooltip(initialColor == null
+                ? "Leerer Slot (Rechtsklick: Aktuelle Farbe speichern)"
+                : "Klick: Farbe wählen | Rechtsklick: Aktuelle Farbe speichern");
         Tooltip.install(btn, tip);
 
+        btn.setOnAction(e -> onClick.run());
+
         btn.setOnMouseClicked(e -> {
-            if (e.getButton() == MouseButton.PRIMARY) {
-                onClick.run();
-            } else if (e.getButton() == MouseButton.SECONDARY) {
+            if (e.getButton() == MouseButton.SECONDARY) {
                 onSaveCurrentColor.run();
             }
         });
@@ -161,8 +163,12 @@ public class ColorModuleView extends VBox {
     }
 
     private void applyColorToButton(Button btn, Color color) {
-        String hex = toHex(color);
-        btn.setStyle("-fx-background-color: " + hex + "; -fx-border-color: #383838; -fx-border-radius: 3px; -fx-background-radius: 3px;");
+        if (color == null) {
+            btn.setStyle("-fx-background-color: #242427; -fx-border-color: #38383C; -fx-border-style: dashed; -fx-border-radius: 3px; -fx-background-radius: 3px;");
+        } else {
+            String hex = toHex(color);
+            btn.setStyle("-fx-background-color: " + hex + "; -fx-border-color: #383838; -fx-border-style: solid; -fx-border-radius: 3px; -fx-background-radius: 3px;");
+        }
     }
 
     private String toHex(Color c) {
@@ -313,7 +319,7 @@ public class ColorModuleView extends VBox {
         if (index >= 0 && index < rightColors.size()) {
             return rightColors.get(index);
         }
-        return Color.WHITE;
+        return null;
     }
 
     public void setRightPresetColor(int index, Color color) {

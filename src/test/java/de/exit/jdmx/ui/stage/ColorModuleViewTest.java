@@ -68,4 +68,31 @@ class ColorModuleViewTest {
 
         assertThat(module.getLeftPresetColor(0)).isEqualTo(customColor);
     }
+
+    @Test
+    @DisplayName("Sollte vordefinierte Presets Weiß, Schwarz, Rot, Grün, Blau und 3 leere Slots enthalten")
+    void shouldContainWhiteBlackRedGreenBlueAndEmptySlots() {
+        ColorModuleView module = new ColorModuleView();
+
+        // Links: Weiß, Schwarz, Rot, Grün
+        assertThat(module.getLeftPresetColor(0)).isEqualTo(Color.web("#FFFFFF"));
+        assertThat(module.getLeftPresetColor(1)).isEqualTo(Color.web("#000000"));
+        assertThat(module.getLeftPresetColor(2)).isEqualTo(Color.web("#EF4444"));
+        assertThat(module.getLeftPresetColor(3)).isEqualTo(Color.web("#10B981"));
+
+        // Rechts: Blau und 3 leere Slots (null)
+        assertThat(module.getRightPresetColor(0)).isEqualTo(Color.web("#3B82F6"));
+        assertThat(module.getRightPresetColor(1)).isNull();
+        assertThat(module.getRightPresetColor(2)).isNull();
+        assertThat(module.getRightPresetColor(3)).isNull();
+
+        // Klick auf Schwarz wählt Schwarz
+        module.getLeftPresetButtons().get(1).fire();
+        assertThat(module.getSelectedColor()).isEqualTo(Color.web("#000000"));
+
+        // Klick auf leeren Slot ändert die Farbe nicht
+        Color before = module.getSelectedColor();
+        module.getRightPresetButtons().get(1).fire();
+        assertThat(module.getSelectedColor()).isEqualTo(before);
+    }
 }

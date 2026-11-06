@@ -63,7 +63,7 @@ public class StageFixtureNode extends Pane {
     private final boolean strobeSupported;
 
     private Color baseColor = Color.WHITE;
-    private double dimmer = 1.0;
+    private double dimmer = 0.0;
     private boolean strobing = false;
     private boolean strobePhase = false;
 
