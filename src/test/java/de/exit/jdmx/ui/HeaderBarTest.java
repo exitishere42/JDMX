@@ -39,10 +39,11 @@ class HeaderBarTest {
     }
 
     @Test
-    @DisplayName("Sollte Tab 2 als LightDesk benennen")
-    void shouldNameSecondTabLightDesk() {
+    @DisplayName("Sollte Tab 2 als LightDesk und Tab 5 als I/O Patch benennen")
+    void shouldNameSecondTabLightDeskAndFifthTabIoPatch() {
         HeaderBar headerBar = new HeaderBar();
         assertThat(headerBar.getTabButtons()).hasSize(5);
         assertThat(headerBar.getTabButtons().get(1).getText()).isEqualTo("LightDesk");
+        assertThat(headerBar.getTabButtons().get(4).getText()).isEqualTo("I/O Patch");
     }
 }

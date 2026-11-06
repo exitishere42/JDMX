@@ -1103,97 +1103,18 @@
 }
 
 /* ==========================================================================
-   Tab 5: Input / Output & Signal-Routing
+   Tab 5: I/O Patch & 2 Steuerungs-Docks (Stage & Fixtures SplitPane Stil)
    ========================================================================== */
 
 .io-workspace-view {
     -fx-background-color: #121212;
-}
-
-/* Universum I/O Patch-Tabelle (QLC+ Stil) */
-.universe-patch-table {
-    -fx-background-color: #1E1E1E;
-    -fx-border-color: #2C2C2C;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-}
-
-.patch-table-title {
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #E4E4E7;
-}
-
-.patch-header-row {
-    -fx-background-color: #161616;
-    -fx-border-color: #282828;
-    -fx-border-width: 0 0 1px 0;
-    -fx-border-radius: 3px 3px 0 0;
-    -fx-background-radius: 3px 3px 0 0;
-}
-
-.patch-header-label {
-    -fx-font-size: 10px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #71717A;
-}
-
-.patch-rows-container {
-    -fx-background-color: transparent;
-}
-
-.patch-data-row {
-    -fx-background-color: transparent;
-    -fx-border-color: #242424;
-    -fx-border-width: 0 0 1px 0;
-}
-
-.patch-data-row:hover {
-    -fx-background-color: #242424;
-}
-
-.patch-universe-name {
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #FFFFFF;
-}
-
-.patch-combo {
-    -fx-background-color: #141414;
-    -fx-border-color: #333333;
-    -fx-border-width: 1px;
-    -fx-border-radius: 3px;
-    -fx-background-radius: 3px;
-    -fx-font-size: 11px;
-    -fx-padding: 0 4;
-}
-
-.patch-combo .list-cell {
-    -fx-text-fill: #E4E4E7;
-    -fx-background-color: #141414;
-}
-
-.patch-status-text {
-    -fx-font-size: 11px;
-}
-
-.patch-config-btn {
-    -fx-background-color: #242424;
-    -fx-border-color: #383838;
-    -fx-border-width: 1px;
-    -fx-border-radius: 3px;
-    -fx-background-radius: 3px;
-    -fx-cursor: hand;
-    -fx-alignment: center;
     -fx-padding: 0;
 }
 
-.patch-config-btn:hover {
-    -fx-background-color: #323232;
-    -fx-border-color: #4B5563;
+.io-docks-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
 }
-
 /* Untere Hälfte: DMX Matrix */
 .dmx-matrix-view {
     -fx-background-color: #1E1E1E;

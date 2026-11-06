@@ -146,7 +146,7 @@ public class HeaderBar extends HBox {
                 "LightDesk",
                 "Button Matrix",
                 "Show-Timeline",
-                "Input/Output"
+                "I/O Patch"
         };
 
         String[] tabIcons = {
