@@ -69,14 +69,24 @@ class StageSelectionInteractionTest {
 
                 StageFixtureNode node = new StageFixtureNode(item, 50, 50);
 
-                // Die Eltern-Pane ist exakt 36x36px groß und der Badge ist unmanaged (kein Überhang)
+                // Die Eltern-Pane pickt nicht auf Bounds (kein Hitbox-Überhang) und der Badge ist mouse-transparent & managed
                 assertThat(node.getPrefWidth()).isEqualTo(36.0);
                 assertThat(node.getPrefHeight()).isEqualTo(36.0);
-                assertThat(node.getNameBadge().isManaged()).isFalse();
+                assertThat(node.isPickOnBounds()).isFalse();
+                assertThat(node.getNameBadge().isMouseTransparent()).isTrue();
+                assertThat(node.getNameBadge().isManaged()).isTrue();
 
-                // Das 36x36px Gehäuse fängt die Mausklicks
+                // Das 36x36px Gehäuse fängt die Mausklicks und Hover
                 assertThat(node.getSquare().getPrefWidth()).isEqualTo(36.0);
                 assertThat(node.getSquare().getPrefHeight()).isEqualTo(36.0);
+
+                // Gehäuse fängt Hover und schaltet den Badge sichtbar mit vollem Namen & Adresse
+                javafx.event.Event.fireEvent(node.getSquare(), new javafx.scene.input.MouseEvent(
+                        javafx.scene.input.MouseEvent.MOUSE_ENTERED,
+                        0, 0, 0, 0, javafx.scene.input.MouseButton.NONE, 0,
+                        false, false, false, false, false, false, false, false, false, false, null));
+                assertThat(node.getNameBadge().isVisible()).isTrue();
+                assertThat(node.getNameBadge().getText()).isEqualTo("Spot 1 [1.001]");
             } finally {
                 latch.countDown();
             }

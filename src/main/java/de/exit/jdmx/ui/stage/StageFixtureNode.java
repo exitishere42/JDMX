@@ -90,8 +90,7 @@ public class StageFixtureNode extends Pane {
         setLayoutX(initialX);
         setLayoutY(initialY);
         setPrefSize(SQUARE_SIZE, SQUARE_SIZE);
-        setMinSize(SQUARE_SIZE, SQUARE_SIZE);
-        setMaxSize(SQUARE_SIZE, SQUARE_SIZE);
+        setPickOnBounds(false);
         getStyleClass().add("stage-fixture-node");
 
         // 1. Capability-Erkennung
@@ -115,11 +114,13 @@ public class StageFixtureNode extends Pane {
         // 3. Linse (34px Kreis bündig zentriert)
         this.lens = new Circle(LENS_RADIUS);
         lens.getStyleClass().add("stage-fixture-lens");
+        lens.setMouseTransparent(true);
 
         // 4. Tracker-Punkt (Pan/Tilt)
         this.trackerDot = new Circle(TRACKER_DOT_RADIUS);
         trackerDot.getStyleClass().add("stage-fixture-tracker-dot");
         trackerDot.setVisible(panTiltSupported);
+        trackerDot.setMouseTransparent(true);
 
         square.getChildren().addAll(lens, trackerDot);
         StackPane.setAlignment(lens, Pos.CENTER);
@@ -132,11 +133,13 @@ public class StageFixtureNode extends Pane {
         nameBadge.setLayoutY(SQUARE_SIZE + 3.0);
         nameBadge.setVisible(false);
         nameBadge.setMouseTransparent(true);
-        nameBadge.setManaged(false);
+        nameBadge.setManaged(true);
 
         // Zentrierung des Badges unter dem 36px Gehäuse
         nameBadge.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
-            nameBadge.setLayoutX((SQUARE_SIZE - newVal.getWidth()) / 2.0);
+            if (newVal.getWidth() > 0) {
+                nameBadge.setLayoutX((SQUARE_SIZE - newVal.getWidth()) / 2.0);
+            }
         });
 
         getChildren().addAll(square, nameBadge);
@@ -185,8 +188,17 @@ public class StageFixtureNode extends Pane {
         return item.getName();
     }
 
+    @Override
+    protected void layoutChildren() {
+        super.layoutChildren();
+        if (nameBadge.getWidth() > 0) {
+            nameBadge.setLayoutX((SQUARE_SIZE - nameBadge.getWidth()) / 2.0);
+        }
+    }
+
     private void setupInteractions() {
-        setOnMousePressed(e -> {
+        // Drag- und Klick-Interaktionen direkt auf dem 36x36px Gehäuse
+        square.setOnMousePressed(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
                 Point2D parentPoint = getParent() != null
                         ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
@@ -199,7 +211,7 @@ public class StageFixtureNode extends Pane {
             }
         });
 
-        setOnMouseDragged(e -> {
+        square.setOnMouseDragged(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
                 hasDragged = true;
                 Point2D parentPoint = getParent() != null
@@ -218,7 +230,7 @@ public class StageFixtureNode extends Pane {
             }
         });
 
-        setOnMouseReleased(e -> {
+        square.setOnMouseReleased(e -> {
             if (e.getButton() == MouseButton.PRIMARY && hasDragged) {
                 hasDragged = false;
                 if (onDragFinished != null) {
@@ -227,7 +239,7 @@ public class StageFixtureNode extends Pane {
             }
         });
 
-        setOnMouseClicked(e -> {
+        square.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY && !hasDragged) {
                 if (onFixtureClicked != null) {
                     onFixtureClicked.accept(this, e);
@@ -238,6 +250,18 @@ public class StageFixtureNode extends Pane {
             }
         });
 
+        // Hover-Events auf dem 36x36px Gehäuse
+        square.setOnMouseEntered(e -> {
+            hoveredState = true;
+            updateBadgeVisibility();
+        });
+
+        square.setOnMouseExited(e -> {
+            hoveredState = false;
+            updateBadgeVisibility();
+        });
+
+        // Event-Weiterleitung für synthetische Events auf dem Node selbst (z. B. in Unit-Tests)
         setOnMouseEntered(e -> {
             hoveredState = true;
             updateBadgeVisibility();
@@ -250,7 +274,14 @@ public class StageFixtureNode extends Pane {
     }
 
     private void updateBadgeVisibility() {
-        nameBadge.setVisible(isSelected() || hoveredState);
+        boolean show = isSelected() || hoveredState;
+        nameBadge.setVisible(show);
+        if (show) {
+            nameBadge.toFront();
+            if (nameBadge.getWidth() > 0) {
+                nameBadge.setLayoutX((SQUARE_SIZE - nameBadge.getWidth()) / 2.0);
+            }
+        }
     }
 
     private void updateSelectionVisuals(boolean isSel) {

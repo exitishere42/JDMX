@@ -10,7 +10,7 @@ set -e
 REPO="exitishere42/JDMX"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/jdmx}"
 APP_NAME="jdmx"
-JAR_NAME="jdmx-1.6.0-all.jar"
+JAR_NAME="jdmx-1.6.1-all.jar"
 DETECTED_JAR=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep -o '"name": *"jdmx-[^"]*-all\.jar"' | head -n 1 | cut -d '"' -f 4 || true)
 if [ -n "$DETECTED_JAR" ]; then
     JAR_NAME="$DETECTED_JAR"

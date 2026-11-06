@@ -714,12 +714,10 @@
 }
 
 .header-status-pill {
-    -fx-background-color: #1E1E22;
-    -fx-border-color: #38383C;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-    -fx-padding: 3 9;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0 4px;
     -fx-alignment: CENTER;
 }
 
