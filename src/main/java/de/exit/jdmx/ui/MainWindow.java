@@ -155,6 +155,9 @@ public class MainWindow extends StackPane {
             dmxService.blackout();
         });
 
+        // Live DMX-Übertragungsrate an Header-Pill koppeln
+        dmxService.setOnRateUpdated(rate -> javafx.application.Platform.runLater(() -> headerBar.setDmxRate(rate)));
+
         // Brand Action-Menü Events
         headerBar.getActionMenu().setOnAction("fullscreen", this::toggleFullscreen);
 

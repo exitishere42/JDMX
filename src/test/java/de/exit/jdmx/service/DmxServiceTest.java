@@ -177,4 +177,18 @@ class DmxServiceTest {
         // Red (Kanal 7 -> Byte Index 18 + 6 = 24)
         assertThat(rxBuffer[24] & 0xFF).isEqualTo(255);
     }
+
+    @Test
+    @DisplayName("Paketzähler misst reale Übertragungen und berechnet DMX-Rate")
+    void packetRateCounter_measuresActualTransmissionRate() throws Exception {
+        int initialCount = dmxService.getTransmittedPacketCount();
+        dmxService.sendUniverse(0);
+        dmxService.sendUniverse(0);
+
+        assertThat(dmxService.getTransmittedPacketCount()).isEqualTo(initialCount + 2);
+
+        int rate = dmxService.measureAndResetRate();
+        assertThat(rate).isGreaterThanOrEqualTo(2);
+        assertThat(dmxService.getCurrentRate()).isEqualTo(rate);
+    }
 }

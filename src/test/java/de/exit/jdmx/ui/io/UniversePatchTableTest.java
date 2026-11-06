@@ -98,4 +98,30 @@ class UniversePatchTableTest {
             assertThat(row.getConfigBtn()).isNotNull();
         }
     }
+
+    @Test
+    @DisplayName("Sollte einen Aktualisieren-Button besitzen und bei Betätigung Hardware neu scannen")
+    void shouldHaveRefreshButtonAndRescanHardware() {
+        java.util.concurrent.atomic.AtomicReference<List<String>> detectedUsb = new java.util.concurrent.atomic.AtomicReference<>(List.of());
+        HardwareDiscoveryService dynamicHardware = new HardwareDiscoveryService(
+                detectedUsb::get,
+                List::of
+        );
+
+        UniversePatchTable table = new UniversePatchTable(dynamicHardware);
+
+        // Vor Refresh: Kein USB-DMX Adapter vorhanden
+        assertThat(table.getUniverseRows().getFirst().getOutputDropdown().getItems())
+                .doesNotContain("JMS USB to DMX PRO (COM7)");
+
+        // Jetzt wird ein Gerät eingesteckt
+        detectedUsb.set(List.of("JMS USB to DMX PRO (COM7)"));
+
+        // Aktualisieren-Button drücken
+        table.getBtnRefresh().fire();
+
+        // Nach Refresh: Gerät ist nun in den Dropdown-Optionen enthalten
+        assertThat(table.getUniverseRows().getFirst().getOutputDropdown().getItems())
+                .contains("JMS USB to DMX PRO (COM7)");
+    }
 }

@@ -44,6 +44,7 @@ public class UniversePatchTable extends VBox {
     private final HardwareDiscoveryService hardwareService;
     private final List<UniverseRow> universeRows = new ArrayList<>();
     private final List<HBox> dividers = new ArrayList<>();
+    private final Button btnRefresh;
     private MainWindow mainWindow;
 
     /**
@@ -76,6 +77,42 @@ public class UniversePatchTable extends VBox {
         // Styling als elegante Studio-Dark Karte (12px Ecken-Rundung)
         getStyleClass().add("universe-patch-table");
         setMaxWidth(760);
+
+        // 1. Top-Toolbar mit Titel und Aktualisieren-Button
+        HBox topBar = new HBox();
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.setPadding(new Insets(2, 4, 6, 4));
+
+        Label titleLabel = new Label("UNIVERSUM-ZUORDNUNG");
+        titleLabel.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-letter-spacing: 0.5px;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        this.btnRefresh = new Button("Aktualisieren");
+        btnRefresh.getStyleClass().add("io-refresh-btn");
+        LucideIcon refreshIcon = new LucideIcon("refresh-cw", 12, Color.web("#9CA3AF"));
+        btnRefresh.setGraphic(refreshIcon);
+        btnRefresh.setCursor(Cursor.HAND);
+        btnRefresh.setStyle("-fx-background-color: #242427; -fx-border-color: #38383C; " +
+                "-fx-border-radius: 4px; -fx-background-radius: 4px; -fx-text-fill: #E5E7EB; " +
+                "-fx-font-size: 11px; -fx-font-weight: 500; -fx-padding: 4 10 4 8;");
+        btnRefresh.setOnMouseEntered(e -> {
+            btnRefresh.setStyle("-fx-background-color: #2F2F33; -fx-border-color: #52525B; " +
+                    "-fx-border-radius: 4px; -fx-background-radius: 4px; -fx-text-fill: #FFFFFF; " +
+                    "-fx-font-size: 11px; -fx-font-weight: 500; -fx-padding: 4 10 4 8;");
+            refreshIcon.setColor(Color.WHITE);
+        });
+        btnRefresh.setOnMouseExited(e -> {
+            btnRefresh.setStyle("-fx-background-color: #242427; -fx-border-color: #38383C; " +
+                    "-fx-border-radius: 4px; -fx-background-radius: 4px; -fx-text-fill: #E5E7EB; " +
+                    "-fx-font-size: 11px; -fx-font-weight: 500; -fx-padding: 4 10 4 8;");
+            refreshIcon.setColor(Color.web("#9CA3AF"));
+        });
+        btnRefresh.setOnAction(e -> refreshHardware());
+
+        topBar.getChildren().addAll(titleLabel, spacer, btnRefresh);
+        getChildren().add(topBar);
 
         // 2. Tabellenkopf mit pixelgenauen Breiten
         HBox headerRow = createHeaderRow();
@@ -171,6 +208,24 @@ public class UniversePatchTable extends VBox {
 
     public List<HBox> getDividers() {
         return List.copyOf(dividers);
+    }
+
+    /**
+     * Liefert den Aktualisieren-Button für Hardware-Geräte.
+     *
+     * @return Button
+     */
+    public Button getBtnRefresh() {
+        return btnRefresh;
+    }
+
+    /**
+     * Aktualisiert die verfügbare Hardware für alle Universumszeilen.
+     */
+    public void refreshHardware() {
+        for (UniverseRow row : universeRows) {
+            row.refreshOptions(hardwareService);
+        }
     }
 
     /**
@@ -345,6 +400,35 @@ public class UniversePatchTable extends VBox {
 
         public Button getConfigBtn() {
             return configBtn;
+        }
+
+        /**
+         * Aktualisiert die Dropdown-Optionen basierend auf der aktuell erkannten Hardware.
+         * Behält die vorherige Auswahl bei, falls sie weiterhin gültig ist.
+         *
+         * @param hardwareService Service zur Hardware-Erkennung
+         */
+        public void refreshOptions(HardwareDiscoveryService hardwareService) {
+            String currentInput = inputDropdown.getSelectedItem();
+            List<String> newInputOptions = hardwareService.getAvailableInputOptions(universeIndex);
+            inputDropdown.setItems(newInputOptions);
+            if (currentInput != null && newInputOptions.contains(currentInput)) {
+                inputDropdown.selectItem(currentInput);
+            } else {
+                inputDropdown.selectItem("Kein Input");
+            }
+
+            String currentOutput = outputDropdown.getSelectedItem();
+            List<String> newOutputOptions = hardwareService.getAvailableOutputOptions(universeIndex);
+            outputDropdown.setItems(newOutputOptions);
+            if (currentOutput != null && newOutputOptions.contains(currentOutput)) {
+                outputDropdown.selectItem(currentOutput);
+            } else if (currentOutput != null && currentOutput.startsWith("Art-Net")) {
+                outputDropdown.selectItem(currentOutput);
+            } else {
+                outputDropdown.selectItem("Kein Output");
+            }
+            updateStatus();
         }
     }
 }

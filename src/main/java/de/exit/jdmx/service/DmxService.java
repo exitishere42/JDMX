@@ -43,6 +43,10 @@ public class DmxService implements AutoCloseable {
     private final ArtNetSender artNetSender;
     private final ScheduledExecutorService frameLoopExecutor;
 
+    private final java.util.concurrent.atomic.AtomicInteger packetCounter = new java.util.concurrent.atomic.AtomicInteger(0);
+    private final java.util.concurrent.atomic.AtomicInteger currentRate = new java.util.concurrent.atomic.AtomicInteger(0);
+    private java.util.function.Consumer<Integer> rateUpdateListener;
+
     private volatile boolean frameLoopRunning = false;
 
     /**
@@ -324,6 +328,48 @@ public class DmxService implements AutoCloseable {
                 config.artNetUniverse(),
                 dmxData
         );
+        packetCounter.incrementAndGet();
+    }
+
+    /**
+     * Liefert die Gesamtzahl der seit Start bzw. letztem Reset übertragenen Pakete.
+     */
+    public int getTransmittedPacketCount() {
+        return packetCounter.get();
+    }
+
+    /**
+     * Liefert die zuletzt gemessene DMX-Paketrate in Paketen pro Sekunde.
+     */
+    public int getCurrentRate() {
+        return currentRate.get();
+    }
+
+    /**
+     * Misst die seit dem letzten Aufruf aufgelaufenen Pakete und setzt den Zähler für die nächste Sekunde zurück.
+     *
+     * @return Gemessene Paketrate pro Sekunde
+     */
+    public int measureAndResetRate() {
+        int rate = packetCounter.getAndSet(0);
+        currentRate.set(rate);
+        if (rateUpdateListener != null) {
+            try {
+                rateUpdateListener.accept(rate);
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Fehler im RateUpdateListener", e);
+            }
+        }
+        return rate;
+    }
+
+    /**
+     * Registriert einen Listener, der bei jeder sekündlichen Ratenberechnung benachrichtigt wird.
+     *
+     * @param listener Callback mit der aktuellen Rate in DMX/s
+     */
+    public void setOnRateUpdated(java.util.function.Consumer<Integer> listener) {
+        this.rateUpdateListener = listener;
     }
 
     /**
@@ -355,7 +401,7 @@ public class DmxService implements AutoCloseable {
     }
 
     /**
-     * Startet den 40-Hz-Frame-Loop (25 ms Taktzeit).
+     * Startet den 40-Hz-Frame-Loop (25 ms Taktzeit) sowie den sekündlichen Raten-Monitor.
      */
     public synchronized void startFrameLoop() {
         if (frameLoopRunning) {
@@ -364,6 +410,8 @@ public class DmxService implements AutoCloseable {
         frameLoopRunning = true;
         // 40 Hz = 25 ms Intervall
         frameLoopExecutor.scheduleAtFixedRate(this::tickFrameLoop, 25, 25, TimeUnit.MILLISECONDS);
+        // Sekündliche Raten-Berechnung
+        frameLoopExecutor.scheduleAtFixedRate(this::measureAndResetRate, 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     private void tickFrameLoop() {
