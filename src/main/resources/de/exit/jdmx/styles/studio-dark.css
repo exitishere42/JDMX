@@ -1317,45 +1317,61 @@
     -fx-background-color: #141414;
     -fx-border-color: #262626;
     -fx-border-width: 1px;
-    -fx-border-radius: 3px;
-    -fx-background-radius: 3px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
 }
 
-.dmx-matrix-grid {
+.dmx-matrix-rows-container {
     -fx-background-color: transparent;
 }
 
-/* Einzelne DMX-Kanal-Vierecke */
+.dmx-matrix-row {
+    -fx-alignment: center-left;
+}
+
+.matrix-row-label {
+    -fx-font-family: monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #71717A;
+    -fx-padding: 0 6 0 0;
+}
+
+.dmx-matrix-bank {
+    -fx-alignment: center-left;
+}
+
+/* Einzelne DMX-Kanal-Vierecke (16 Spalten Raster) */
 .dmx-channel-cell {
     -fx-background-color: #181818;
     -fx-border-color: #282828;
     -fx-border-width: 1px;
-    -fx-border-radius: 3px;
-    -fx-background-radius: 3px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
     -fx-alignment: center;
     -fx-cursor: default;
 }
 
 .dmx-channel-cell:hover {
-    -fx-border-color: #52525B;
-    -fx-scale-x: 1.08;
-    -fx-scale-y: 1.08;
+    -fx-border-color: #71717A;
+    -fx-scale-x: 1.06;
+    -fx-scale-y: 1.06;
 }
 
 .dmx-channel-cell-active:hover {
     -fx-border-color: #34D399;
-    -fx-scale-x: 1.08;
-    -fx-scale-y: 1.08;
+    -fx-scale-x: 1.06;
+    -fx-scale-y: 1.06;
 }
 
 .dmx-channel-number {
-    -fx-font-size: 9px;
-    -fx-text-fill: #52525B;
+    -fx-font-size: 10px;
+    -fx-text-fill: #71717A;
     -fx-font-family: monospace;
 }
 
 .dmx-channel-value {
-    -fx-font-size: 11px;
+    -fx-font-size: 12px;
     -fx-text-fill: #52525B;
     -fx-font-family: monospace;
 }

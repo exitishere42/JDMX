@@ -2,12 +2,10 @@ package de.exit.jdmx.ui.io;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -19,15 +17,22 @@ import java.util.List;
 /**
  * 512-Kanal Universe Live-Monitor (DMX-Viewer).
  * <p>
- * Zeigt alle 512 DMX-Kanäle in einer responsiven Viereck-Matrix an.
+ * Zeigt alle 512 DMX-Kanäle im standardmäßigen Mischpult-Raster an:
+ * Genau 16 Spalten pro Zeile (unterteilt in 4er-Faderbänke), 32 Zeilen insgesamt.
+ * Jede Zeile verfügt über eine Kanalnummerierungs-Beschriftung links (z. B. 001:, 017: ... 497:).
  * Bietet Universums-Umschaltung (1–4), Filterung (Alle vs. Nur Aktive)
  * und Echtzeit-Aktualisierung der Kanal-Auslastung.
  * </p>
  */
 public class DmxMatrixView extends VBox {
 
-    private final List<DmxChannelCell> channelCells = new ArrayList<>(512);
-    private final FlowPane gridPane;
+    public static final int COLUMNS_PER_ROW = 16;
+    public static final int TOTAL_CHANNELS = 512;
+    public static final int ROW_COUNT = TOTAL_CHANNELS / COLUMNS_PER_ROW; // 32
+
+    private final List<DmxChannelCell> channelCells = new ArrayList<>(TOTAL_CHANNELS);
+    private final List<HBox> rowContainers = new ArrayList<>(ROW_COUNT);
+    private final VBox matrixRowsBox;
     private final ScrollPane scrollPane;
 
     private int selectedUniverse = 1;
@@ -42,35 +47,74 @@ public class DmxMatrixView extends VBox {
         setPadding(new Insets(10.0));
         VBox.setVgrow(this, Priority.ALWAYS);
 
-        // 1. Toolbar: Universen-Tabs & Filter
-        HBox toolbar = buildToolbar();
-
-        // 2. 512-Kanal Matrix aus Vierecken
-        this.gridPane = new FlowPane();
-        gridPane.getStyleClass().add("dmx-matrix-grid");
-        gridPane.setHgap(3.0);
-        gridPane.setVgap(3.0);
-        gridPane.setAlignment(Pos.TOP_LEFT);
-        gridPane.setPadding(new Insets(6.0));
-
-        for (int i = 1; i <= 512; i++) {
-            DmxChannelCell cell = new DmxChannelCell(i);
-            channelCells.add(cell);
-            gridPane.getChildren().add(cell);
-        }
-
-        this.scrollPane = new ScrollPane(gridPane);
-        scrollPane.getStyleClass().add("dmx-matrix-scroll");
-        scrollPane.setFitToWidth(true);
-        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        VBox.setVgrow(scrollPane, Priority.ALWAYS);
-
         // Filter Toggle Buttons initialisieren
         this.btnFilterAll = new ToggleButton("Alle (512)");
         this.btnFilterActive = new ToggleButton("Nur Aktive");
 
+        // 1. Toolbar: Universen-Tabs & Filter
+        HBox toolbar = buildToolbar();
+
+        // 2. 512-Kanal Matrix im 16-Spalten-Raster (32 Zeilen à 4x4 Blöcke)
+        this.matrixRowsBox = new VBox(4.0);
+        matrixRowsBox.getStyleClass().add("dmx-matrix-rows-container");
+        matrixRowsBox.setAlignment(Pos.TOP_CENTER);
+        matrixRowsBox.setPadding(new Insets(6.0, 10.0, 10.0, 10.0));
+
+        for (int r = 0; r < ROW_COUNT; r++) {
+            int startChannel = (r * COLUMNS_PER_ROW) + 1;
+            HBox rowBox = buildRow(startChannel);
+            rowContainers.add(rowBox);
+            matrixRowsBox.getChildren().add(rowBox);
+        }
+
+        this.scrollPane = new ScrollPane(matrixRowsBox);
+        scrollPane.getStyleClass().add("dmx-matrix-scroll");
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
         getChildren().addAll(toolbar, scrollPane);
+    }
+
+    private HBox buildRow(int startChannel) {
+        HBox row = new HBox(6.0);
+        row.getStyleClass().add("dmx-matrix-row");
+        row.setAlignment(Pos.CENTER_LEFT);
+
+        // Zeilenbeschriftung links (z. B. "001:", "017:")
+        Label rowLabel = new Label(String.format("%03d:", startChannel));
+        rowLabel.getStyleClass().add("matrix-row-label");
+        rowLabel.setMinWidth(42.0);
+        rowLabel.setPrefWidth(42.0);
+        rowLabel.setAlignment(Pos.CENTER_RIGHT);
+        row.getChildren().add(rowLabel);
+
+        // 4 Faderbänke à 4 Kanäle
+        for (int bank = 0; bank < 4; bank++) {
+            HBox bankBox = new HBox(4.0);
+            bankBox.setAlignment(Pos.CENTER_LEFT);
+            bankBox.getStyleClass().add("dmx-matrix-bank");
+
+            for (int col = 0; col < 4; col++) {
+                int ch = startChannel + (bank * 4) + col;
+                DmxChannelCell cell = new DmxChannelCell(ch);
+                channelCells.add(cell);
+                bankBox.getChildren().add(cell);
+            }
+
+            row.getChildren().add(bankBox);
+
+            // Abstand zwischen den Bänken (außer nach der letzten Bank)
+            if (bank < 3) {
+                HBox spacer = new HBox();
+                spacer.setMinWidth(10.0);
+                spacer.setPrefWidth(10.0);
+                row.getChildren().add(spacer);
+            }
+        }
+
+        return row;
     }
 
     private HBox buildToolbar() {
@@ -100,18 +144,16 @@ public class DmxMatrixView extends VBox {
 
         // Filter (Alle vs Nur Aktive)
         ToggleGroup filterGroup = new ToggleGroup();
-        ToggleButton btnAll = new ToggleButton("Alle (512)");
-        btnAll.getStyleClass().add("matrix-filter-btn");
-        btnAll.setToggleGroup(filterGroup);
-        btnAll.setSelected(true);
-        btnAll.setOnAction(e -> setOnlyActiveFilter(false));
+        btnFilterAll.getStyleClass().add("matrix-filter-btn");
+        btnFilterAll.setToggleGroup(filterGroup);
+        btnFilterAll.setSelected(true);
+        btnFilterAll.setOnAction(e -> setOnlyActiveFilter(false));
 
-        ToggleButton btnActive = new ToggleButton("Nur Aktive");
-        btnActive.getStyleClass().add("matrix-filter-btn");
-        btnActive.setToggleGroup(filterGroup);
-        btnActive.setOnAction(e -> setOnlyActiveFilter(true));
+        btnFilterActive.getStyleClass().add("matrix-filter-btn");
+        btnFilterActive.setToggleGroup(filterGroup);
+        btnFilterActive.setOnAction(e -> setOnlyActiveFilter(true));
 
-        HBox filterBox = new HBox(4.0, btnAll, btnActive);
+        HBox filterBox = new HBox(4.0, btnFilterAll, btnFilterActive);
         filterBox.setAlignment(Pos.CENTER_LEFT);
 
         // Rate Pill rechts
@@ -145,10 +187,28 @@ public class DmxMatrixView extends VBox {
     }
 
     private void applyFilter() {
-        for (DmxChannelCell cell : channelCells) {
-            boolean visible = !onlyActiveFilter || cell.isActive();
-            cell.setVisible(visible);
-            cell.setManaged(visible);
+        for (int r = 0; r < ROW_COUNT; r++) {
+            HBox row = rowContainers.get(r);
+            boolean rowHasActive = false;
+            int startIdx = r * COLUMNS_PER_ROW;
+
+            for (int c = 0; c < COLUMNS_PER_ROW; c++) {
+                DmxChannelCell cell = channelCells.get(startIdx + c);
+                boolean visible = !onlyActiveFilter || cell.isActive();
+                cell.setVisible(visible);
+                cell.setManaged(visible);
+                if (cell.isActive()) {
+                    rowHasActive = true;
+                }
+            }
+
+            if (onlyActiveFilter) {
+                row.setVisible(rowHasActive);
+                row.setManaged(rowHasActive);
+            } else {
+                row.setVisible(true);
+                row.setManaged(true);
+            }
         }
     }
 
@@ -159,12 +219,11 @@ public class DmxMatrixView extends VBox {
      * @param value   Neuer DMX-Wert (0..255)
      */
     public void setChannelValue(int channel, int value) {
-        if (channel >= 1 && channel <= 512) {
+        if (channel >= 1 && channel <= TOTAL_CHANNELS) {
             DmxChannelCell cell = channelCells.get(channel - 1);
             cell.setValue(value);
             if (onlyActiveFilter) {
-                cell.setVisible(cell.isActive());
-                cell.setManaged(cell.isActive());
+                applyFilter();
             }
         }
     }
@@ -178,7 +237,7 @@ public class DmxMatrixView extends VBox {
         if (channels == null) {
             return;
         }
-        int len = Math.min(channels.length, 512);
+        int len = Math.min(channels.length, TOTAL_CHANNELS);
         for (int i = 0; i < len; i++) {
             int val = channels[i] & 0xFF;
             DmxChannelCell cell = channelCells.get(i);
@@ -190,7 +249,7 @@ public class DmxMatrixView extends VBox {
     }
 
     public DmxChannelCell getCell(int channel) {
-        if (channel >= 1 && channel <= 512) {
+        if (channel >= 1 && channel <= TOTAL_CHANNELS) {
             return channelCells.get(channel - 1);
         }
         return null;
@@ -198,6 +257,14 @@ public class DmxMatrixView extends VBox {
 
     public List<DmxChannelCell> getChannelCells() {
         return Collections.unmodifiableList(channelCells);
+    }
+
+    public int getColumnsPerRow() {
+        return COLUMNS_PER_ROW;
+    }
+
+    public int getRowCount() {
+        return ROW_COUNT;
     }
 
     public int getSelectedUniverse() {

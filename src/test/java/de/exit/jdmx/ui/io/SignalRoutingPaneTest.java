@@ -9,7 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TDD Unit-Tests für {@link SignalRoutingPane}.
- * Prüft den horizontalen Signalfluss [INPUT] ---> [JDMX] ---> [OUTPUT] mit Art-Net Steuerelementen.
+ * Prüft den vereinfachten Signalfluss nach Vorbild von sound2artnet:
+ * [INPUT] ---> [JDMX PROZESSOR] ---> [OUTPUT] mit Ziel-IP und Universum.
  */
 class SignalRoutingPaneTest {
 
@@ -36,21 +37,20 @@ class SignalRoutingPaneTest {
     }
 
     @Test
-    @DisplayName("Sollte Art-Net Optionen im Output-Bereich bereitstellen")
-    void shouldProvideArtNetControlsInOutputBox() {
+    @DisplayName("Sollte vereinfachte Art-Net Steuerelemente wie in sound2artnet bereitstellen")
+    void shouldProvideSimpleArtNetControlsLikeSound2ArtNet() {
         SignalRoutingPane pane = new SignalRoutingPane();
 
         assertThat(pane.getArtNetCheckbox()).isNotNull();
         assertThat(pane.getArtNetCheckbox().isSelected()).isTrue();
 
-        assertThat(pane.getNetworkInterfaceCombo()).isNotNull();
-        assertThat(pane.getNetworkInterfaceCombo().getItems()).isNotEmpty();
+        assertThat(pane.getTargetIpField()).isNotNull();
+        assertThat(pane.getTargetIpField().getText()).isEqualTo("127.0.0.1");
 
-        assertThat(pane.getBroadcastRadio()).isNotNull();
-        assertThat(pane.getUnicastRadio()).isNotNull();
-        assertThat(pane.getBroadcastRadio().isSelected()).isTrue();
-
-        assertThat(pane.getSubnetSpinner()).isNotNull();
         assertThat(pane.getUniverseSpinner()).isNotNull();
+        assertThat(pane.getUniverseSpinner().getValue()).isEqualTo(0);
+
+        assertThat(pane.getMidiDeviceCombo()).isNotNull();
+        assertThat(pane.getMidiDeviceCombo().getItems()).contains("Kein Gerät verbunden");
     }
 }

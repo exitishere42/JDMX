@@ -37,7 +37,7 @@ class UpdateServiceTest {
     @Test
     @DisplayName("Sollte korrekte Konstanten für Repository und Version besitzen")
     void shouldHaveValidRepoAndVersionConstants() {
-        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("1.2.4");
+        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("1.2.5");
         assertThat(UpdateService.GITHUB_REPO).isEqualTo("exitishere42/JDMX");
         assertThat(UpdateService.API_URL).isEqualTo("https://api.github.com/repos/exitishere42/JDMX/releases/latest");
         assertThat(UpdateService.REPO_URL).isEqualTo("https://github.com/exitishere42/JDMX");

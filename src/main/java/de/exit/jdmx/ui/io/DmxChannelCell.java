@@ -4,20 +4,21 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 /**
  * Visuelle Kachel (Viereck) für einen einzelnen DMX-Kanal (1–512) in der DMX-Matrix.
  * <p>
- * Zeigt oben die Kanalnummer und unten die Auslastung (Wert von 0 bis 255).
+ * Zeigt oben die Kanalnummer und darunter die Auslastung (Wert von 0 bis 255).
  * Leuchtet stufenlos grün auf, abhängig von der aktuellen Füllung des DMX-Kanals.
  * </p>
  */
 public class DmxChannelCell extends VBox {
 
-    /** Feste Kachelgröße in Pixeln. */
-    public static final double CELL_SIZE = 36.0;
+    /** Feste Kachelbreite in Pixeln. */
+    public static final double CELL_WIDTH = 50.0;
+    /** Feste Kachelhöhe in Pixeln. */
+    public static final double CELL_HEIGHT = 44.0;
 
     private final int channelNumber;
     private final Label channelLabel;
@@ -36,10 +37,10 @@ public class DmxChannelCell extends VBox {
 
         getStyleClass().add("dmx-channel-cell");
         setAlignment(Pos.CENTER);
-        setSpacing(1.0);
-        setMinSize(CELL_SIZE, CELL_SIZE);
-        setPrefSize(CELL_SIZE, CELL_SIZE);
-        setMaxSize(CELL_SIZE, CELL_SIZE);
+        setSpacing(2.0);
+        setMinSize(CELL_WIDTH, CELL_HEIGHT);
+        setPrefSize(CELL_WIDTH, CELL_HEIGHT);
+        setMaxSize(CELL_WIDTH, CELL_HEIGHT);
 
         this.channelLabel = new Label(String.valueOf(channelNumber));
         channelLabel.getStyleClass().add("dmx-channel-number");
@@ -78,23 +79,23 @@ public class DmxChannelCell extends VBox {
             if (!getStyleClass().contains("dmx-channel-cell-active")) {
                 getStyleClass().add("dmx-channel-cell-active");
             }
-            // Dynamische Grün-Deckkraft proportional zum DMX-Wert (16..255)
+            // Dynamische Grün-Deckkraft proportional zum DMX-Wert (1..255)
             double ratio = value / 255.0;
-            double alpha = 0.20 + (0.75 * ratio);
+            double alpha = 0.22 + (0.75 * ratio);
             String greenRgba = String.format("rgba(16, 185, 129, %.2f)", alpha);
-            String borderRgba = String.format("rgba(52, 211, 153, %.2f)", Math.min(1.0, 0.40 + (0.60 * ratio)));
+            String borderRgba = String.format("rgba(52, 211, 153, %.2f)", Math.min(1.0, 0.45 + (0.55 * ratio)));
 
             setStyle(String.format(
-                    "-fx-background-color: %s; -fx-border-color: %s; -fx-border-width: 1px; -fx-border-radius: 3px; -fx-background-radius: 3px;",
+                    "-fx-background-color: %s; -fx-border-color: %s; -fx-border-width: 1px; -fx-border-radius: 4px; -fx-background-radius: 4px;",
                     greenRgba, borderRgba
             ));
             valueLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-weight: bold;");
             channelLabel.setStyle("-fx-text-fill: " + (ratio > 0.5 ? "#064E3B;" : "#A7F3D0;"));
         } else {
             getStyleClass().remove("dmx-channel-cell-active");
-            setStyle("-fx-background-color: #181818; -fx-border-color: #282828; -fx-border-width: 1px; -fx-border-radius: 3px; -fx-background-radius: 3px;");
+            setStyle("-fx-background-color: #181818; -fx-border-color: #282828; -fx-border-width: 1px; -fx-border-radius: 4px; -fx-background-radius: 4px;");
             valueLabel.setStyle("-fx-text-fill: #52525B; -fx-font-weight: normal;");
-            channelLabel.setStyle("-fx-text-fill: #52525B;");
+            channelLabel.setStyle("-fx-text-fill: #71717A;");
         }
     }
 

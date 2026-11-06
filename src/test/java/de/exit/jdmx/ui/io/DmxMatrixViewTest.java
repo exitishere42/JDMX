@@ -9,8 +9,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TDD Unit-Tests für {@link DmxMatrixView}.
- * Prüft die 512-Kanal Matrix aus Vierecken, Universums-Umschaltung (1–4)
- * und die Filterung (Alle 512 vs. Nur Aktive).
+ * Prüft die 512-Kanal Matrix im 16-Spalten Mischpult-Raster (32 Zeilen à 16 Kanäle),
+ * Universums-Umschaltung (1–4) und die Filterung (Alle 512 vs. Nur Aktive).
  */
 class DmxMatrixViewTest {
 
@@ -32,6 +32,15 @@ class DmxMatrixViewTest {
         assertThat(matrixView.getCell(1)).isNotNull();
         assertThat(matrixView.getCell(512)).isNotNull();
         assertThat(matrixView.getSelectedUniverse()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Sollte im 16-Spalten Raster mit 32 Zeilen aufgebaut sein")
+    void shouldBeOrganizedIn16ColumnsAnd32Rows() {
+        DmxMatrixView matrixView = new DmxMatrixView();
+
+        assertThat(matrixView.getColumnsPerRow()).isEqualTo(16);
+        assertThat(matrixView.getRowCount()).isEqualTo(32);
     }
 
     @Test
