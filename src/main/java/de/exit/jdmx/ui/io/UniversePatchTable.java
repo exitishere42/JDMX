@@ -40,7 +40,7 @@ public class UniversePatchTable extends VBox {
     private static final int COL_SPACING = 16;
 
     private final HardwareDiscoveryService hardwareService;
-    private final Label titleLabel;
+    //private final Label titleLabel;
     private final List<UniverseRow> universeRows = new ArrayList<>();
     private final List<HBox> dividers = new ArrayList<>();
 
@@ -62,15 +62,7 @@ public class UniversePatchTable extends VBox {
 
         // Styling als elegante Studio-Dark Karte (12px Ecken-Rundung)
         getStyleClass().add("universe-patch-table");
-        setStyle("-fx-background-color: #1A1A1A; -fx-border-color: #2E2E2E; -fx-border-width: 1px; " +
-                "-fx-border-radius: 12px; -fx-background-radius: 12px; -fx-padding: 16px;");
         setMaxWidth(760);
-
-        // 1. Titel
-        titleLabel = new Label("UNIVERSUM-ZUORDNUNG (QLC+ STIL)");
-        titleLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #9CA3AF; " +
-                "-fx-letter-spacing: 0.5px; -fx-padding: 0 0 4px 0;");
-        getChildren().add(titleLabel);
 
         // 2. Tabellenkopf mit pixelgenauen Breiten
         HBox headerRow = createHeaderRow();
@@ -142,9 +134,6 @@ public class UniversePatchTable extends VBox {
         return wrapper;
     }
 
-    public Label getTitleLabel() {
-        return titleLabel;
-    }
 
     public List<UniverseRow> getUniverseRows() {
         return List.copyOf(universeRows);

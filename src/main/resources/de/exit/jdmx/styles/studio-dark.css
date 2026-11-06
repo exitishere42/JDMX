@@ -1134,7 +1134,16 @@
 
 .io-workspace-view {
     -fx-background-color: #121212;
-    -fx-padding: 0;
+    -fx-padding: 24px 32px 24px 32px;
+}
+
+.universe-patch-table {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: #2E2E2E;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 18px 24px;
 }
 
 .io-docks-split {
