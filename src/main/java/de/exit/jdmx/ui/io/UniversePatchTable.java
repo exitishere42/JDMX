@@ -60,10 +60,10 @@ public class UniversePatchTable extends VBox {
         super(10);
         this.hardwareService = Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
 
-        // Styling als elegante Studio-Dark Karte
+        // Styling als elegante Studio-Dark Karte (12px Ecken-Rundung)
         getStyleClass().add("universe-patch-table");
         setStyle("-fx-background-color: #1A1A1A; -fx-border-color: #2E2E2E; -fx-border-width: 1px; " +
-                "-fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 16px;");
+                "-fx-border-radius: 12px; -fx-background-radius: 12px; -fx-padding: 16px;");
         setMaxWidth(760);
 
         // 1. Titel

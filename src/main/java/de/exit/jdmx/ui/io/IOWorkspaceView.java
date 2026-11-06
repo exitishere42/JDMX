@@ -39,7 +39,8 @@ public class IOWorkspaceView extends VBox {
         Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
 
         getStyleClass().add("io-workspace-view");
-        setPadding(new Insets(20, 24, 20, 24));
+        // Spürbarer Abstand von der oberen Tableiste und dem linken Fensterrand
+        setPadding(new Insets(28, 30, 24, 30));
         setAlignment(Pos.TOP_LEFT);
 
         // 1. Universum-Zuordnungstabelle im oberen Drittel
