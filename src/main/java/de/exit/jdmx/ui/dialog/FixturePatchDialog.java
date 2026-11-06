@@ -330,6 +330,10 @@ public class FixturePatchDialog {
             stageCanvas.placeFixture(item, startX, startY);
         }
 
+        if (mainWindow != null) {
+            mainWindow.autoSave();
+        }
+
         close();
     }
 

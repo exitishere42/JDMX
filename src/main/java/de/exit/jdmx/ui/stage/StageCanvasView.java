@@ -54,6 +54,7 @@ public class StageCanvasView extends StackPane {
 
     private ProjectExplorerService explorerService;
     private BiConsumer<ExplorerItem, Point2D> onFixturePlaced;
+    private BiConsumer<ExplorerItem, Point2D> onFixtureMoved;
 
     // Zustand für Kamera-Verschiebung (Pan) mit mittlerer Maustaste
     private double panStartMouseX;
@@ -305,11 +306,25 @@ public class StageCanvasView extends StackPane {
         placedFixtures.add(node);
         stageSurface.getChildren().add(node);
 
+        node.setOnDragFinished(() -> {
+            if (onFixtureMoved != null) {
+                onFixtureMoved.accept(item, new Point2D(node.getLayoutX(), node.getLayoutY()));
+            }
+        });
+
         if (onFixturePlaced != null) {
             onFixturePlaced.accept(item, new Point2D(x, y));
         }
 
         return node;
+    }
+
+    /**
+     * Entfernt alle platzierten Scheinwerfer von der 2D-Bühne.
+     */
+    public void clearFixtures() {
+        stageSurface.getChildren().removeAll(placedFixtures);
+        placedFixtures.clear();
     }
 
     /**
@@ -353,6 +368,14 @@ public class StageCanvasView extends StackPane {
 
     public void setOnFixturePlaced(BiConsumer<ExplorerItem, Point2D> onFixturePlaced) {
         this.onFixturePlaced = onFixturePlaced;
+    }
+
+    public void setOnFixtureMoved(BiConsumer<ExplorerItem, Point2D> onFixtureMoved) {
+        this.onFixtureMoved = onFixtureMoved;
+    }
+
+    public BiConsumer<ExplorerItem, Point2D> getOnFixtureMoved() {
+        return onFixtureMoved;
     }
 
     public void setExplorerService(ProjectExplorerService explorerService) {

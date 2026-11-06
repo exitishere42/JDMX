@@ -46,6 +46,7 @@ public class UniversePatchTable extends VBox {
     private final List<HBox> dividers = new ArrayList<>();
     private final Button btnRefresh;
     private MainWindow mainWindow;
+    private Runnable onConfigChanged;
 
     /**
      * Erstellt die Universum-Patch-Tabelle mit Standard-Hardwareerkennung.
@@ -124,7 +125,7 @@ public class UniversePatchTable extends VBox {
 
         // 3. Zeilen für Universum 1 bis 4
         for (int i = 0; i < 4; i++) {
-            UniverseRow row = new UniverseRow(i + 1, i, hardwareService, () -> this.mainWindow);
+            UniverseRow row = new UniverseRow(i + 1, i, hardwareService, () -> this.mainWindow, this::notifyConfigChanged);
             universeRows.add(row);
             getChildren().add(row);
 
@@ -228,6 +229,16 @@ public class UniversePatchTable extends VBox {
         }
     }
 
+    public void setOnConfigChanged(Runnable onConfigChanged) {
+        this.onConfigChanged = onConfigChanged;
+    }
+
+    private void notifyConfigChanged() {
+        if (onConfigChanged != null) {
+            onConfigChanged.run();
+        }
+    }
+
     /**
      * Repräsentiert eine Zeile für ein DMX-Universum.
      */
@@ -236,6 +247,7 @@ public class UniversePatchTable extends VBox {
         private final int universeNumber;
         private final int universeIndex;
         private final java.util.function.Supplier<MainWindow> mainWindowSupplier;
+        private final Runnable changeNotifier;
         private final CustomDropdownButton inputDropdown;
         private final CustomDropdownButton outputDropdown;
         private final Circle statusDot;
@@ -245,10 +257,15 @@ public class UniversePatchTable extends VBox {
         private UniverseConfig config;
 
         public UniverseRow(int universeNumber, int universeIndex, HardwareDiscoveryService hardwareService, java.util.function.Supplier<MainWindow> mainWindowSupplier) {
+            this(universeNumber, universeIndex, hardwareService, mainWindowSupplier, null);
+        }
+
+        public UniverseRow(int universeNumber, int universeIndex, HardwareDiscoveryService hardwareService, java.util.function.Supplier<MainWindow> mainWindowSupplier, Runnable changeNotifier) {
             super(COL_SPACING);
             this.universeNumber = universeNumber;
             this.universeIndex = universeIndex;
             this.mainWindowSupplier = mainWindowSupplier;
+            this.changeNotifier = changeNotifier;
             this.config = UniverseConfig.defaultFor(universeIndex);
 
             setAlignment(Pos.CENTER_LEFT);
@@ -298,6 +315,9 @@ public class UniversePatchTable extends VBox {
                     this.config = this.config.withInputSource(newVal != null ? newVal : "Kein Input");
                     mw.getDmxService().setUniverseConfig(this.universeIndex, this.config);
                 }
+                if (changeNotifier != null) {
+                    changeNotifier.run();
+                }
             });
             outputDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> {
                 updateStatus();
@@ -305,6 +325,9 @@ public class UniversePatchTable extends VBox {
                 if (mw != null && mw.getDmxService() != null) {
                     this.config = this.config.withOutputTarget(newVal != null ? newVal : "Kein Output");
                     mw.getDmxService().setUniverseConfig(this.universeIndex, this.config);
+                }
+                if (changeNotifier != null) {
+                    changeNotifier.run();
                 }
             });
             updateStatus();
@@ -361,6 +384,9 @@ public class UniversePatchTable extends VBox {
                     if (outputDropdown.getSelectedItem() != null && outputDropdown.getSelectedItem().startsWith("Art-Net")) {
                         String newLabel = "Art-Net (" + updated.artNetIp() + ", Uni " + updated.artNetUniverse() + ")";
                         outputDropdown.selectItem(newLabel);
+                    }
+                    if (changeNotifier != null) {
+                        changeNotifier.run();
                     }
                 });
             }

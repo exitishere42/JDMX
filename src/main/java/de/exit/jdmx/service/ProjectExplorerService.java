@@ -273,6 +273,17 @@ public class ProjectExplorerService {
         return null;
     }
 
+    /**
+     * Entfernt alle nicht-festen Items aus Ordnern und dem unzugeordneten Bereich.
+     */
+    public void clearItems() {
+        for (List<ExplorerItem> items : folderContents.values()) {
+            items.clear();
+        }
+        unassignedItems.clear();
+        fireChange();
+    }
+
     public void addChangeListener(Runnable listener) {
         if (listener != null) {
             changeListeners.add(listener);

@@ -143,6 +143,21 @@ public class FixtureLibraryService {
     }
 
     /**
+     * Sucht eine Scheinwerfer-Definition anhand ihrer eindeutigen ID.
+     *
+     * @param id Die gesuchte ID
+     * @return Optional mit der Definition oder leer, falls nicht gefunden
+     */
+    public Optional<FixtureDefinition> getDefinitionById(String id) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        return definitions.stream()
+                .filter(d -> d.getId().equals(id))
+                .findFirst();
+    }
+
+    /**
      * Gibt alle registrierten Scheinwerfer-Profile zurück.
      */
     public List<FixtureDefinition> getAllDefinitions() {

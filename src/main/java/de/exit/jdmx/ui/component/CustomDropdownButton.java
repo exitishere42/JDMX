@@ -129,6 +129,10 @@ public class CustomDropdownButton extends HBox {
      * @param item Auszuwählendes Element
      */
     public void selectItem(String item) {
+        if (item != null && !items.contains(item)) {
+            items.add(item);
+            rebuildMenuItems();
+        }
         selectedItem.set(item);
         textLabel.setText(item != null ? item : "");
         if (onItemSelected != null) {

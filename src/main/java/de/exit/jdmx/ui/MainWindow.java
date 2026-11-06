@@ -1,6 +1,17 @@
 package de.exit.jdmx.ui;
 
+import de.exit.jdmx.core.model.ExplorerItem;
+import de.exit.jdmx.core.model.ExplorerItemType;
+import de.exit.jdmx.core.model.FixtureDefinition;
+import de.exit.jdmx.core.model.DmxMode;
+import de.exit.jdmx.core.model.FixtureInstance;
+import de.exit.jdmx.core.model.UniverseConfig;
+import de.exit.jdmx.core.project.model.FixtureDataDto;
+import de.exit.jdmx.core.project.model.ProjectData;
+import de.exit.jdmx.core.project.model.UniverseDataDto;
 import de.exit.jdmx.service.DmxService;
+import de.exit.jdmx.service.ProjectStorageService;
+import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
@@ -10,6 +21,9 @@ import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.io.IOWorkspaceView;
+import de.exit.jdmx.ui.io.UniversePatchTable;
+import de.exit.jdmx.ui.stage.StageFixtureNode;
+import de.exit.jdmx.ui.stage.StageCanvasView;
 import de.exit.jdmx.ui.stage.StageWorkspaceView;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
@@ -23,7 +37,16 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -38,6 +61,8 @@ import javafx.util.Duration;
  * </p>
  */
 public class MainWindow extends StackPane {
+
+    private static final Logger log = LoggerFactory.getLogger(MainWindow.class);
 
     /** Der primäre Inhaltsbereich mit HeaderBar und Viewport. */
     private final BorderPane contentPane;
@@ -59,6 +84,18 @@ public class MainWindow extends StackPane {
 
     /** Zentraler Shortcut-Service für konfigurierbare Tastaturkürzel. */
     private final ShortcutService shortcutService;
+
+    /** Service zur Projekt-Persistierung (*.jdmx). */
+    private final ProjectStorageService projectStorageService = new ProjectStorageService();
+
+    /** Aktuelle Projektdatei (default.jdmx oder geladene/gespeicherte Datei). */
+    private File currentProjectFile;
+
+    /** Referenz auf den Stage-Workspace (Tab 1). */
+    private StageWorkspaceView stageWorkspaceView;
+
+    /** Referenz auf den IO-Workspace (Tab 5). */
+    private IOWorkspaceView ioWorkspaceView;
 
     /** Scheinwerfer-Bibliothek (vorinstallierte Standardgeräte und importierte Profile). */
     private final FixtureLibraryService fixtureLibraryService;
@@ -132,6 +169,7 @@ public class MainWindow extends StackPane {
                     if (newWin instanceof javafx.stage.Stage stage) {
                         stage.setFullScreenExitHint("");
                         stage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
+                        stage.setOnCloseRequest(e -> autoSave());
                         stage.fullScreenProperty().addListener((fObs, wasFull, isFull) -> {
                             if (Boolean.TRUE.equals(isFull)) {
                                 showFullscreenHint();
@@ -159,6 +197,12 @@ public class MainWindow extends StackPane {
         dmxService.setOnRateUpdated(rate -> javafx.application.Platform.runLater(() -> headerBar.setDmxRate(rate)));
 
         // Brand Action-Menü Events
+        headerBar.getActionMenu().setOnAction("new_project", this::newProject);
+        headerBar.getActionMenu().setOnAction("open_file", this::handleOpenProject);
+        headerBar.getActionMenu().setOnAction("save", () -> {
+            saveCurrentProject(currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile());
+        });
+        headerBar.getActionMenu().setOnAction("save_as", this::handleSaveAsProject);
         headerBar.getActionMenu().setOnAction("fullscreen", this::toggleFullscreen);
 
         headerBar.getActionMenu().setOnAction("settings", () -> {
@@ -174,6 +218,9 @@ public class MainWindow extends StackPane {
 
         // Initialen Tab anzeigen (Tab 0 = Stage & Fixtures)
         switchToTab(0);
+
+        // Initiales Projekt laden oder Standard-Projekt persistieren
+        loadInitialProject();
     }
 
     /**
@@ -220,15 +267,21 @@ public class MainWindow extends StackPane {
      * Initialisiert die 5 Workspace-Tabs.
      */
     private void initTabViews() {
-        StageWorkspaceView stageView = new StageWorkspaceView(dmxService);
-        stageView.getProjectExplorerView().getAddMenu().setOnAction("fixture", () -> {
-            FixturePatchDialog.show(this, fixtureLibraryService, stageView.getExplorerService(), stageView.getStageCanvasView());
+        this.stageWorkspaceView = new StageWorkspaceView(dmxService);
+        stageWorkspaceView.getProjectExplorerView().getAddMenu().setOnAction("fixture", () -> {
+            FixturePatchDialog.show(this, fixtureLibraryService, stageWorkspaceView.getExplorerService(), stageWorkspaceView.getStageCanvasView());
         });
-        tabViews[0] = stageView;
+        stageWorkspaceView.getStageCanvasView().setOnFixtureMoved((item, pt) -> autoSave());
+        stageWorkspaceView.getStageCanvasView().setOnFixturePlaced((item, pt) -> autoSave());
+        tabViews[0] = stageWorkspaceView;
+
         tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
-        tabViews[4] = new IOWorkspaceView(new HardwareDiscoveryService(), this);
+
+        this.ioWorkspaceView = new IOWorkspaceView(new HardwareDiscoveryService(), this);
+        ioWorkspaceView.getPatchTable().setOnConfigChanged(this::autoSave);
+        tabViews[4] = ioWorkspaceView;
     }
 
     public DmxService getDmxService() {
@@ -295,6 +348,18 @@ public class MainWindow extends StackPane {
      * zentriert an, blendet sie aber deutlich schneller aus (~1s statt 5s im JavaFX-Standard).
      */
     public void showFullscreenHint() {
+        showHudNotification("Drücken Sie ESC, um den Vollbildmodus zu verlassen");
+    }
+
+    /**
+     * Zeigt eine kurze unaufdringliche Status-Meldung im HUD-Overlay an (~1 Sekunde).
+     *
+     * @param message Der anzuzeigende Hinweistext
+     */
+    public void showHudNotification(String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
         hudPane.getChildren().clear();
 
         VBox box = new VBox();
@@ -303,7 +368,7 @@ public class MainWindow extends StackPane {
         box.setMaxWidth(Region.USE_PREF_SIZE);
         box.setMaxHeight(Region.USE_PREF_SIZE);
 
-        Text text = new Text("Drücken Sie ESC, um den Vollbildmodus zu verlassen");
+        Text text = new Text(message);
         text.getStyleClass().add("fullscreen-exit-hint-text");
 
         box.getChildren().add(text);
@@ -323,6 +388,317 @@ public class MainWindow extends StackPane {
         SequentialTransition seq = new SequentialTransition(fadeIn, pause, fadeOut);
         seq.setOnFinished(e -> hudPane.getChildren().remove(box));
         seq.play();
+    }
+
+    /**
+     * Lädt beim Start automatisch das Standardprojekt oder legt es neu an.
+     */
+    public void loadInitialProject() {
+        File defaultFile = projectStorageService.getDefaultProjectFile();
+        if (projectStorageService.hasDefaultProject()) {
+            try {
+                ProjectData data = projectStorageService.loadDefaultProject();
+                applyProjectData(data);
+                this.currentProjectFile = defaultFile;
+                log.info("Standardprojekt erfolgreich wiederhergestellt: {}", defaultFile.getAbsolutePath());
+            } catch (Exception ex) {
+                log.warn("Konnte Standardprojekt nicht laden, verwende Initialzustand", ex);
+                autoSave();
+            }
+        } else {
+            this.currentProjectFile = defaultFile;
+            autoSave();
+            log.info("Neues Standardprojekt initialisiert: {}", defaultFile.getAbsolutePath());
+        }
+    }
+
+    /**
+     * Speichert das Projekt automatisch und geräuschlos im Hintergrund.
+     */
+    public void autoSave() {
+        File target = currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile();
+        saveProjectSilently(target);
+    }
+
+    /**
+     * Schreibt die aktuellen Projektdaten ohne UI-Hinweis in eine Datei.
+     *
+     * @param file Zieldatei
+     */
+    public void saveProjectSilently(File file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            ProjectData data = buildCurrentProjectData();
+            projectStorageService.saveProject(data, file);
+            this.currentProjectFile = file;
+        } catch (Exception ex) {
+            log.warn("Fehler beim Speichern des Projekts nach " + file.getAbsolutePath(), ex);
+        }
+    }
+
+    /**
+     * Speichert das Projekt und zeigt eine Bestätigung im HUD an.
+     *
+     * @param file Zieldatei
+     */
+    public void saveCurrentProject(File file) {
+        saveProjectSilently(file);
+        showHudNotification("Projekt gespeichert: " + file.getName());
+    }
+
+    /**
+     * Lädt ein Projekt aus einer Datei und aktualisiert die Benutzeroberfläche.
+     *
+     * @param file Zu ladende Projektdatei
+     */
+    public void loadProject(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        try {
+            ProjectData data = projectStorageService.loadProject(file);
+            applyProjectData(data);
+            this.currentProjectFile = file;
+            showHudNotification("Projekt geladen: " + file.getName());
+        } catch (Exception ex) {
+            log.error("Fehler beim Laden von " + file.getAbsolutePath(), ex);
+            showHudNotification("Fehler beim Laden!");
+        }
+    }
+
+    /**
+     * Setzt die Universen und die Bühne auf ein leeres Neu-Projekt zurück.
+     */
+    public void newProject() {
+        if (stageWorkspaceView != null) {
+            stageWorkspaceView.getStageCanvasView().clearFixtures();
+            stageWorkspaceView.getExplorerService().clearItems();
+        }
+        for (int i = 0; i < 4; i++) {
+            UniverseConfig defaultCfg = UniverseConfig.defaultFor(i);
+            dmxService.setUniverseConfig(i, defaultCfg);
+            if (ioWorkspaceView != null) {
+                List<UniversePatchTable.UniverseRow> rows = ioWorkspaceView.getPatchTable().getUniverseRows();
+                if (i < rows.size()) {
+                    UniversePatchTable.UniverseRow row = rows.get(i);
+                    row.setConfig(defaultCfg);
+                    row.getInputDropdown().selectItem(defaultCfg.inputSource());
+                    row.getOutputDropdown().selectItem(defaultCfg.outputTarget());
+                }
+            }
+        }
+        this.currentProjectFile = projectStorageService.getDefaultProjectFile();
+        autoSave();
+        showHudNotification("Neues Projekt erstellt");
+    }
+
+    private void handleSaveAsProject() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Projekt speichern unter...");
+        File initialDir = projectStorageService.getProjectsDirectory();
+        if (initialDir.exists()) {
+            chooser.setInitialDirectory(initialDir);
+        }
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JDMX Projekt (*.jdmx)", "*.jdmx"));
+        File chosen = chooser.showSaveDialog(getScene() != null ? getScene().getWindow() : null);
+        if (chosen != null) {
+            if (!chosen.getName().toLowerCase().endsWith(".jdmx")) {
+                chosen = new File(chosen.getParentFile(), chosen.getName() + ".jdmx");
+            }
+            saveCurrentProject(chosen);
+        }
+    }
+
+    private void handleOpenProject() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Projekt öffnen...");
+        File initialDir = projectStorageService.getProjectsDirectory();
+        if (initialDir.exists()) {
+            chooser.setInitialDirectory(initialDir);
+        }
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JDMX Projekt (*.jdmx)", "*.jdmx"));
+        File chosen = chooser.showOpenDialog(getScene() != null ? getScene().getWindow() : null);
+        if (chosen != null) {
+            loadProject(chosen);
+        }
+    }
+
+    /**
+     * Erstellt ein Snapshot-Projektmodell aus dem aktuellen Systemzustand.
+     *
+     * @return Vollständige Projektdaten
+     */
+    public ProjectData buildCurrentProjectData() {
+        List<UniverseDataDto> universes = new ArrayList<>();
+        if (ioWorkspaceView != null) {
+            for (UniversePatchTable.UniverseRow row : ioWorkspaceView.getPatchTable().getUniverseRows()) {
+                UniverseConfig cfg = row.getConfig();
+                String in = row.getInputDropdown().getSelectedItem();
+                String out = row.getOutputDropdown().getSelectedItem();
+                universes.add(UniverseDataDto.of(
+                        row.getUniverseIndex(),
+                        in != null ? in : cfg.inputSource(),
+                        out != null ? out : cfg.outputTarget(),
+                        cfg.artNetIp(),
+                        cfg.artNetUniverse(),
+                        cfg.artNetSubnet(),
+                        cfg.artNetNet()
+                ));
+            }
+        } else {
+            for (int i = 0; i < 4; i++) {
+                UniverseConfig cfg = dmxService.getUniverseConfig(i);
+                universes.add(UniverseDataDto.of(
+                        i,
+                        cfg.inputSource(),
+                        cfg.outputTarget(),
+                        cfg.artNetIp(),
+                        cfg.artNetUniverse(),
+                        cfg.artNetSubnet(),
+                        cfg.artNetNet()
+                ));
+            }
+        }
+
+        List<FixtureDataDto> fixtures = new ArrayList<>();
+        if (stageWorkspaceView != null) {
+            for (StageFixtureNode node : stageWorkspaceView.getStageCanvasView().getPlacedFixtures()) {
+                ExplorerItem item = node.getItem();
+                FixtureInstance inst = item != null ? item.getFixtureInstance() : null;
+                if (inst != null) {
+                    fixtures.add(new FixtureDataDto(
+                            item.getId(),
+                            item.getName(),
+                            inst.getDefinition() != null ? inst.getDefinition().getId() : "",
+                            inst.getDefinition() != null ? inst.getDefinition().getManufacturer() : "",
+                            inst.getDefinition() != null ? inst.getDefinition().getModel() : "",
+                            inst.getActiveMode() != null ? inst.getActiveMode().getName() : "",
+                            inst.getUniverse(),
+                            inst.getStartAddress(),
+                            node.getLayoutX(),
+                            node.getLayoutY()
+                    ));
+                }
+            }
+        }
+
+        String name = currentProjectFile != null ? currentProjectFile.getName().replace(".jdmx", "") : "Default Project";
+        return new ProjectData(
+                ProjectData.CURRENT_VERSION,
+                name,
+                java.time.Instant.now().toString(),
+                universes,
+                fixtures
+        );
+    }
+
+    /**
+     * Wendet geladene Projektdaten auf die DMX-Universen, die Bühne und den Explorer an.
+     *
+     * @param data Zu aktivierende Projektdaten
+     */
+    public void applyProjectData(ProjectData data) {
+        if (data == null) {
+            return;
+        }
+
+        // 1. Universen wiederherstellen
+        if (data.universes() != null) {
+            for (UniverseDataDto uDto : data.universes()) {
+                UniverseConfig cfg = UniverseConfig.defaultFor(uDto.universeIndex())
+                        .withInputSource(uDto.inputSource() != null ? uDto.inputSource() : "Kein Input")
+                        .withOutputTarget(uDto.outputTarget() != null ? uDto.outputTarget() : "Kein Output")
+                        .withArtNetIp(uDto.artNetIp() != null ? uDto.artNetIp() : "127.0.0.1")
+                        .withArtNetUniverse(uDto.artNetUniverse())
+                        .withArtNetSubnet(uDto.artNetSubnet());
+                dmxService.setUniverseConfig(uDto.universeIndex(), cfg);
+
+                if (ioWorkspaceView != null) {
+                    List<UniversePatchTable.UniverseRow> rows = ioWorkspaceView.getPatchTable().getUniverseRows();
+                    if (uDto.universeIndex() >= 0 && uDto.universeIndex() < rows.size()) {
+                        UniversePatchTable.UniverseRow row = rows.get(uDto.universeIndex());
+                        row.setConfig(cfg);
+                        row.getInputDropdown().selectItem(cfg.inputSource());
+                        row.getOutputDropdown().selectItem(cfg.outputTarget());
+                    }
+                }
+            }
+        }
+
+        // 2. Fixtures wiederherstellen
+        if (stageWorkspaceView != null && data.fixtures() != null) {
+            StageCanvasView canvas = stageWorkspaceView.getStageCanvasView();
+            ProjectExplorerService explorer = stageWorkspaceView.getExplorerService();
+            canvas.clearFixtures();
+            explorer.clearItems();
+
+            for (FixtureDataDto fDto : data.fixtures()) {
+                FixtureDefinition def = resolveFixtureDefinition(fDto);
+                DmxMode mode = null;
+                if (def != null && def.getModes() != null && !def.getModes().isEmpty()) {
+                    mode = def.getModes().stream()
+                            .filter(m -> m.getName().equalsIgnoreCase(fDto.modeName()))
+                            .findFirst()
+                            .orElse(def.getModes().get(0));
+                }
+
+                int targetUniverse = Math.max(1, fDto.universe());
+                int targetAddress = Math.max(1, Math.min(512, fDto.startAddress() > 0 ? fDto.startAddress() : 1));
+
+                FixtureInstance instance = new FixtureInstance(
+                        fDto.id(),
+                        fDto.name(),
+                        def,
+                        mode,
+                        targetUniverse,
+                        targetAddress,
+                        fDto.stageX(),
+                        fDto.stageY()
+                );
+
+                String iconName = (def != null && def.getModel() != null && def.getModel().toLowerCase().contains("dimmer"))
+                        ? "sun" : "lamp";
+                ExplorerItem item = new ExplorerItem(fDto.id(), fDto.name(), ExplorerItemType.FIXTURE, false, iconName, Color.web("#60A5FA"), instance);
+                explorer.addItemToFolder("folder-devices", item);
+                canvas.placeFixture(item, fDto.stageX(), fDto.stageY());
+            }
+        }
+    }
+
+    private FixtureDefinition resolveFixtureDefinition(FixtureDataDto dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        // 1. Suche nach exakter ID
+        if (dto.definitionId() != null && !dto.definitionId().isBlank()) {
+            Optional<FixtureDefinition> byId = fixtureLibraryService.getDefinitionById(dto.definitionId());
+            if (byId.isPresent()) {
+                return byId.get();
+            }
+        }
+
+        // 2. Suche nach Modell & Hersteller
+        if (dto.model() != null && !dto.model().isBlank()) {
+            for (FixtureDefinition def : fixtureLibraryService.getAllDefinitions()) {
+                if (def.getModel().equalsIgnoreCase(dto.model().trim())) {
+                    if (dto.manufacturer() == null || dto.manufacturer().isBlank()
+                            || def.getManufacturer().equalsIgnoreCase(dto.manufacturer().trim())) {
+                        return def;
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback auf Suchergebnis oder erstes verfügbares Profil
+        List<FixtureDefinition> matches = fixtureLibraryService.search(dto.model() != null && !dto.model().isBlank() ? dto.model() : dto.name());
+        if (!matches.isEmpty()) {
+            return matches.get(0);
+        }
+
+        return fixtureLibraryService.getAllDefinitions().stream().findFirst().orElse(null);
     }
 
     /**

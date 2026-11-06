@@ -73,6 +73,7 @@ public class StageFixtureNode extends Pane {
     private double dragStartX;
     private double dragStartY;
     private boolean hasDragged = false;
+    private Runnable onDragFinished;
 
     /**
      * Erstellt einen neuen 2D-Bühnen-Scheinwerferknoten.
@@ -212,6 +213,15 @@ public class StageFixtureNode extends Pane {
             }
         });
 
+        setOnMouseReleased(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && hasDragged) {
+                hasDragged = false;
+                if (onDragFinished != null) {
+                    onDragFinished.run();
+                }
+            }
+        });
+
         setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY && !hasDragged) {
                 setSelected(!isSelected());
@@ -342,6 +352,10 @@ public class StageFixtureNode extends Pane {
             trackerDot.setStroke(Color.web("#1F2937"));
             trackerDot.setStrokeWidth(0.8);
         }
+    }
+
+    public void setOnDragFinished(Runnable onDragFinished) {
+        this.onDragFinished = onDragFinished;
     }
 
     public ExplorerItem getItem() {
