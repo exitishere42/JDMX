@@ -691,8 +691,8 @@
     -fx-background-color: rgba(18, 18, 18, 0.88);
     -fx-border-color: rgba(255, 255, 255, 0.12);
     -fx-border-width: 1px;
-    -fx-border-radius: 12px;
-    -fx-background-radius: 12px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
     -fx-padding: 18 36;
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.7), 20, 0, 0, 6);
 }
@@ -707,10 +707,33 @@
     -fx-background-color: rgba(22, 22, 22, 0.94);
     -fx-border-color: #383838;
     -fx-border-width: 1px;
-    -fx-border-radius: 20px;
-    -fx-background-radius: 20px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
     -fx-padding: 7 18;
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.7), 12, 0, 0, 4);
+}
+
+.header-status-pill {
+    -fx-background-color: #1E1E22;
+    -fx-border-color: #38383C;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3 9;
+    -fx-alignment: CENTER;
+}
+
+.header-status-text {
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #E5E7EB;
+}
+
+.stage-marquee-selection {
+    -fx-fill: rgba(96, 165, 250, 0.12);
+    -fx-stroke: #60A5FA;
+    -fx-stroke-width: 1px;
+    -fx-stroke-type: inside;
 }
 
 .fullscreen-hud-text {
@@ -1141,8 +1164,8 @@
     -fx-background-color: #1A1A1A;
     -fx-border-color: #2E2E2E;
     -fx-border-width: 1px;
-    -fx-border-radius: 12px;
-    -fx-background-radius: 12px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
     -fx-padding: 18px 24px;
 }
 

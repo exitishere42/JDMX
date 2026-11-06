@@ -3,23 +3,30 @@ package de.exit.jdmx.ui;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.menu.BrandActionMenu;
 import de.exit.jdmx.ui.theme.StudioTheme;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Text;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,6 +67,13 @@ public class HeaderBar extends HBox {
     /** Aufklappbares Aktions-Menü für Projektaktionen, Settings und Fullscreen. */
     private final BrandActionMenu actionMenu = new BrandActionMenu();
 
+    /** Container für die Statusanzeige mit den zwei gekürzten Trennlinien. */
+    private final HBox statusArea = new HBox(8);
+    private final HBox statusPill = new HBox(6);
+    private final StackPane statusIconContainer = new StackPane();
+    private final Label statusLabel = new Label();
+    private SequentialTransition statusTransition;
+
     /**
      * Erstellt die All-in-One HeaderBar mit dezenter Hellgrau-Primärfarbe und bunten Icons.
      */
@@ -81,7 +95,11 @@ public class HeaderBar extends HBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // 3. Rechte Steuerungs- & Statusleiste
+        // 3. Statusbereich zwischen zwei gekürzten Trennlinien (wie im I/O-Patch)
+        HBox headerStatusBox = createStatusArea();
+        HBox.setMargin(headerStatusBox, new Insets(0, 8, 0, 0));
+
+        // 4. Rechte Steuerungs- & Statusleiste
         ToggleButton blackoutBtn = createBlackoutButton();
         HBox trafficPill = createTrafficPill();
         Button stopBtn = createStopButton();
@@ -89,7 +107,91 @@ public class HeaderBar extends HBox {
         HBox rightBox = new HBox(8, blackoutBtn, trafficPill, stopBtn);
         rightBox.setAlignment(Pos.CENTER_RIGHT);
 
-        getChildren().addAll(brandButton, separator, tabsBox, spacer, rightBox);
+        getChildren().addAll(brandButton, separator, tabsBox, spacer, headerStatusBox, rightBox);
+    }
+
+    private HBox createStatusArea() {
+        statusArea.setAlignment(Pos.CENTER);
+        statusArea.setOpacity(0.0);
+        statusArea.setVisible(false);
+
+        // Linke Trennlinie (gekürzt auf 18px wie im I/O-Patch)
+        Line leftSep = new Line(0, 0, 0, 18);
+        leftSep.getStyleClass().add("header-separator");
+
+        // Status-Pille mit 4px Rundung
+        statusPill.setAlignment(Pos.CENTER);
+        statusPill.getStyleClass().add("header-status-pill");
+
+        statusLabel.getStyleClass().add("header-status-text");
+
+        statusPill.getChildren().addAll(statusIconContainer, statusLabel);
+
+        // Rechte Trennlinie (gekürzt auf 18px wie im I/O-Patch)
+        Line rightSep = new Line(0, 0, 0, 18);
+        rightSep.getStyleClass().add("header-separator");
+
+        statusArea.getChildren().addAll(leftSep, statusPill, rightSep);
+        return statusArea;
+    }
+
+    /**
+     * Zeigt eine flüssig ein- und ausblendende Statusnachricht in der HeaderBar an.
+     *
+     * @param text      Der Statustext
+     * @param iconName  Lucide-Icon Name (z. B. "check", "maximize", "folder-open")
+     * @param iconColor Farbe des Icons
+     * @param duration  Sichtbarkeitsdauer
+     */
+    public void showStatus(String text, String iconName, Color iconColor, Duration duration) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+
+        if (statusTransition != null) {
+            statusTransition.stop();
+        }
+
+        statusIconContainer.getChildren().clear();
+        if (iconName != null && !iconName.isBlank()) {
+            LucideIcon icon = new LucideIcon(iconName, 13, iconColor != null ? iconColor : Color.web("#9CA3AF"));
+            statusIconContainer.getChildren().add(icon);
+        }
+
+        statusLabel.setText(text);
+        if (iconColor != null) {
+            statusLabel.setTextFill(iconColor);
+        } else {
+            statusLabel.setTextFill(Color.web("#E5E7EB"));
+        }
+
+        statusArea.setVisible(true);
+        statusArea.setOpacity(0.0);
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(120), statusArea);
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+
+        PauseTransition pause = new PauseTransition(duration != null ? duration : Duration.millis(2500));
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(300), statusArea);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+
+        statusTransition = new SequentialTransition(fadeIn, pause, fadeOut);
+        statusTransition.setOnFinished(e -> {
+            statusArea.setVisible(false);
+            statusArea.setOpacity(0.0);
+        });
+        statusTransition.play();
+    }
+
+    public HBox getStatusArea() {
+        return statusArea;
+    }
+
+    public Label getStatusLabel() {
+        return statusLabel;
     }
 
     /**

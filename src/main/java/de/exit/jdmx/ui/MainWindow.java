@@ -348,11 +348,11 @@ public class MainWindow extends StackPane {
      * zentriert an, blendet sie aber deutlich schneller aus (~1s statt 5s im JavaFX-Standard).
      */
     public void showFullscreenHint() {
-        showHudNotification("Drücken Sie ESC, um den Vollbildmodus zu verlassen");
+        headerBar.showStatus("Drücke ESC zum Verlassen", "maximize", Color.web("#38BDF8"), Duration.millis(3000));
     }
 
     /**
-     * Zeigt eine kurze unaufdringliche Status-Meldung im HUD-Overlay an (~1 Sekunde).
+     * Zeigt eine unaufdringliche Status-Meldung im Header-Statusbereich an.
      *
      * @param message Der anzuzeigende Hinweistext
      */
@@ -360,34 +360,26 @@ public class MainWindow extends StackPane {
         if (message == null || message.isBlank()) {
             return;
         }
-        hudPane.getChildren().clear();
 
-        VBox box = new VBox();
-        box.setAlignment(Pos.CENTER);
-        box.getStyleClass().add("fullscreen-exit-hint-box");
-        box.setMaxWidth(Region.USE_PREF_SIZE);
-        box.setMaxHeight(Region.USE_PREF_SIZE);
+        String lower = message.toLowerCase();
+        String iconName = "info";
+        Color iconColor = Color.web("#E5E7EB");
 
-        Text text = new Text(message);
-        text.getStyleClass().add("fullscreen-exit-hint-text");
+        if (lower.contains("gespeichert")) {
+            iconName = "check";
+            iconColor = Color.web("#34D399"); // Grün
+        } else if (lower.contains("geladen")) {
+            iconName = "folder-open";
+            iconColor = Color.web("#60A5FA"); // Blau
+        } else if (lower.contains("erstellt")) {
+            iconName = "file-plus";
+            iconColor = Color.web("#FBBF24"); // Amber
+        } else if (lower.contains("fehler")) {
+            iconName = "alert-triangle";
+            iconColor = Color.web("#F87171"); // Rot
+        }
 
-        box.getChildren().add(text);
-        hudPane.getChildren().add(box);
-
-        box.setOpacity(0.0);
-        FadeTransition fadeIn = new FadeTransition(Duration.millis(90), box);
-        fadeIn.setFromValue(0.0);
-        fadeIn.setToValue(1.0);
-
-        PauseTransition pause = new PauseTransition(Duration.millis(950));
-
-        FadeTransition fadeOut = new FadeTransition(Duration.millis(250), box);
-        fadeOut.setFromValue(1.0);
-        fadeOut.setToValue(0.0);
-
-        SequentialTransition seq = new SequentialTransition(fadeIn, pause, fadeOut);
-        seq.setOnFinished(e -> hudPane.getChildren().remove(box));
-        seq.play();
+        headerBar.showStatus(message, iconName, iconColor, Duration.millis(2500));
     }
 
     /**

@@ -51,6 +51,12 @@ public class StageCanvasView extends StackPane {
     private final Pane stageSurface;
     private final Scale scaleTransform;
     private final List<StageFixtureNode> placedFixtures = new ArrayList<>();
+    private final Rectangle selectionRect = new Rectangle();
+
+    private double selectionStartX;
+    private double selectionStartY;
+    private boolean isSelecting = false;
+    private boolean multiSelecting = false;
 
     private ProjectExplorerService explorerService;
     private BiConsumer<ExplorerItem, Point2D> onFixturePlaced;
@@ -87,17 +93,88 @@ public class StageCanvasView extends StackPane {
         this.scaleTransform = new Scale(1.0, 1.0, 0.0, 0.0);
         stageSurface.getTransforms().add(scaleTransform);
 
-        // Klick auf den leeren Hintergrund deselektiert alle Fixtures (Bühne wird sauber)
-        stageSurface.setOnMouseClicked(event -> {
-            if (event.getTarget() == stageSurface && event.getButton() == MouseButton.PRIMARY) {
-                deselectAll();
-            }
-        });
+        // Auswahl-Rechteck (Rubber-Band / Marquee Selection im JDMX-Stil mit 4px Rundung)
+        selectionRect.getStyleClass().add("stage-marquee-selection");
+        selectionRect.setArcWidth(8);  // 4px Radius
+        selectionRect.setArcHeight(8); // 4px Radius
+        selectionRect.setVisible(false);
+        selectionRect.setMouseTransparent(true);
+        stageSurface.getChildren().add(selectionRect);
+
+        // Rechteck-Mehrfachauswahl & Deselektierung auf dem leeren Bühnenhintergrund
+        setupSelectionInteractions();
 
         setupNavigation();
         setupDropTarget();
 
         getChildren().add(stageSurface);
+    }
+
+    private void setupSelectionInteractions() {
+        stageSurface.setOnMousePressed(event -> {
+            if (event.getTarget() == stageSurface && event.getButton() == MouseButton.PRIMARY) {
+                isSelecting = true;
+                Point2D local = stageSurface.sceneToLocal(event.getSceneX(), event.getSceneY());
+                selectionStartX = local.getX();
+                selectionStartY = local.getY();
+
+                selectionRect.setX(selectionStartX);
+                selectionRect.setY(selectionStartY);
+                selectionRect.setWidth(0);
+                selectionRect.setHeight(0);
+                selectionRect.setVisible(true);
+                selectionRect.toFront();
+
+                if (!event.isShiftDown() && !event.isControlDown() && !event.isShortcutDown()) {
+                    deselectAll();
+                }
+                event.consume();
+            }
+        });
+
+        stageSurface.setOnMouseDragged(event -> {
+            if (isSelecting && event.getButton() == MouseButton.PRIMARY) {
+                Point2D local = stageSurface.sceneToLocal(event.getSceneX(), event.getSceneY());
+                double curX = local.getX();
+                double curY = local.getY();
+
+                double minX = Math.min(selectionStartX, curX);
+                double minY = Math.min(selectionStartY, curY);
+                double width = Math.abs(curX - selectionStartX);
+                double height = Math.abs(curY - selectionStartY);
+
+                selectionRect.setX(minX);
+                selectionRect.setY(minY);
+                selectionRect.setWidth(width);
+                selectionRect.setHeight(height);
+
+                // Live Kollisionsprüfung mit den Gehäusen aller Fixtures (unter Multiselect-Flag)
+                multiSelecting = true;
+                try {
+                    for (StageFixtureNode node : placedFixtures) {
+                        double fx = node.getLayoutX();
+                        double fy = node.getLayoutY();
+                        double fw = StageFixtureNode.SQUARE_SIZE;
+                        double fh = StageFixtureNode.SQUARE_SIZE;
+
+                        boolean intersects = (fx < minX + width && fx + fw > minX &&
+                                              fy < minY + height && fy + fh > minY);
+                        node.setSelected(intersects);
+                    }
+                } finally {
+                    multiSelecting = false;
+                }
+                event.consume();
+            }
+        });
+
+        stageSurface.setOnMouseReleased(event -> {
+            if (isSelecting && event.getButton() == MouseButton.PRIMARY) {
+                isSelecting = false;
+                selectionRect.setVisible(false);
+                event.consume();
+            }
+        });
     }
 
     private void setupNavigation() {
@@ -292,9 +369,9 @@ public class StageCanvasView extends StackPane {
         Objects.requireNonNull(item, "item must not be null");
         StageFixtureNode node = new StageFixtureNode(item, x, y);
 
-        // Exklusive Selektion: Klick auf ein Fixture schließt Badges anderer Fixtures
+        // Exklusive Selektion bei manuellem Aufruf (außerhalb von Multiselect-Operationen)
         node.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            if (Boolean.TRUE.equals(newVal)) {
+            if (Boolean.TRUE.equals(newVal) && !multiSelecting) {
                 for (StageFixtureNode other : placedFixtures) {
                     if (other != node) {
                         other.setSelected(false);
@@ -303,8 +380,23 @@ public class StageCanvasView extends StackPane {
             }
         });
 
+        // Einzelklick- und Additiv-Selektion (Shift/Strg)
+        node.setOnFixtureClicked((targetNode, mouseEvent) -> {
+            if (mouseEvent.isShiftDown() || mouseEvent.isControlDown() || mouseEvent.isShortcutDown()) {
+                targetNode.setSelected(!targetNode.isSelected());
+            } else {
+                for (StageFixtureNode other : placedFixtures) {
+                    if (other != targetNode) {
+                        other.setSelected(false);
+                    }
+                }
+                targetNode.setSelected(true);
+            }
+        });
+
         placedFixtures.add(node);
         stageSurface.getChildren().add(node);
+        selectionRect.toFront();
 
         node.setOnDragFinished(() -> {
             if (onFixtureMoved != null) {
@@ -364,6 +456,10 @@ public class StageCanvasView extends StackPane {
             return selected;
         }
         return getPlacedFixtures();
+    }
+
+    public Rectangle getSelectionRect() {
+        return selectionRect;
     }
 
     public void setOnFixturePlaced(BiConsumer<ExplorerItem, Point2D> onFixturePlaced) {

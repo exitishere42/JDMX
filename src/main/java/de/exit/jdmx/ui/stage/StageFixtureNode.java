@@ -74,6 +74,7 @@ public class StageFixtureNode extends Pane {
     private double dragStartY;
     private boolean hasDragged = false;
     private Runnable onDragFinished;
+    private java.util.function.BiConsumer<StageFixtureNode, javafx.scene.input.MouseEvent> onFixtureClicked;
 
     /**
      * Erstellt einen neuen 2D-Bühnen-Scheinwerferknoten.
@@ -88,6 +89,9 @@ public class StageFixtureNode extends Pane {
 
         setLayoutX(initialX);
         setLayoutY(initialY);
+        setPrefSize(SQUARE_SIZE, SQUARE_SIZE);
+        setMinSize(SQUARE_SIZE, SQUARE_SIZE);
+        setMaxSize(SQUARE_SIZE, SQUARE_SIZE);
         getStyleClass().add("stage-fixture-node");
 
         // 1. Capability-Erkennung
@@ -128,6 +132,7 @@ public class StageFixtureNode extends Pane {
         nameBadge.setLayoutY(SQUARE_SIZE + 3.0);
         nameBadge.setVisible(false);
         nameBadge.setMouseTransparent(true);
+        nameBadge.setManaged(false);
 
         // Zentrierung des Badges unter dem 36px Gehäuse
         nameBadge.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
@@ -224,13 +229,15 @@ public class StageFixtureNode extends Pane {
 
         setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY && !hasDragged) {
-                setSelected(!isSelected());
+                if (onFixtureClicked != null) {
+                    onFixtureClicked.accept(this, e);
+                } else {
+                    setSelected(!isSelected());
+                }
                 e.consume();
             }
         });
 
-        // Hover-Events: Name erscheint bei Mauszeigerkontakt und verschwindet beim Verlassen,
-        // sofern das Fixture nicht durch Klick selektiert ist.
         setOnMouseEntered(e -> {
             hoveredState = true;
             updateBadgeVisibility();
@@ -358,16 +365,20 @@ public class StageFixtureNode extends Pane {
         this.onDragFinished = onDragFinished;
     }
 
+    public void setOnFixtureClicked(java.util.function.BiConsumer<StageFixtureNode, javafx.scene.input.MouseEvent> onFixtureClicked) {
+        this.onFixtureClicked = onFixtureClicked;
+    }
+
+    public StackPane getSquare() {
+        return square;
+    }
+
     public ExplorerItem getItem() {
         return item;
     }
 
     public FixtureInstance getFixtureInstance() {
         return fixtureInstance;
-    }
-
-    public StackPane getSquare() {
-        return square;
     }
 
     public Circle getLens() {
