@@ -15,7 +15,7 @@
 **Modular Desktop DMX512 Lighting Controller & Real-Time Stage Visualizer**  
 *Built with Java 21 LTS & JavaFX 21*
 
-[Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Releases](https://github.com/exitishere42/JDMX/releases/latest)
+[Features](#features) • [Hardware & I/O Patch](#dmx-hardware-output--io-patching) • [Installation](#installation) • [Development](#quick-start-development) • [Releases](https://github.com/exitishere42/JDMX/releases/latest)
 
 </div>
 
@@ -30,17 +30,48 @@
   - **Color Module**: RGB/RGBW color mixer, color wheel presets, and live color preview.
 - **Unified Single Top-Bar**:
   - **Brand Action Menu (`[ jdmx ]`)**: Project management, settings, undo/redo, and fullscreen toggle.
-  - **5 Primary Workspaces**: One-click switching between `Stage & Fixtures`, `Simple Desk`, `Button Matrix`, `Show-Timeline`, and `Input/Output`.
+  - **5 Primary Workspaces**: One-click switching between `Stage & Fixtures`, `LightDesk`, `Button Matrix`, `Show-Timeline`, and `Input/Output`.
   - **Quick Blackout (`[● BLACKOUT]`)**: Instantly kills dimmer and shutter channels while locking moving head positions and colors in place.
   - **Emergency Release (`[■ STOP]`)**: Global kill switch to instantly stop all active faders, chasers, and cues.
   - **Live Telemetry**: Real-time DMX framerate counter (`40 DMX/s`) and bus monitor.
-- **Multi-Protocol DMX Engine**:
-  - Hardware-timed 40 Hz output loop preventing fixture flickering.
-  - Standard Art-Net 4 network streaming (UDP `6454`).
-  - Native USB-DMX serial support for FTDI OpenDMX and Enttec DMX USB Pro (`jSerialComm`).
+- **Native USB-to-DMX & Multi-Protocol Engine**:
+  - Pure-Java low-level USB-to-DMX output via integrated **`jusb2dmx`** driver library.
+  - Standard Art-Net 4 network streaming (UDP port `6454`).
+  - Jitter-free, hardware-timed 40 Hz output loop preventing fixture flickering.
   - Native MIDI controller support with interactive MIDI Learn (`javax.sound.midi`).
 - **In-App Modal Overlays**: All dialogs, settings, and wizards render within the application window over a dark backdrop — no displaced OS popups or focus loss during live shows.
 - **Lighting Suite Companion**: Seamless ecosystem partner to [**artnet2dmx**](https://github.com/exitishere42/artnet2dmx) (USB-DMX Bridge) and [**sound2artnet**](https://github.com/exitishere42/sound2artnet) (Sound-to-Light Engine).
+
+---
+
+## DMX Hardware Output & I/O Patching
+
+### 1. Pure-Java Hardware Interface (`jusb2dmx`)
+**jdmx** integrates the standalone, cross-platform hardware driver library **`jusb2dmx`** (`de.exit.jusb2dmx:jusb2dmx:1.0.0`) for direct USB-to-DMX communication:
+- **Direct Low-Level Control**: Full timing control over Break, Mark-After-Break (MAB), and streaming 512 DMX channels per universe.
+- **Supported Interfaces**: FTDI FT232R-based USB-to-DMX adapters, specifically **JMS USB to DMX PRO** and OpenDMX-compatible interfaces.
+- **Zero Overhead**: **100% pure Java / JNA** — no Python subprocesses, no external C compilers, and zero virtual COM port latency.
+- **Alternative Backends**: Supports Art-Net 4 UDP streaming (broadcast & unicast) and in-memory virtual loopback.
+
+```text
++-----------------------+-------------------------+-------------------------+--------------------+
+| DRIVER / INTERFACE    | BACKEND TECHNOLOGY      | HARDWARE TARGET         | TIMING / LATENCY   |
++-----------------------+-------------------------+-------------------------+--------------------+
+| jusb2dmx (Native)     | Pure Java + JNA         | JMS USB to DMX PRO /    | Ultra-Low Latency  |
+|                       | (Direct USB Control)    | FTDI FT232R OpenDMX     | (Hardware Timed)   |
+| Art-Net 4 Sender      | UDP Socket (Port 6454)  | Network Nodes, QLC+,    | Network Latency    |
+|                       |                         | artnet2dmx, Resolume    | (< 2ms Local)      |
+| Virtual Loopback      | In-Memory DMX Buffer    | Internal Simulation     | Instant (Testing)  |
++-----------------------+-------------------------+-------------------------+--------------------+
+```
+
+### 2. Dynamic Hardware Discovery & I/O Patch Workspace (QLC+ Style)
+The **Input/Output Workspace (Tab 5)** provides a comprehensive, 4-universe patching matrix inspired by industry-standard consoles:
+- **4 Configurable Universes**: Each universe features independent input and output routing.
+- **Live Hardware Discovery**: Connected **JMS USB2DMX PRO** interfaces and USB MIDI controllers are automatically detected on hot-plug. Output dropdowns populate dynamically and only show physical adapters when they are genuinely plugged into the system.
+- **Visual Status Indicators**: Real-time status dots highlight active routing and signal flow per universe.
+- **Per-Universe Configuration**: Dedicated setup modals (`⚙`) allow universe-level adjustments (IP destination, subnet, port address, universe offsets).
+- **Expansion-Ready Layout**: Provides ample headroom and space below the universe table for future visual telemetry, real-time monitors, and live fixtures.
 
 ---
 
@@ -50,10 +81,11 @@
 +--------------------+      +-------------------------+      +--------------------------+
 |  SHOW & WORKSPACE  |      |     JDMX CORE ENGINE    |      |    DMX OUTPUT & STAGE    |
 |                    |      |                         |      |                          |
-|  * Stage & Canvas  | ===> |  * 512-Channel Buffers  | ===> |  * Art-Net 4 (UDP 6454)  |
-|  * Device Controls |      |  * HTP / LTP Merging    |      |  * USB-DMX Interfaces   |
-|  * Simple Desk     |      |  * 40 Hz Output Loop    |      |  * 2D Stage Visualizer   |
-|  * Button Matrix   |      |  * Grand Master & Stop  |      |  * Fixture Beams & Walls |
+|  * Stage & Canvas  | ===> |  * 512-Channel Buffers  | ===> |  * jusb2dmx (JMS USB)    |
+|  * Device Controls |      |  * HTP / LTP Merging    |      |  * Art-Net 4 (UDP 6454)  |
+|  * LightDesk       |      |  * 40 Hz Output Loop    |      |  * Virtual Loopback      |
+|  * Button Matrix   |      |  * Grand Master & Stop  |      |  * 2D Stage Visualizer   |
+|  * I/O 4-Universe  |      |  * Hardware Discovery   |      |  * I/O Expansion Space   |
 +--------------------+      +-------------------------+      +------------+-------------+
                                                                           |
                                                                           | DMX512 / Art-Net
@@ -90,18 +122,47 @@ chmod +x jdmx-x86_64.AppImage && ./jdmx-x86_64.AppImage
 
 ## Quick Start (Development)
 
+### Prerequisites
+- **Java 21 LTS** or newer
+- **Apache Maven 3.8+**
+
+### Maven Dependencies
+The native USB-to-DMX driver stack relies on `jusb2dmx` and `jna`:
+
+```xml
+<dependency>
+    <groupId>de.exit.jusb2dmx</groupId>
+    <artifactId>jusb2dmx</artifactId>
+    <version>1.0.0</version>
+</dependency>
+<dependency>
+    <groupId>net.java.dev.jna</groupId>
+    <artifactId>jna</artifactId>
+    <version>5.14.0</version>
+</dependency>
+```
+
+> [!NOTE]
+> If `jusb2dmx` is not yet present in your local Maven cache (`~/.m2`), build and install it locally from its project directory:
+> ```bash
+> cd d:/programming/tools/jusb2dmx
+> mvn clean install
+> ```
+
+### Run & Build
+
 ```bash
-# Run with Maven
+# Run application with Maven
 mvn exec:java
 
-# Run tests
+# Run tests (100% green JUnit 5 suite)
 mvn clean test
 
 # Build executable Fat JAR
 mvn clean package
 ```
 
-The standalone executable fat JAR will be generated at `target/jdmx-1.2.6-all.jar`.
+The standalone executable fat JAR will be generated at `target/jdmx-1.3.0-all.jar`.
 
 ---
 

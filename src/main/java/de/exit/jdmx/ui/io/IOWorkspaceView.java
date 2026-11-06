@@ -1,67 +1,64 @@
 package de.exit.jdmx.ui.io;
 
-import javafx.geometry.Orientation;
-import javafx.scene.control.SplitPane;
+import de.exit.jdmx.service.HardwareDiscoveryService;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+
+import java.util.Objects;
 
 /**
- * Vollständiger Arbeitsbereich für Tab 5 (I/O Patch).
+ * Arbeitsbereich für Tab 5 (I/O Patch).
  * <p>
- * Architektur wie in Stage & Fixtures:
- * <ul>
- *     <li><b>Oben (Horizontales SplitPane):</b> Genau 2 verschiebbare Steuerungs-Docks
- *         ({@link InputDockView} und {@link OutputDockView}) im scharfkantigen {@code control-module-card} Stil.
- *         Die Trennlinie lässt sich horizontal stufenlos verschieben.</li>
- *     <li><b>Unten (Vertikales SplitPane):</b> Der 512-Kanal Universe Live-Monitor {@link DmxMatrixView}
- *         im 16-Spalten Mischpult-Raster mit Zero-Lag Dirty Checking.
- *         Die Höhe der oberen Docks lässt sich über die vertikale Dragbar beliebig anpassen.</li>
- * </ul>
+ * Präsentiert die {@link UniversePatchTable} (Universum-Zuordnung im QLC+-Stil)
+ * im oberen Drittel des Fensters und hält den unteren Bereich frei für
+ * zukünftige DMX-Anzeigen oder Werkzeuge.
  * </p>
  */
-public class IOWorkspaceView extends SplitPane {
+public class IOWorkspaceView extends VBox {
 
-    /** Standard-Höhenanteil für die oberen Steuerungsdocks (ca. 24%). */
-    public static final double DEFAULT_VERTICAL_RATIO = 0.24;
+    private final UniversePatchTable patchTable;
+    private final Region expansionArea;
 
-    private final InputDockView inputDock;
-    private final OutputDockView outputDock;
-    private final SplitPane docksSplitPane;
-    private final DmxMatrixView matrixView;
-
+    /**
+     * Erstellt den I/O-Patch Arbeitsbereich mit nativer Hardwareerkennung.
+     */
     public IOWorkspaceView() {
-        setOrientation(Orientation.VERTICAL);
+        this(new HardwareDiscoveryService());
+    }
+
+    /**
+     * Erstellt den I/O-Patch Arbeitsbereich mit bereitgestelltem HardwareDiscoveryService.
+     *
+     * @param hardwareService Hardware-Erkennungsdienst
+     */
+    public IOWorkspaceView(HardwareDiscoveryService hardwareService) {
+        super(16);
+        Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
+
         getStyleClass().add("io-workspace-view");
+        setPadding(new Insets(20, 24, 20, 24));
+        setAlignment(Pos.TOP_LEFT);
 
-        // 1. Obere Hälfte: Horizontales SplitPane mit genau 2 Steuerungs-Docks
-        this.inputDock = new InputDockView();
-        this.outputDock = new OutputDockView();
+        // 1. Universum-Zuordnungstabelle im oberen Drittel
+        this.patchTable = new UniversePatchTable(hardwareService);
+        VBox.setVgrow(patchTable, Priority.NEVER);
 
-        this.docksSplitPane = new SplitPane();
-        docksSplitPane.setOrientation(Orientation.HORIZONTAL);
-        docksSplitPane.getStyleClass().add("io-docks-split");
-        docksSplitPane.getItems().addAll(inputDock, outputDock);
-        docksSplitPane.setDividerPositions(0.50);
+        // 2. Unterer Platzhalterbereich für spätere Erweiterungen (z. B. DMX-Monitor)
+        this.expansionArea = new Region();
+        expansionArea.getStyleClass().add("io-expansion-area");
+        VBox.setVgrow(expansionArea, Priority.ALWAYS);
 
-        // 2. Untere Hälfte: 512-Kanal Matrix (Zero-Lag)
-        this.matrixView = new DmxMatrixView();
-
-        getItems().addAll(docksSplitPane, matrixView);
-        SplitPane.setResizableWithParent(docksSplitPane, false);
-        setDividerPositions(DEFAULT_VERTICAL_RATIO);
+        getChildren().addAll(patchTable, expansionArea);
     }
 
-    public SplitPane getDocksSplitPane() {
-        return docksSplitPane;
+    public UniversePatchTable getPatchTable() {
+        return patchTable;
     }
 
-    public InputDockView getInputDock() {
-        return inputDock;
-    }
-
-    public OutputDockView getOutputDock() {
-        return outputDock;
-    }
-
-    public DmxMatrixView getMatrixView() {
-        return matrixView;
+    public Region getExpansionArea() {
+        return expansionArea;
     }
 }

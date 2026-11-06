@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    JDMX Studio Dark Theme Stylesheet
    Modernes, blendfreies Lichtpult-Design mit dezentem Hellgrau als Primärfarbe
    und bunten Lucide-Vektor-Icons zur klaren visuellen Unterscheidung
@@ -47,6 +47,32 @@
 
 .brand-button:pressed {
     -fx-background-color: #2E2E2E;
+}
+
+/* --- Custom Dropdown Buttons (I/O Patch & Toolbar) --- */
+.custom-dropdown-btn {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: #2E2E2E;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 5px 10px;
+    -fx-cursor: hand;
+}
+
+.custom-dropdown-btn:hover {
+    -fx-background-color: #242424;
+    -fx-border-color: #3E3E3E;
+}
+
+.custom-dropdown-btn:pressed {
+    -fx-background-color: #2A2A2A;
+}
+
+.custom-dropdown-label {
+    -fx-text-fill: #E5E7EB;
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
 }
 
 /* --- Brand Action Dropdown Menü --- */
