@@ -101,7 +101,7 @@ mvn clean test
 mvn clean package
 ```
 
-The standalone executable fat JAR will be generated at `target/jdmx-1.2.5-all.jar`.
+The standalone executable fat JAR will be generated at `target/jdmx-1.2.6-all.jar`.
 
 ---
 

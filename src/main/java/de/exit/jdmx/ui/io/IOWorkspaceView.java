@@ -5,36 +5,36 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
- * Vollständiger Arbeitsbereich für Tab 5 (Input/Output & Signal-Routing).
+ * Vollständiger Arbeitsbereich für Tab 5 (Input/Output & Universum-Patch nach QLC+ Vorbild).
  * <p>
- * Oben: Die kompakte, horizontale Signalkette {@link SignalRoutingPane}
- * ([INPUT] ════► [JDMX PROZESSOR] ════► [OUTPUT]).<br>
+ * Oben: Die kompakte Universum I/O Patch-Tabelle {@link UniversePatchTable}
+ * mit Dropdown-Menüs für Input und Output pro Universum.<br>
  * Unten: Der 512-Kanal Universe Live-Monitor {@link DmxMatrixView}
- * mit grüner Viereck-Matrix, Universum-Umschaltung und Auslastungsanzeige.
+ * im 16-Spalten Mischpult-Raster mit Zero-Lag Dirty Checking.
  * </p>
  */
 public class IOWorkspaceView extends VBox {
 
-    private final SignalRoutingPane routingPane;
+    private final UniversePatchTable patchTable;
     private final DmxMatrixView matrixView;
 
     public IOWorkspaceView() {
         getStyleClass().add("io-workspace-view");
-        setSpacing(6.0);
-        setPadding(new Insets(6.0, 10.0, 10.0, 10.0));
+        setSpacing(8.0);
+        setPadding(new Insets(8.0, 10.0, 10.0, 10.0));
 
-        // 1. Obere Hälfte: Signalkette (flach)
-        this.routingPane = new SignalRoutingPane();
+        // 1. Obere Hälfte: QLC+-ähnliche Universum I/O Patch-Tabelle
+        this.patchTable = new UniversePatchTable();
 
-        // 2. Untere Hälfte: 512-Kanal Matrix
+        // 2. Untere Hälfte: 512-Kanal Matrix (Zero-Lag)
         this.matrixView = new DmxMatrixView();
         VBox.setVgrow(matrixView, Priority.ALWAYS);
 
-        getChildren().addAll(routingPane, matrixView);
+        getChildren().addAll(patchTable, matrixView);
     }
 
-    public SignalRoutingPane getRoutingPane() {
-        return routingPane;
+    public UniversePatchTable getPatchTable() {
+        return patchTable;
     }
 
     public DmxMatrixView getMatrixView() {

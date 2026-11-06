@@ -2,15 +2,15 @@ package de.exit.jdmx.ui.io;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 /**
- * Visuelle Kachel (Viereck) für einen einzelnen DMX-Kanal (1–512) in der DMX-Matrix.
+ * Performante visuelle Kachel (Viereck) für einen einzelnen DMX-Kanal (1–512) in der DMX-Matrix.
  * <p>
- * Zeigt oben die Kanalnummer und darunter die Auslastung (Wert von 0 bis 255).
- * Leuchtet stufenlos grün auf, abhängig von der aktuellen Füllung des DMX-Kanals.
+ * Performance-Garantie:
+ * Inaktive Kanäle (Wert 0) bleiben im Standard-Grau und lösen KEINE Repaints, CSS-Neuberechnungen
+ * oder SceneGraph-Mutationen aus. Nur Kanäle, die tatsächlich aktiv (> 0) sind oder ihren Wert
+ * verändern, werden dynamisch gerendert.
  * </p>
  */
 public class DmxChannelCell extends VBox {
@@ -23,7 +23,6 @@ public class DmxChannelCell extends VBox {
     private final int channelNumber;
     private final Label channelLabel;
     private final Label valueLabel;
-    private final Tooltip tooltip;
 
     private int value = 0;
 
@@ -48,55 +47,66 @@ public class DmxChannelCell extends VBox {
         this.valueLabel = new Label("0");
         valueLabel.getStyleClass().add("dmx-channel-value");
 
-        this.tooltip = new Tooltip("Kanal " + channelNumber + ": 0");
-        tooltip.setShowDelay(Duration.millis(150));
-        Tooltip.install(this, tooltip);
-
         getChildren().addAll(channelLabel, valueLabel);
-        updateVisuals();
+        // Ruhezustand: Standard-Grau via CSS-Klasse ohne Inline-Styles
     }
 
     /**
      * Setzt den DMX-Wert des Kanals (0–255).
+     * <p>
+     * Führt eine strikte Dirty-Prüfung durch: Wenn der Wert identisch ist,
+     * wird die Methode sofort verlassen (kein UI-Overhead).
+     * </p>
      *
-     * @param value Auslastungswert (wird auf 0..255 begrenzt)
+     * @param newValue Neuer Auslastungswert (0..255)
      */
-    public void setValue(int value) {
-        int clamped = Math.max(0, Math.min(255, value));
-        if (this.value != clamped) {
-            this.value = clamped;
+    public void setValue(int newValue) {
+        int clamped = Math.max(0, Math.min(255, newValue));
+        if (this.value == clamped) {
+            return; // Nichts zu tun - verhindert jeglichen Lag bei 40 FPS
+        }
+
+        int oldValue = this.value;
+        this.value = clamped;
+
+        if (clamped > 0) {
+            // Kanal ist aktiv: Wert anzeigen und dynamisch grün aufleuchten lassen
             valueLabel.setText(String.valueOf(clamped));
-            tooltip.setText("Kanal " + channelNumber + ": " + clamped);
-            updateVisuals();
+            renderActiveGlow(clamped);
+        } else if (oldValue > 0) {
+            // Kanal war vorher aktiv und ist jetzt 0: Einmalig zurück auf Standard-Grau
+            valueLabel.setText("0");
+            resetToDefaultGray();
         }
     }
 
     /**
-     * Aktualisiert das dynamische grüne Aufleuchten anhand des Kanalwerts.
+     * Rendert das dynamische grüne Aufleuchten proportional zur DMX-Auslastung.
      */
-    private void updateVisuals() {
-        if (value > 0) {
-            if (!getStyleClass().contains("dmx-channel-cell-active")) {
-                getStyleClass().add("dmx-channel-cell-active");
-            }
-            // Dynamische Grün-Deckkraft proportional zum DMX-Wert (1..255)
-            double ratio = value / 255.0;
-            double alpha = 0.22 + (0.75 * ratio);
-            String greenRgba = String.format("rgba(16, 185, 129, %.2f)", alpha);
-            String borderRgba = String.format("rgba(52, 211, 153, %.2f)", Math.min(1.0, 0.45 + (0.55 * ratio)));
-
-            setStyle(String.format(
-                    "-fx-background-color: %s; -fx-border-color: %s; -fx-border-width: 1px; -fx-border-radius: 4px; -fx-background-radius: 4px;",
-                    greenRgba, borderRgba
-            ));
-            valueLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-weight: bold;");
-            channelLabel.setStyle("-fx-text-fill: " + (ratio > 0.5 ? "#064E3B;" : "#A7F3D0;"));
-        } else {
-            getStyleClass().remove("dmx-channel-cell-active");
-            setStyle("-fx-background-color: #181818; -fx-border-color: #282828; -fx-border-width: 1px; -fx-border-radius: 4px; -fx-background-radius: 4px;");
-            valueLabel.setStyle("-fx-text-fill: #52525B; -fx-font-weight: normal;");
-            channelLabel.setStyle("-fx-text-fill: #71717A;");
+    private void renderActiveGlow(int val) {
+        if (!getStyleClass().contains("dmx-channel-cell-active")) {
+            getStyleClass().add("dmx-channel-cell-active");
         }
+        double ratio = val / 255.0;
+        double alpha = 0.20 + (0.75 * ratio);
+        double borderAlpha = Math.min(1.0, 0.45 + (0.55 * ratio));
+
+        setStyle(String.format(
+                "-fx-background-color: rgba(16, 185, 129, %.2f); -fx-border-color: rgba(52, 211, 153, %.2f);",
+                alpha, borderAlpha
+        ));
+        valueLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-weight: bold;");
+        channelLabel.setStyle("-fx-text-fill: " + (ratio > 0.5 ? "#064E3B;" : "#A7F3D0;"));
+    }
+
+    /**
+     * Setzt die Kachel wieder auf das unveränderliche Standard-Grau zurück.
+     */
+    private void resetToDefaultGray() {
+        getStyleClass().remove("dmx-channel-cell-active");
+        setStyle(null); // Entfernt Inline-Styles, Standard-CSS-Grau greift sofort
+        valueLabel.setStyle(null);
+        channelLabel.setStyle(null);
     }
 
     public int getChannelNumber() {

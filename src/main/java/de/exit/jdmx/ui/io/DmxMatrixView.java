@@ -21,7 +21,7 @@ import java.util.List;
  * Genau 16 Spalten pro Zeile (unterteilt in 4er-Faderbänke), 32 Zeilen insgesamt.
  * Jede Zeile verfügt über eine Kanalnummerierungs-Beschriftung links (z. B. 001:, 017: ... 497:).
  * Bietet Universums-Umschaltung (1–4), Filterung (Alle vs. Nur Aktive)
- * und Echtzeit-Aktualisierung der Kanal-Auslastung.
+ * und ein lagfreies Zero-Lag Dirty-Checking bei 40 FPS.
  * </p>
  */
 public class DmxMatrixView extends VBox {
@@ -32,6 +32,8 @@ public class DmxMatrixView extends VBox {
 
     private final List<DmxChannelCell> channelCells = new ArrayList<>(TOTAL_CHANNELS);
     private final List<HBox> rowContainers = new ArrayList<>(ROW_COUNT);
+    private final int[] lastValues = new int[TOTAL_CHANNELS];
+
     private final VBox matrixRowsBox;
     private final ScrollPane scrollPane;
 
@@ -213,23 +215,32 @@ public class DmxMatrixView extends VBox {
     }
 
     /**
-     * Aktualisiert den Wert eines einzelnen Kanals.
+     * Aktualisiert den Wert eines einzelnen Kanals mit Zero-Lag Dirty Checking.
      *
      * @param channel Kanalnummer (1..512)
      * @param value   Neuer DMX-Wert (0..255)
      */
     public void setChannelValue(int channel, int value) {
         if (channel >= 1 && channel <= TOTAL_CHANNELS) {
-            DmxChannelCell cell = channelCells.get(channel - 1);
-            cell.setValue(value);
-            if (onlyActiveFilter) {
-                applyFilter();
+            int idx = channel - 1;
+            int clamped = Math.max(0, Math.min(255, value));
+            if (lastValues[idx] != clamped) {
+                lastValues[idx] = clamped;
+                channelCells.get(idx).setValue(clamped);
+                if (onlyActiveFilter) {
+                    applyFilter();
+                }
             }
         }
     }
 
     /**
      * Setzt alle 512 Kanäle anhand eines DMX-Frame-Byte-Arrays.
+     * <p>
+     * Zero-Lag Optimierung: Es werden ausschließlich Kanäle aufgerufen,
+     * deren Wert sich im Vergleich zum vorherigen Frame tatsächlich verändert hat.
+     * Statische Ruhezustände (Wert 0) lösen keinerlei UI-Updates aus.
+     * </p>
      *
      * @param channels Byte-Array (mindestens 512 Bytes)
      */
@@ -238,12 +249,16 @@ public class DmxMatrixView extends VBox {
             return;
         }
         int len = Math.min(channels.length, TOTAL_CHANNELS);
+        boolean changed = false;
         for (int i = 0; i < len; i++) {
             int val = channels[i] & 0xFF;
-            DmxChannelCell cell = channelCells.get(i);
-            cell.setValue(val);
+            if (lastValues[i] != val) {
+                lastValues[i] = val;
+                channelCells.get(i).setValue(val);
+                changed = true;
+            }
         }
-        if (onlyActiveFilter) {
+        if (changed && onlyActiveFilter) {
             applyFilter();
         }
     }

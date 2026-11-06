@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TDD Unit-Tests für {@link IOWorkspaceView} (Tab 5).
- * Prüft die Zusammenführung von SignalRoutingPane und DmxMatrixView.
+ * Prüft die Zusammenführung von UniversePatchTable (QLC+ Stil) und DmxMatrixView.
  */
 class IOWorkspaceViewTest {
 
@@ -23,12 +23,12 @@ class IOWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte SignalRoutingPane oben und DmxMatrixView unten bereitstellen")
-    void shouldAssembleRoutingPaneAndMatrixView() {
+    @DisplayName("Sollte UniversePatchTable oben und DmxMatrixView unten bereitstellen")
+    void shouldAssemblePatchTableAndMatrixView() {
         IOWorkspaceView view = new IOWorkspaceView();
 
-        assertThat(view.getRoutingPane()).isNotNull();
+        assertThat(view.getPatchTable()).isNotNull();
         assertThat(view.getMatrixView()).isNotNull();
-        assertThat(view.getChildren()).contains(view.getRoutingPane(), view.getMatrixView());
+        assertThat(view.getChildren()).contains(view.getPatchTable(), view.getMatrixView());
     }
 }
