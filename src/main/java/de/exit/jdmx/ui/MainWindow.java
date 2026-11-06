@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui;
 
+import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
@@ -22,6 +23,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import java.util.Objects;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -61,18 +63,32 @@ public class MainWindow extends StackPane {
     /** Scheinwerfer-Bibliothek (vorinstallierte Standardgeräte und importierte Profile). */
     private final FixtureLibraryService fixtureLibraryService;
 
+    /** Zentraler DMX- und Art-Net-Service der Core-Schicht. */
+    private final DmxService dmxService;
+
     /**
      * Erstellt das Hauptfenster und initialisiert alle Basis-Komponenten.
      */
     public MainWindow() {
-        this(new ShortcutService());
+        this(new ShortcutService(), new DmxService());
     }
 
     /**
      * Erstellt das Hauptfenster mit einem spezifischen ShortcutService.
      */
     public MainWindow(ShortcutService shortcutService) {
-        this.shortcutService = shortcutService;
+        this(shortcutService, new DmxService());
+    }
+
+    /**
+     * Erstellt das Hauptfenster mit ShortcutService und DmxService.
+     *
+     * @param shortcutService Shortcut-Dienst
+     * @param dmxService      DMX- und Art-Net-Dienst
+     */
+    public MainWindow(ShortcutService shortcutService, DmxService dmxService) {
+        this.shortcutService = Objects.requireNonNull(shortcutService, "shortcutService must not be null");
+        this.dmxService = Objects.requireNonNull(dmxService, "dmxService must not be null");
         this.fixtureLibraryService = new FixtureLibraryService();
         getStyleClass().add("main-window");
 
@@ -131,10 +147,12 @@ public class MainWindow extends StackPane {
         // 6. Header-Events verdrahten
         headerBar.setOnTabChange(this::switchToTab);
         headerBar.setOnBlackout(active -> {
-            // Signal-Event für DmxEngine / Core
+            if (active) {
+                dmxService.blackout();
+            }
         });
         headerBar.setOnStopAll(() -> {
-            // Not-Release für alle Chaser, Fades und Overrides
+            dmxService.blackout();
         });
 
         // Brand Action-Menü Events
@@ -199,7 +217,7 @@ public class MainWindow extends StackPane {
      * Initialisiert die 5 Workspace-Tabs.
      */
     private void initTabViews() {
-        StageWorkspaceView stageView = new StageWorkspaceView();
+        StageWorkspaceView stageView = new StageWorkspaceView(dmxService);
         stageView.getProjectExplorerView().getAddMenu().setOnAction("fixture", () -> {
             FixturePatchDialog.show(this, fixtureLibraryService, stageView.getExplorerService(), stageView.getStageCanvasView());
         });
@@ -208,6 +226,10 @@ public class MainWindow extends StackPane {
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
         tabViews[4] = new IOWorkspaceView(new HardwareDiscoveryService(), this);
+    }
+
+    public DmxService getDmxService() {
+        return dmxService;
     }
 
     public FixtureLibraryService getFixtureLibraryService() {

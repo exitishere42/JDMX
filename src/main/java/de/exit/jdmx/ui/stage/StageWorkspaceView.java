@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.geometry.Insets;
@@ -49,16 +50,26 @@ public class StageWorkspaceView extends SplitPane {
     private final ProjectExplorerView projectExplorerView;
     private final Button btnExpandProjectExplorer;
     private final ProjectExplorerService explorerService;
+    private DmxService dmxService;
 
     private double lastExpandedRatio = DEFAULT_HORIZONTAL_RATIO;
     private boolean isCollapsed = false;
 
     public StageWorkspaceView() {
-        this(new ProjectExplorerService());
+        this(new ProjectExplorerService(), null);
     }
 
     public StageWorkspaceView(ProjectExplorerService explorerService) {
+        this(explorerService, null);
+    }
+
+    public StageWorkspaceView(DmxService dmxService) {
+        this(new ProjectExplorerService(), dmxService);
+    }
+
+    public StageWorkspaceView(ProjectExplorerService explorerService, DmxService dmxService) {
         this.explorerService = Objects.requireNonNull(explorerService, "explorerService must not be null");
+        this.dmxService = dmxService;
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("stage-workspace-view");
 
@@ -116,45 +127,57 @@ public class StageWorkspaceView extends SplitPane {
     private boolean isSyncing = false;
 
     private void setupControlDockBinding() {
-        // Dimmer-Änderung im Dock auf selektiertes Fixture übertragen
+        // Dimmer-Änderung im Dock auf Scheinwerfer und DMX-Kanal übertragen
         controlDock.getIntensityModule().getDimmerSlider().valueProperty().addListener((obs, oldVal, newVal) -> {
             if (isSyncing) return;
-            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
-                if (node.isSelected()) {
-                    node.setDimmer(newVal.doubleValue() / 100.0);
+            double d = newVal.doubleValue() / 100.0;
+            for (StageFixtureNode node : stageCanvasView.getActiveControlledFixtures()) {
+                node.setDimmer(d);
+                if (dmxService != null && node.getItem() != null && node.getItem().getFixtureInstance() != null) {
+                    dmxService.setIntensity(node.getItem().getFixtureInstance(), d);
                 }
             }
         });
 
-        // Strobo-Änderung im Dock auf selektiertes Fixture übertragen
+        // Strobo-Änderung im Dock auf Scheinwerfer und DMX-Kanal übertragen
         controlDock.getIntensityModule().getStrobeSlider().valueProperty().addListener((obs, oldVal, newVal) -> {
             if (isSyncing) return;
-            boolean active = newVal.doubleValue() > 5.0;
-            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
-                if (node.isSelected() && node.hasStrobe()) {
+            double strobeHz = newVal.doubleValue();
+            boolean active = strobeHz > 0.0;
+            for (StageFixtureNode node : stageCanvasView.getActiveControlledFixtures()) {
+                if (node.hasStrobe()) {
                     node.setStrobing(active);
                 }
-            }
-        });
-
-        // Farb-Änderung im Dock auf selektiertes Fixture übertragen
-        controlDock.getColorModule().selectedColorProperty().addListener((obs, oldVal, newVal) -> {
-            if (isSyncing || newVal == null) return;
-            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
-                if (node.isSelected() && node.hasColorChannels()) {
-                    node.setColor(newVal);
+                if (dmxService != null && node.getItem() != null && node.getItem().getFixtureInstance() != null) {
+                    dmxService.setStrobe(node.getItem().getFixtureInstance(), strobeHz);
                 }
             }
         });
 
-        // Positions-Änderung (Pan/Tilt) im Dock auf selektiertes Fixture übertragen
+        // Farb-Änderung im Dock auf Scheinwerfer und DMX-Kanäle übertragen
+        controlDock.getColorModule().selectedColorProperty().addListener((obs, oldVal, newVal) -> {
+            if (isSyncing || newVal == null) return;
+            for (StageFixtureNode node : stageCanvasView.getActiveControlledFixtures()) {
+                if (node.hasColorChannels()) {
+                    node.setColor(newVal);
+                }
+                if (dmxService != null && node.getItem() != null && node.getItem().getFixtureInstance() != null) {
+                    dmxService.setColor(node.getItem().getFixtureInstance(), newVal);
+                }
+            }
+        });
+
+        // Positions-Änderung (Pan/Tilt) im Dock auf Scheinwerfer und DMX-Kanäle übertragen
         Runnable updatePosition = () -> {
             if (isSyncing) return;
             double pan = controlDock.getPositionModule().getPanSlider().getValue() / 100.0;
-            double tilt = (100.0 - controlDock.getPositionModule().getTiltSlider().getValue()) / 100.0;
-            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
-                if (node.isSelected() && node.hasPanTilt()) {
+            double tilt = controlDock.getPositionModule().getTiltSlider().getValue() / 100.0;
+            for (StageFixtureNode node : stageCanvasView.getActiveControlledFixtures()) {
+                if (node.hasPanTilt()) {
                     node.setPosition(pan, tilt);
+                }
+                if (dmxService != null && node.getItem() != null && node.getItem().getFixtureInstance() != null) {
+                    dmxService.setPosition(node.getItem().getFixtureInstance(), pan, tilt);
                 }
             }
         };
@@ -256,5 +279,13 @@ public class StageWorkspaceView extends SplitPane {
 
     public ProjectExplorerService getExplorerService() {
         return explorerService;
+    }
+
+    public DmxService getDmxService() {
+        return dmxService;
+    }
+
+    public void setDmxService(DmxService dmxService) {
+        this.dmxService = dmxService;
     }
 }

@@ -95,4 +95,42 @@ class StageWorkspaceViewTest {
         workspace.getControlDock().getIntensityModule().getStrobeSlider().setValue(30.0);
         assertThat(node.isStrobing()).isTrue();
     }
+
+    @Test
+    @DisplayName("Sollte Slider- und Farbänderungen im Steuerungs-Dock direkt an DmxService übertragen")
+    void shouldForwardControlDockChangesToDmxService() {
+        de.exit.jdmx.service.DmxService dmxService = new de.exit.jdmx.service.DmxService();
+        StageWorkspaceView workspace = new StageWorkspaceView(dmxService);
+
+        // Fixture mit Dimmer und RGB
+        java.util.List<de.exit.jdmx.core.model.ChannelDefinition> channels = java.util.List.of(
+                new de.exit.jdmx.core.model.ChannelDefinition(1, "Dimmer", de.exit.jdmx.core.model.ChannelType.DIMMER, 0, false),
+                new de.exit.jdmx.core.model.ChannelDefinition(2, "Red", de.exit.jdmx.core.model.ChannelType.RED, 0, false),
+                new de.exit.jdmx.core.model.ChannelDefinition(3, "Green", de.exit.jdmx.core.model.ChannelType.GREEN, 0, false),
+                new de.exit.jdmx.core.model.ChannelDefinition(4, "Blue", de.exit.jdmx.core.model.ChannelType.BLUE, 0, false)
+        );
+        de.exit.jdmx.core.model.DmxMode mode = new de.exit.jdmx.core.model.DmxMode("4CH", channels);
+        de.exit.jdmx.core.model.FixtureDefinition def = new de.exit.jdmx.core.model.FixtureDefinition("par1", "Generic", "Par", de.exit.jdmx.core.model.ExplorerItemType.FIXTURE, java.util.List.of(mode));
+        de.exit.jdmx.core.model.FixtureInstance fixture = new de.exit.jdmx.core.model.FixtureInstance("f1", "LED Par 1", def, mode, 1, 1, 50, 50);
+
+        de.exit.jdmx.core.model.ExplorerItem item = new de.exit.jdmx.core.model.ExplorerItem("f1", "LED Par 1", de.exit.jdmx.core.model.ExplorerItemType.FIXTURE, false, "box", javafx.scene.paint.Color.WHITE);
+        item.setFixtureInstance(fixture);
+
+        StageFixtureNode node = workspace.getStageCanvasView().placeFixture(item, 50, 50);
+        node.setSelected(true);
+
+        // Dimmer ändern: Slider startet default auf 100, daher auf 50% testen (DMX 128)
+        workspace.getControlDock().getIntensityModule().getDimmerSlider().setValue(50.0);
+        assertThat(dmxService.getUniverse(0).getChannel(1)).isEqualTo(128);
+
+        // Und auf 100% (DMX 255)
+        workspace.getControlDock().getIntensityModule().getDimmerSlider().setValue(100.0);
+        assertThat(dmxService.getUniverse(0).getChannel(1)).isEqualTo(255);
+
+        // Farbe ändern -> DmxService Universum 0, Kanal 2 (Rot) muss 255 sein
+        workspace.getControlDock().getColorModule().setColor(javafx.scene.paint.Color.RED);
+        assertThat(dmxService.getUniverse(0).getChannel(2)).isEqualTo(255);
+
+        dmxService.close();
+    }
 }

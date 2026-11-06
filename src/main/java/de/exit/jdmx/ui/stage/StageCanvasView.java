@@ -325,6 +325,32 @@ public class StageCanvasView extends StackPane {
         return Collections.unmodifiableList(placedFixtures);
     }
 
+    /**
+     * Liefert alle aktuell auf der Bühne ausgewählten Scheinwerfer.
+     *
+     * @return Liste der selektierten Scheinwerferknoten
+     */
+    public List<StageFixtureNode> getSelectedFixtures() {
+        return placedFixtures.stream()
+                .filter(StageFixtureNode::isSelected)
+                .toList();
+    }
+
+    /**
+     * Liefert die aktuell zu steuernden Scheinwerfer.
+     * Falls Scheinwerfer selektiert sind, werden diese zurückgegeben;
+     * falls keines selektiert ist, alle platzierten Scheinwerfer.
+     *
+     * @return Liste der zu steuernden Scheinwerferknoten
+     */
+    public List<StageFixtureNode> getActiveControlledFixtures() {
+        List<StageFixtureNode> selected = getSelectedFixtures();
+        if (!selected.isEmpty()) {
+            return selected;
+        }
+        return getPlacedFixtures();
+    }
+
     public void setOnFixturePlaced(BiConsumer<ExplorerItem, Point2D> onFixturePlaced) {
         this.onFixturePlaced = onFixturePlaced;
     }

@@ -236,8 +236,22 @@ public class UniversePatchTable extends VBox {
             statusBox.getChildren().addAll(statusDot, statusText);
 
             // Status-Reaktivität
-            inputDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> updateStatus());
-            outputDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> updateStatus());
+            inputDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                updateStatus();
+                MainWindow mw = mainWindowSupplier != null ? mainWindowSupplier.get() : null;
+                if (mw != null && mw.getDmxService() != null) {
+                    this.config = this.config.withInputSource(newVal != null ? newVal : "Kein Input");
+                    mw.getDmxService().setUniverseConfig(this.universeIndex, this.config);
+                }
+            });
+            outputDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                updateStatus();
+                MainWindow mw = mainWindowSupplier != null ? mainWindowSupplier.get() : null;
+                if (mw != null && mw.getDmxService() != null) {
+                    this.config = this.config.withOutputTarget(newVal != null ? newVal : "Kein Output");
+                    mw.getDmxService().setUniverseConfig(this.universeIndex, this.config);
+                }
+            });
             updateStatus();
 
             // Spalte 5: Detail-Config Button (Fenster-im-Fenster Modal)
@@ -286,6 +300,9 @@ public class UniversePatchTable extends VBox {
 
                 UniverseConfigDialog.show(mw, currentConfig, updated -> {
                     this.config = updated;
+                    if (mw.getDmxService() != null) {
+                        mw.getDmxService().setUniverseConfig(this.universeIndex, updated);
+                    }
                     if (outputDropdown.getSelectedItem() != null && outputDropdown.getSelectedItem().startsWith("Art-Net")) {
                         String newLabel = "Art-Net (" + updated.artNetIp() + ", Uni " + updated.artNetUniverse() + ")";
                         outputDropdown.selectItem(newLabel);
