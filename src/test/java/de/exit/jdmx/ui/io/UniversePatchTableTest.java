@@ -27,11 +27,10 @@ class UniversePatchTableTest {
     }
 
     @Test
-    @DisplayName("Sollte genau 4 Universum-Zeilen und Titel erzeugen")
-    void shouldCreateFourUniverseRowsAndTitle() {
+    @DisplayName("Sollte genau 4 Universum-Zeilen erzeugen")
+    void shouldCreateFourUniverseRows() {
         UniversePatchTable table = new UniversePatchTable();
 
-        assertThat(table.getTitleLabel().getText()).contains("UNIVERSUM-ZUORDNUNG");
         assertThat(table.getUniverseRows()).hasSize(4);
     }
 

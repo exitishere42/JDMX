@@ -40,7 +40,6 @@ public class UniversePatchTable extends VBox {
     private static final int COL_SPACING = 16;
 
     private final HardwareDiscoveryService hardwareService;
-    //private final Label titleLabel;
     private final List<UniverseRow> universeRows = new ArrayList<>();
     private final List<HBox> dividers = new ArrayList<>();
 
