@@ -15,7 +15,7 @@
 **Modular Desktop DMX512 Lighting Controller & Real-Time Stage Visualizer**  
 *Built with Java 21 LTS & JavaFX 21*
 
-[Features](#features) • [Hardware & I/O Patch](#dmx-hardware-output--io-patching) • [Installation](#installation) • [Development](#quick-start-development) • [Releases](https://github.com/exitishere42/JDMX/releases/latest)
+[Features](#features) • [Hardware & I/O Patch](#dmx-hardware-output--io-patching) • [Installation](#installation) • [Build from Source](#build-from-source) • [Releases](https://github.com/exitishere42/JDMX/releases/latest)
 
 </div>
 
@@ -120,45 +120,36 @@ chmod +x jdmx-x86_64.AppImage && ./jdmx-x86_64.AppImage
 
 ---
 
-## Quick Start (Development)
+## Build from Source
 
-### Prerequisites
+### Requirements
 - **Java 21 LTS** or newer
 - **Apache Maven 3.8+**
 
-### Maven Dependencies
-The native USB-to-DMX driver stack relies on `jusb2dmx` and `jna`:
-
-```xml
-<dependency>
-    <groupId>de.exit.jusb2dmx</groupId>
-    <artifactId>jusb2dmx</artifactId>
-    <version>1.0.0</version>
-</dependency>
-<dependency>
-    <groupId>net.java.dev.jna</groupId>
-    <artifactId>jna</artifactId>
-    <version>5.14.0</version>
-</dependency>
+### Run Application (Development)
+On Windows (batch launcher):
+```cmd
+run.bat
 ```
 
-> [!NOTE]
-> If `jusb2dmx` is not yet present in your local Maven cache (`~/.m2`), build and install it locally from its project directory:
-> ```bash
-> cd d:/programming/tools/jusb2dmx
-> mvn clean install
-> ```
-
-### Run & Build
-
+Or directly via Maven:
 ```bash
-# Run application with Maven
 mvn exec:java
+```
 
-# Run tests (100% green JUnit 5 suite)
+### Rebuild AppImage (Linux / WSL)
+```bash
+mvn clean package -DskipTests
+./build-appimage.sh
+```
+
+### Compile & Run Tests
+```bash
 mvn clean test
+```
 
-# Build executable Fat JAR
+### Build Executable Fat JAR
+```bash
 mvn clean package
 ```
 
