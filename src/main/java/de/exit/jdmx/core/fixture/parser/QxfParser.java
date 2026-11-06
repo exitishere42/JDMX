@@ -61,6 +61,7 @@ public class QxfParser implements FixtureParser {
                     chName = "Channel " + globalIdx;
                 }
 
+                String preset = chEl.getAttribute("Preset");
                 String groupName = getTagValue(chEl, "Group");
                 String colorName = getTagValue(chEl, "Colour");
                 boolean isFine = false;
@@ -72,12 +73,23 @@ public class QxfParser implements FixtureParser {
                         isFine = true;
                     }
                 }
-                if (chName.toLowerCase(Locale.ROOT).contains("fine") || chName.toLowerCase(Locale.ROOT).contains("16-bit")) {
+                if (chName.toLowerCase(Locale.ROOT).contains("fine")
+                        || chName.toLowerCase(Locale.ROOT).contains("16-bit")
+                        || (preset != null && preset.toLowerCase(Locale.ROOT).contains("fine"))) {
                     isFine = true;
                 }
 
-                ChannelType type = resolveChannelType(chName, groupName, colorName, isFine);
-                ChannelDefinition def = new ChannelDefinition(globalIdx++, chName, type, 0, isFine);
+                int defaultVal = 0;
+                String defaultAttr = chEl.getAttribute("Default");
+                if (!defaultAttr.isEmpty()) {
+                    try {
+                        defaultVal = Integer.parseInt(defaultAttr.trim());
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+
+                ChannelType type = resolveChannelType(chName, preset, groupName, colorName, isFine);
+                ChannelDefinition def = new ChannelDefinition(globalIdx++, chName, type, defaultVal, isFine);
                 channelPool.put(chName, def);
             }
         }
@@ -140,15 +152,69 @@ public class QxfParser implements FixtureParser {
         return "";
     }
 
-    private ChannelType resolveChannelType(String name, String group, String colour, boolean isFine) {
-        String n = name.toLowerCase(Locale.ROOT);
-        String g = group.toLowerCase(Locale.ROOT);
-        String c = colour.toLowerCase(Locale.ROOT);
+    private ChannelType resolveChannelType(String name, String preset, String group, String colour, boolean isFine) {
+        String p = preset != null ? preset.toLowerCase(Locale.ROOT) : "";
+        String n = name != null ? name.toLowerCase(Locale.ROOT) : "";
+        String g = group != null ? group.toLowerCase(Locale.ROOT) : "";
+        String c = colour != null ? colour.toLowerCase(Locale.ROOT) : "";
 
-        if (n.contains("pan fine") || (g.contains("pan") && isFine)) {
+        // 1. Primär: Standardisierte QLC+ Presets
+        if (!p.isEmpty()) {
+            if (p.contains("positionpanfine") || (p.contains("positionpan") && isFine)) {
+                return ChannelType.PAN_FINE;
+            }
+            if (p.contains("positiontiltfine") || (p.contains("positiontilt") && isFine)) {
+                return ChannelType.TILT_FINE;
+            }
+            if (p.contains("positionpan")) {
+                return ChannelType.PAN;
+            }
+            if (p.contains("positiontilt")) {
+                return ChannelType.TILT;
+            }
+            if (p.contains("intensitymasterdimmer") || p.contains("intensitydimmer")) {
+                return ChannelType.DIMMER;
+            }
+            if (p.contains("intensityred")) {
+                return ChannelType.RED;
+            }
+            if (p.contains("intensitygreen")) {
+                return ChannelType.GREEN;
+            }
+            if (p.contains("intensityblue")) {
+                return ChannelType.BLUE;
+            }
+            if (p.contains("intensitywhite")) {
+                return ChannelType.WHITE;
+            }
+            if (p.contains("intensityamber")) {
+                return ChannelType.AMBER;
+            }
+            if (p.contains("intensityuv")) {
+                return ChannelType.UV;
+            }
+            if (p.contains("shutter") || p.contains("strobe")) {
+                return ChannelType.SHUTTER;
+            }
+            if (p.contains("colorwheel") || p.contains("colourwheel")) {
+                return ChannelType.COLOR_WHEEL;
+            }
+            if (p.contains("gobo")) {
+                return ChannelType.GOBO;
+            }
+            if (p.contains("prism")) {
+                return ChannelType.PRISM;
+            }
+            if (p.contains("speed")) {
+                return ChannelType.SPEED;
+            }
+        }
+
+        // 2. Sekundär: Auswertung nach Name, Group und Colour
+        if (n.contains("pan fine") || n.contains("pan 16") || n.contains("panfine") || (g.contains("pan") && isFine)) {
             return ChannelType.PAN_FINE;
         }
-        if (n.contains("tilt fine") || (g.contains("tilt") && isFine)) {
+        if (n.contains("tilt fine") || n.contains("tilt 16") || n.contains("tiltfine") || (g.contains("tilt") && isFine)) {
             return ChannelType.TILT_FINE;
         }
         if (g.contains("pan") || n.contains("pan")) {
@@ -157,48 +223,72 @@ public class QxfParser implements FixtureParser {
         if (g.contains("tilt") || n.contains("tilt")) {
             return ChannelType.TILT;
         }
-        if (c.contains("red") || n.contains("red") || n.startsWith("r")) {
+
+        // Farben mit präzisem Wort-Matching (kein fehlerhaftes startsWith("r") oder startsWith("g") mehr)
+        if (c.contains("red") || isColorMatch(n, "red")) {
             return ChannelType.RED;
         }
-        if (c.contains("green") || n.contains("green") || n.startsWith("g")) {
+        if (c.contains("green") || isColorMatch(n, "green")) {
             return ChannelType.GREEN;
         }
-        if (c.contains("blue") || n.contains("blue") || n.startsWith("b")) {
+        if (c.contains("blue") || isColorMatch(n, "blue")) {
             return ChannelType.BLUE;
         }
-        if (c.contains("white") || n.contains("white") || n.startsWith("w")) {
+        if (c.contains("white") || isColorMatch(n, "white")) {
             return ChannelType.WHITE;
         }
-        if (c.contains("amber") || n.contains("amber")) {
+        if (c.contains("amber") || isColorMatch(n, "amber")) {
             return ChannelType.AMBER;
         }
-        if (c.contains("uv") || n.contains("uv")) {
+        if (c.contains("uv") || isColorMatch(n, "uv")) {
             return ChannelType.UV;
         }
-        if (g.contains("intensity") || n.contains("dimmer") || n.contains("intensity")) {
+
+        // Dimmer / Intensität (inklusive "dimming" und "master dimmer")
+        if (g.contains("intensity") || n.contains("dimmer") || n.contains("dimming") || n.contains("intensity") || n.equals("dim") || n.contains("master dimmer") || n.contains("master dim")) {
             return ChannelType.DIMMER;
         }
-        if (g.contains("shutter") || n.contains("shutter") || n.contains("strobe")) {
+
+        // Shutter / Strobe
+        if (g.contains("shutter") || n.contains("shutter") || n.contains("strobe") || n.contains("strobo")) {
             return ChannelType.SHUTTER;
         }
+
+        // Color Wheel
         if (g.contains("colour") || g.contains("color") || n.contains("color wheel") || n.contains("colour wheel")) {
             return ChannelType.COLOR_WHEEL;
         }
+
+        // Gobo
         if (g.contains("gobo") || n.contains("gobo")) {
             return ChannelType.GOBO;
         }
+
+        // Prism
         if (g.contains("prism") || n.contains("prism")) {
             return ChannelType.PRISM;
         }
-        if (g.contains("speed") || n.contains("speed")) {
+
+        // Speed
+        if (g.contains("speed") || n.contains("speed") || n.contains("p/t speed")) {
             return ChannelType.SPEED;
         }
-        if (g.contains("effect") || n.contains("effect") || n.contains("macro")) {
-            return ChannelType.EFFECT;
-        }
-        if (g.contains("maintenance") || n.contains("reset") || n.contains("control")) {
+
+        // Maintenance / Reset
+        if (g.contains("maintenance") || n.contains("reset") || n.contains("control") || n.contains("lamp")) {
             return ChannelType.MAINTENANCE;
         }
+
+        // Effect
+        if (g.contains("effect") || n.contains("effect") || n.contains("macro") || n.contains("mode")) {
+            return ChannelType.EFFECT;
+        }
+
         return ChannelType.GENERIC;
+    }
+
+    private boolean isColorMatch(String n, String color) {
+        if (n.equals(color)) return true;
+        return n.startsWith(color + " ") || n.endsWith(" " + color) || n.contains(" " + color + " ") || n.startsWith(color + "-") || n.endsWith("-" + color);
     }
 }

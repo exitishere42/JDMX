@@ -37,6 +37,7 @@ public class IntensityModuleView extends VBox {
     private final Button btnZu;
     private final Button btnLumos;
     private final Button btnNox;
+    private java.util.function.DoubleConsumer onDimmerCommand;
 
     public IntensityModuleView() {
         super(2);
@@ -54,7 +55,7 @@ public class IntensityModuleView extends VBox {
         header.getChildren().add(lblTitle);
 
         // 2. Fader (Dimmer & Strobo) - 50px Spalten mit reichlich Platz
-        this.dimmerSlider = new Slider(0, 100, 100);
+        this.dimmerSlider = new Slider(0, 100, 0);
         dimmerSlider.setOrientation(Orientation.VERTICAL);
         dimmerSlider.getStyleClass().add("fader-slider");
         dimmerSlider.setMaxHeight(Double.MAX_VALUE);
@@ -85,7 +86,7 @@ public class IntensityModuleView extends VBox {
             btn.setMaxWidth(48);
             btn.setMaxHeight(Double.MAX_VALUE);
             VBox.setVgrow(btn, Priority.ALWAYS);
-            btn.setOnAction(e -> dimmerSlider.setValue(pct));
+            btn.setOnAction(e -> applyDimmer(pct));
             quickButtons.add(btn);
             quickBox.getChildren().add(btn);
         }
@@ -106,7 +107,7 @@ public class IntensityModuleView extends VBox {
         btnAuf.setMaxWidth(56);
         btnAuf.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(btnAuf, Priority.ALWAYS);
-        btnAuf.setOnAction(e -> dimmerSlider.setValue(100.0));
+        btnAuf.setOnAction(e -> applyDimmer(100.0));
 
         this.btnZu = new Button("Zu");
         btnZu.getStyleClass().add("module-small-btn");
@@ -115,7 +116,7 @@ public class IntensityModuleView extends VBox {
         btnZu.setMaxWidth(56);
         btnZu.setPrefHeight(50);
         btnZu.setMinHeight(44);
-        btnZu.setOnAction(e -> dimmerSlider.setValue(0.0));
+        btnZu.setOnAction(e -> applyDimmer(0.0));
 
         VBox colAufZu = new VBox(2, btnAuf, btnZu);
         colAufZu.setAlignment(Pos.CENTER);
@@ -129,7 +130,7 @@ public class IntensityModuleView extends VBox {
         btnLumos.setMaxWidth(68);
         btnLumos.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(btnLumos, Priority.ALWAYS);
-        btnLumos.setOnAction(e -> dimmerSlider.setValue(100.0));
+        btnLumos.setOnAction(e -> applyDimmer(100.0));
 
         this.btnNox = new Button("Nox");
         btnNox.getStyleClass().add("module-small-btn");
@@ -138,7 +139,7 @@ public class IntensityModuleView extends VBox {
         btnNox.setMaxWidth(68);
         btnNox.setPrefHeight(50);
         btnNox.setMinHeight(44);
-        btnNox.setOnAction(e -> dimmerSlider.setValue(0.0));
+        btnNox.setOnAction(e -> applyDimmer(0.0));
 
         VBox colLumosNox = new VBox(2, btnLumos, btnNox);
         colLumosNox.setAlignment(Pos.CENTER);
@@ -211,5 +212,27 @@ public class IntensityModuleView extends VBox {
 
     public Button getBtnNox() {
         return btnNox;
+    }
+
+    /**
+     * Registriert einen Befehls-Listener, der auch dann gefeuert wird,
+     * wenn ein Taster denselben Wert wie die aktuelle Sliderposition setzt.
+     *
+     * @param onDimmerCommand Callback für Dimmer-Befehle in Prozent (0.0 bis 100.0)
+     */
+    public void setOnDimmerCommand(java.util.function.DoubleConsumer onDimmerCommand) {
+        this.onDimmerCommand = onDimmerCommand;
+    }
+
+    /**
+     * Setzt den Dimmer-Wert auf dem Slider und benachrichtigt registrierte Befehls-Listener.
+     *
+     * @param pct Neuer Prozentwert (0.0 bis 100.0)
+     */
+    public void applyDimmer(double pct) {
+        dimmerSlider.setValue(pct);
+        if (onDimmerCommand != null) {
+            onDimmerCommand.accept(pct);
+        }
     }
 }

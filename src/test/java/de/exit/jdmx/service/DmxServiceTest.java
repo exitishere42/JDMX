@@ -158,6 +158,41 @@ class DmxServiceTest {
     }
 
     @Test
+    @DisplayName("setIntensity aktiviert bei RGBW-Geräten auch Weiß/Farbe und setzt Dimmer auf 255 bei 1.0 (Lumos) sowie 0 bei 0.0 (Nox)")
+    void setIntensity_handlesRgbwFixturesCorrectly() {
+        List<ChannelDefinition> ukingChannels = List.of(
+                new ChannelDefinition(1, "Pan", ChannelType.PAN, 0, false),
+                new ChannelDefinition(2, "Pan fine", ChannelType.PAN_FINE, 0, true),
+                new ChannelDefinition(3, "Tilt", ChannelType.TILT, 0, false),
+                new ChannelDefinition(4, "Tilt fine", ChannelType.TILT_FINE, 0, true),
+                new ChannelDefinition(5, "P/T speed", ChannelType.SPEED, 0, false),
+                new ChannelDefinition(6, "Dimming", ChannelType.DIMMER, 0, false),
+                new ChannelDefinition(7, "Strobe", ChannelType.SHUTTER, 0, false),
+                new ChannelDefinition(8, "Red", ChannelType.RED, 0, false),
+                new ChannelDefinition(9, "Green", ChannelType.GREEN, 0, false),
+                new ChannelDefinition(10, "Blue", ChannelType.BLUE, 0, false),
+                new ChannelDefinition(11, "White", ChannelType.WHITE, 0, false),
+                new ChannelDefinition(12, "Mode", ChannelType.EFFECT, 0, false),
+                new ChannelDefinition(13, "Reset", ChannelType.MAINTENANCE, 0, false)
+        );
+        DmxMode ukingMode = new DmxMode("13 Channel", ukingChannels);
+        FixtureDefinition ukingDef = new FixtureDefinition("uking-zq-02042", "UKing", "ZQ-02042", ExplorerItemType.FIXTURE, List.of(ukingMode));
+        FixtureInstance ukingFixture = new FixtureInstance("uking-1", "UKing ZQ-02042", ukingDef, ukingMode, 1, 1, 0, 0);
+
+        // Lumos (100%): Dimmer auf 255. Weil RGBW noch 0 waren, muss auch Weiß (Kanal 11) auf 255 aktiviert werden!
+        dmxService.setIntensity(ukingFixture, 1.0);
+
+        DmxUniverse uni = dmxService.getUniverse(0);
+        assertThat(uni.getChannel(6)).isEqualTo(255); // Dimming
+        assertThat(uni.getChannel(11)).isEqualTo(255); // White aktiviert!
+        assertThat(uni.getChannel(7)).isEqualTo(0);   // Strobe darf NICHT auf 255 stehen (kein ungewolltes Blitzen)
+
+        // Nox (0%): Dimmer auf 0
+        dmxService.setIntensity(ukingFixture, 0.0);
+        assertThat(uni.getChannel(6)).isEqualTo(0); // Dimming aus!
+    }
+
+    @Test
     @DisplayName("sendUniverse sendet DMX-Daten per UDP an die konfigurierte Art-Net IP")
     void sendUniverse_transmitsOverUdp() throws Exception {
         dmxService.getUniverse(0).setChannel(5, 255); // Dimmer

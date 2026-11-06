@@ -10,6 +10,7 @@ import javafx.scene.paint.Color;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -147,15 +148,56 @@ public class DmxService implements AutoCloseable {
         int startAddress = fixture.getStartAddress();
         int dmxVal = (int) Math.round(clamp(intensity, 0.0, 1.0) * 255.0);
 
+        boolean hasDimmer = false;
+        boolean hasColorChannels = false;
+        boolean allColorChannelsZero = true;
+
         for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
             if (ch.type() == ChannelType.DIMMER) {
+                hasDimmer = true;
                 int absAddr = startAddress + ch.index() - 1;
                 universe.setChannel(absAddr, dmxVal);
-            } else if (ch.type() == ChannelType.SHUTTER && intensity > 0.0) {
-                // Bei geöffnetem Dimmer Shutter sicherstellen (voll geöffnet = 255)
+            } else if (ch.type() == ChannelType.RED || ch.type() == ChannelType.GREEN
+                    || ch.type() == ChannelType.BLUE || ch.type() == ChannelType.WHITE) {
+                hasColorChannels = true;
                 int absAddr = startAddress + ch.index() - 1;
-                if (universe.getChannel(absAddr) == 0) {
-                    universe.setChannel(absAddr, 255);
+                if (universe.getChannel(absAddr) > 0) {
+                    allColorChannelsZero = false;
+                }
+            } else if (ch.type() == ChannelType.SHUTTER && intensity > 0.0) {
+                // Bei mechanischem Shutter sicherstellen (voll geöffnet = 255)
+                // Bei Strobe-Kanälen ist 0 = "Kein Strobe (Open)", daher nicht auf 255 setzen
+                boolean isStrobe = ch.name().toLowerCase(Locale.ROOT).contains("strobe");
+                if (!isStrobe) {
+                    int absAddr = startAddress + ch.index() - 1;
+                    if (universe.getChannel(absAddr) == 0) {
+                        universe.setChannel(absAddr, 255);
+                    }
+                }
+            }
+        }
+
+        // Falls das Gerät Farbdioden besitzt:
+        if (hasColorChannels) {
+            if (!hasDimmer) {
+                // Geräte ohne Dimmerkanal (z. B. einfache RGB-Pars) werden direkt über Farben gedimmt
+                for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
+                    int absAddr = startAddress + ch.index() - 1;
+                    if (ch.type() == ChannelType.RED || ch.type() == ChannelType.GREEN || ch.type() == ChannelType.BLUE || ch.type() == ChannelType.WHITE) {
+                        universe.setChannel(absAddr, dmxVal);
+                    }
+                }
+            } else if (intensity > 0.0 && allColorChannelsZero) {
+                // RGB/RGBW-Geräte mit Dimmer: Wenn alle Farbkanäle bisher auf 0 standen,
+                // aktivieren wir Weiß (oder RGB), damit die LEDs bei 'Lumos' / Helligkeit physisch leuchten!
+                boolean hasWhite = fixture.getActiveMode().getChannels().stream().anyMatch(c -> c.type() == ChannelType.WHITE);
+                for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
+                    int absAddr = startAddress + ch.index() - 1;
+                    if (hasWhite && ch.type() == ChannelType.WHITE) {
+                        universe.setChannel(absAddr, 255);
+                    } else if (!hasWhite && (ch.type() == ChannelType.RED || ch.type() == ChannelType.GREEN || ch.type() == ChannelType.BLUE)) {
+                        universe.setChannel(absAddr, 255);
+                    }
                 }
             }
         }
@@ -185,6 +227,7 @@ public class DmxService implements AutoCloseable {
         int r = (int) Math.round(clamp(color.getRed(), 0.0, 1.0) * 255.0);
         int g = (int) Math.round(clamp(color.getGreen(), 0.0, 1.0) * 255.0);
         int b = (int) Math.round(clamp(color.getBlue(), 0.0, 1.0) * 255.0);
+        int w = Math.min(r, Math.min(g, b));
 
         for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
             int absAddr = startAddress + ch.index() - 1;
@@ -194,6 +237,8 @@ public class DmxService implements AutoCloseable {
                 universe.setChannel(absAddr, g);
             } else if (ch.type() == ChannelType.BLUE) {
                 universe.setChannel(absAddr, b);
+            } else if (ch.type() == ChannelType.WHITE) {
+                universe.setChannel(absAddr, w);
             }
         }
 
@@ -282,10 +327,10 @@ public class DmxService implements AutoCloseable {
         DmxUniverse universe = universes[uniIdx];
         int startAddress = fixture.getStartAddress();
 
-        // 0 Hz = 255 (Open), 1-25 Hz = 10..240
+        // 0 Hz = 0 (Kein Strobe / Off), 1-25 Hz = 10..240
         int dmxVal;
         if (strobeHz <= 0.01) {
-            dmxVal = 255;
+            dmxVal = 0;
         } else {
             dmxVal = (int) Math.round(10.0 + (clamp(strobeHz, 1.0, 25.0) / 25.0) * 230.0);
         }

@@ -18,6 +18,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * In-App Modal Dialog für das Importieren und Patchen von Scheinwerfern (QLC+ .qxf & GDTF .gdtf).
@@ -31,6 +33,8 @@ import java.util.UUID;
  * </p>
  */
 public class FixturePatchDialog {
+
+    private static final Logger LOGGER = Logger.getLogger(FixturePatchDialog.class.getName());
 
     private final MainWindow mainWindow;
     private final FixtureLibraryService libraryService;
@@ -272,6 +276,14 @@ public class FixturePatchDialog {
                 new FileChooser.ExtensionFilter("GDTF Profile (*.gdtf)", "*.gdtf")
         );
 
+        String userHome = System.getProperty("user.home");
+        if (userHome != null) {
+            File qlcDir = new File(userHome, "Documents/QLC+ Saves/qxf");
+            if (qlcDir.exists() && qlcDir.isDirectory()) {
+                chooser.setInitialDirectory(qlcDir);
+            }
+        }
+
         File file = chooser.showOpenDialog(card.getScene() != null ? card.getScene().getWindow() : null);
         if (file != null) {
             try {
@@ -280,8 +292,7 @@ public class FixturePatchDialog {
                 comboManufacturer.getSelectionModel().select(imported.getManufacturer());
                 comboModel.getSelectionModel().select(imported);
             } catch (Exception ex) {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Fehler beim Importieren: " + ex.getMessage(), ButtonType.OK);
-                alert.showAndWait();
+                LOGGER.log(Level.WARNING, "Fehler beim Importieren von " + file.getName(), ex);
             }
         }
     }

@@ -78,4 +78,15 @@ class FixtureLibraryServiceTest {
         assertThat(found).hasSize(1);
         assertThat(found.get(0).getManufacturer()).isEqualTo("U'King");
     }
+
+    @Test
+    @DisplayName("Sollte Benutzer-Verzeichnisse für QXF-Profile scannen falls vorhanden")
+    void shouldScanUserDirectoriesIfPresent() {
+        FixtureLibraryService service = new FixtureLibraryService();
+        java.io.File qlcDir = new java.io.File(System.getProperty("user.home"), "Documents/QLC+ Saves/qxf");
+        if (qlcDir.exists() && qlcDir.isDirectory()) {
+            assertThat(service.getAllDefinitions().size()).isGreaterThan(10);
+            assertThat(service.getManufacturers()).contains("UKing");
+        }
+    }
 }

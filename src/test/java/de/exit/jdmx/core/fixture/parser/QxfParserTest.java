@@ -111,4 +111,83 @@ class QxfParserTest {
         assertThatThrownBy(() -> parser.parse(in, "corrupt.qxf"))
                 .isInstanceOf(Exception.class);
     }
+
+    @Test
+    @DisplayName("Sollte QLC+ Presets wie Dimming, PositionPanFine, ShutterStrobe und White sauber erkennen")
+    void shouldParsePresetAttributesAndUKingFixture() throws Exception {
+        String ukingQxf = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <!DOCTYPE FixtureDefinition>
+                <FixtureDefinition xmlns="http://www.qlcplus.org/FixtureDefinition">
+                 <Creator>
+                  <Name>Q Light Controller Plus</Name>
+                  <Version>5.2.0</Version>
+                  <Author>Timo</Author>
+                 </Creator>
+                 <Manufacturer>UKing</Manufacturer>
+                 <Model>ZQ-02042</Model>
+                 <Type>Moving Head</Type>
+                 <Channel Name="Pan" Preset="PositionPan"/>
+                 <Channel Name="Pan fine" Preset="PositionPanFine"/>
+                 <Channel Name="Tilt" Preset="PositionTilt"/>
+                 <Channel Name="Tilt fine" Preset="PositionTiltFine"/>
+                 <Channel Name="P/T speed" Preset="SpeedPanTiltFastSlow"/>
+                 <Channel Name="Dimming" Preset="IntensityMasterDimmer"/>
+                 <Channel Name="Strobe" Preset="ShutterStrobeSlowFast"/>
+                 <Channel Name="Red" Preset="IntensityRed"/>
+                 <Channel Name="Green" Preset="IntensityGreen"/>
+                 <Channel Name="Blue" Preset="IntensityBlue"/>
+                 <Channel Name="White" Preset="IntensityWhite"/>
+                 <Channel Name="Mode">
+                  <Group Byte="0">Effect</Group>
+                  <Capability Min="0" Max="30">No function</Capability>
+                  </Channel>
+                 <Channel Name="Reset">
+                  <Group Byte="0">Maintenance</Group>
+                  <Capability Min="0" Max="149">No function</Capability>
+                 </Channel>
+                 <Mode Name="13 Channel">
+                  <Channel Number="0">Pan</Channel>
+                  <Channel Number="1">Pan fine</Channel>
+                  <Channel Number="2">Tilt</Channel>
+                  <Channel Number="3">Tilt fine</Channel>
+                  <Channel Number="4">P/T speed</Channel>
+                  <Channel Number="5">Dimming</Channel>
+                  <Channel Number="6">Strobe</Channel>
+                  <Channel Number="7">Red</Channel>
+                  <Channel Number="8">Green</Channel>
+                  <Channel Number="9">Blue</Channel>
+                  <Channel Number="10">White</Channel>
+                  <Channel Number="11">Mode</Channel>
+                  <Channel Number="12">Reset</Channel>
+                 </Mode>
+                </FixtureDefinition>
+                """;
+
+        ByteArrayInputStream in = new ByteArrayInputStream(ukingQxf.getBytes(StandardCharsets.UTF_8));
+        FixtureDefinition def = parser.parse(in, "uking-zq-02042.qxf");
+
+        assertThat(def).isNotNull();
+        assertThat(def.getManufacturer()).isEqualTo("UKing");
+        assertThat(def.getModel()).isEqualTo("ZQ-02042");
+
+        var channels = def.getModes().getFirst().getChannels();
+        assertThat(channels).hasSize(13);
+
+        assertThat(channels.get(0).type()).isEqualTo(ChannelType.PAN);
+        assertThat(channels.get(1).type()).isEqualTo(ChannelType.PAN_FINE);
+        assertThat(channels.get(1).isFine()).isTrue();
+        assertThat(channels.get(2).type()).isEqualTo(ChannelType.TILT);
+        assertThat(channels.get(3).type()).isEqualTo(ChannelType.TILT_FINE);
+        assertThat(channels.get(3).isFine()).isTrue();
+        assertThat(channels.get(4).type()).isEqualTo(ChannelType.SPEED);
+        assertThat(channels.get(5).type()).isEqualTo(ChannelType.DIMMER); // "Dimming" mit Preset="IntensityMasterDimmer"
+        assertThat(channels.get(6).type()).isEqualTo(ChannelType.SHUTTER); // "Strobe"
+        assertThat(channels.get(7).type()).isEqualTo(ChannelType.RED);
+        assertThat(channels.get(8).type()).isEqualTo(ChannelType.GREEN);
+        assertThat(channels.get(9).type()).isEqualTo(ChannelType.BLUE);
+        assertThat(channels.get(10).type()).isEqualTo(ChannelType.WHITE); // "White"
+        assertThat(channels.get(11).type()).isEqualTo(ChannelType.EFFECT);
+        assertThat(channels.get(12).type()).isEqualTo(ChannelType.MAINTENANCE); // "Reset" darf NICHT Red sein!
+    }
 }

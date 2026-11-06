@@ -41,6 +41,37 @@ public class FixtureLibraryService {
 
         // Vorinstallierte Standard-Geräte laden
         loadBuiltinFixtures();
+
+        // Benutzer-Geräte aus bekannten QLC+/DMX-Verzeichnissen laden
+        loadUserFixtures();
+    }
+
+    private void loadUserFixtures() {
+        List<File> searchDirs = new ArrayList<>();
+        String userHome = System.getProperty("user.home");
+        if (userHome != null) {
+            searchDirs.add(new File(userHome, "Documents/QLC+ Saves/qxf"));
+            searchDirs.add(new File(userHome, "QLC+ Saves/qxf"));
+            searchDirs.add(new File(userHome, ".qlcplus/fixtures"));
+        }
+
+        for (File dir : searchDirs) {
+            if (dir.exists() && dir.isDirectory()) {
+                File[] files = dir.listFiles((d, name) -> {
+                    String lower = name.toLowerCase(Locale.ROOT);
+                    return lower.endsWith(".qxf") || lower.endsWith(".gdtf");
+                });
+                if (files != null) {
+                    for (File file : files) {
+                        try {
+                            importFixture(file);
+                        } catch (Exception ex) {
+                            LOGGER.log(Level.FINE, "Failed to load fixture from " + file.getAbsolutePath(), ex);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void loadBuiltinFixtures() {

@@ -127,16 +127,24 @@ public class StageWorkspaceView extends SplitPane {
     private boolean isSyncing = false;
 
     private void setupControlDockBinding() {
-        // Dimmer-Änderung im Dock auf Scheinwerfer und DMX-Kanal übertragen
-        controlDock.getIntensityModule().getDimmerSlider().valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (isSyncing) return;
-            double d = newVal.doubleValue() / 100.0;
+        // Dimmer-Änderung per Taster (Lumos, Nox, QuickButtons) oder Slider übertragen
+        java.util.function.DoubleConsumer applyDimmerToFixtures = d -> {
             for (StageFixtureNode node : stageCanvasView.getActiveControlledFixtures()) {
                 node.setDimmer(d);
                 if (dmxService != null && node.getItem() != null && node.getItem().getFixtureInstance() != null) {
                     dmxService.setIntensity(node.getItem().getFixtureInstance(), d);
                 }
             }
+        };
+
+        controlDock.getIntensityModule().setOnDimmerCommand(pct -> {
+            if (isSyncing) return;
+            applyDimmerToFixtures.accept(pct / 100.0);
+        });
+
+        controlDock.getIntensityModule().getDimmerSlider().valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (isSyncing) return;
+            applyDimmerToFixtures.accept(newVal.doubleValue() / 100.0);
         });
 
         // Strobo-Änderung im Dock auf Scheinwerfer und DMX-Kanal übertragen

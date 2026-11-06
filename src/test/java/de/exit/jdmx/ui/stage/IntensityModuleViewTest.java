@@ -74,4 +74,27 @@ class IntensityModuleViewTest {
         assertThat(module.getBtnNox().getPrefHeight()).isEqualTo(50.0);
         assertThat(module.getBtnNox().getMinHeight()).isGreaterThanOrEqualTo(44.0);
     }
+
+    @Test
+    @DisplayName("Sollte Dimmer-Command auch feuern wenn Slider bereits denselben Wert hat (Lumos und Nox)")
+    void shouldTriggerDimmerCommandOnLumosAndNox() {
+        IntensityModuleView module = new IntensityModuleView();
+        double[] lastReported = {-1.0};
+        module.setOnDimmerCommand(val -> lastReported[0] = val);
+
+        // Lumos feuern
+        module.getBtnLumos().fire();
+        assertThat(module.getDimmerSlider().getValue()).isEqualTo(100.0);
+        assertThat(lastReported[0]).isEqualTo(100.0);
+
+        // Nochmal Lumos feuern (obwohl Slider bereits auf 100 ist)
+        lastReported[0] = -1.0;
+        module.getBtnLumos().fire();
+        assertThat(lastReported[0]).isEqualTo(100.0);
+
+        // Nox feuern
+        module.getBtnNox().fire();
+        assertThat(module.getDimmerSlider().getValue()).isEqualTo(0.0);
+        assertThat(lastReported[0]).isEqualTo(0.0);
+    }
 }
