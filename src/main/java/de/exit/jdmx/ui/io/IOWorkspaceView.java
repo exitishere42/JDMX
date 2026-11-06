@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.io;
 
 import de.exit.jdmx.service.HardwareDiscoveryService;
+import de.exit.jdmx.ui.MainWindow;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.layout.Priority;
@@ -26,7 +27,7 @@ public class IOWorkspaceView extends VBox {
      * Erstellt den I/O-Patch Arbeitsbereich mit nativer Hardwareerkennung.
      */
     public IOWorkspaceView() {
-        this(new HardwareDiscoveryService());
+        this(new HardwareDiscoveryService(), null);
     }
 
     /**
@@ -35,6 +36,16 @@ public class IOWorkspaceView extends VBox {
      * @param hardwareService Hardware-Erkennungsdienst
      */
     public IOWorkspaceView(HardwareDiscoveryService hardwareService) {
+        this(hardwareService, null);
+    }
+
+    /**
+     * Erstellt den I/O-Patch Arbeitsbereich mit HardwareDiscoveryService und MainWindow.
+     *
+     * @param hardwareService Hardware-Erkennungsdienst
+     * @param mainWindow      Hauptfenster für In-App Overlays
+     */
+    public IOWorkspaceView(HardwareDiscoveryService hardwareService, MainWindow mainWindow) {
         super(16);
         Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
 
@@ -44,7 +55,7 @@ public class IOWorkspaceView extends VBox {
         setAlignment(Pos.TOP_LEFT);
 
         // 1. Universum-Zuordnungstabelle im oberen Drittel
-        this.patchTable = new UniversePatchTable(hardwareService);
+        this.patchTable = new UniversePatchTable(hardwareService, mainWindow);
         VBox.setVgrow(patchTable, Priority.NEVER);
 
         // 2. Unterer Platzhalterbereich für spätere Erweiterungen (z. B. DMX-Monitor)
@@ -53,6 +64,19 @@ public class IOWorkspaceView extends VBox {
         VBox.setVgrow(expansionArea, Priority.ALWAYS);
 
         getChildren().addAll(patchTable, expansionArea);
+    }
+
+    /**
+     * Verknüpft das Hauptfenster für In-App Modal Dialoge.
+     *
+     * @param mainWindow Hauptfenster
+     */
+    public void setMainWindow(MainWindow mainWindow) {
+        patchTable.setMainWindow(mainWindow);
+    }
+
+    public MainWindow getMainWindow() {
+        return patchTable.getMainWindow();
     }
 
     public UniversePatchTable getPatchTable() {

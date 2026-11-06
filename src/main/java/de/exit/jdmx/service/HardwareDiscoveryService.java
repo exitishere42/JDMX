@@ -114,6 +114,8 @@ public class HardwareDiscoveryService {
      */
     private static List<String> detectSystemUsbDmxDevices() {
         List<String> devices = new ArrayList<>();
+
+        // 1. Primär: Direkte serielle Erkennung über jSerialComm (Virtual COM Port)
         try {
             SerialPort[] ports = SerialPort.getCommPorts();
             for (SerialPort port : ports) {
@@ -130,6 +132,18 @@ public class HardwareDiscoveryService {
             }
         } catch (Throwable t) {
             LOGGER.log(Level.FINE, "jSerialComm Port-Scan nicht verfügbar: " + t.getMessage());
+        }
+
+        // 2. Sekundär: Direkte Low-Level libusb-Erkennung über jusb2dmx (falls kein VCP-Treiber aktiv ist)
+        if (devices.isEmpty()) {
+            try {
+                de.exit.jusb2dmx.Ftdi232Device ftdi = new de.exit.jusb2dmx.Ftdi232Device();
+                ftdi.open();
+                devices.add("JMS USB to DMX PRO (Nativ USB)");
+                ftdi.close();
+            } catch (Throwable ignored) {
+                // Kein natives FTDI FT232R Gerät über libusb erreichbar
+            }
         }
 
         return devices;

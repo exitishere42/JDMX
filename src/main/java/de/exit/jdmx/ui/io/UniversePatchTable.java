@@ -1,7 +1,10 @@
 package de.exit.jdmx.ui.io;
 
+import de.exit.jdmx.core.model.UniverseConfig;
 import de.exit.jdmx.service.HardwareDiscoveryService;
+import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.component.CustomDropdownButton;
+import de.exit.jdmx.ui.dialog.UniverseConfigDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.beans.property.BooleanProperty;
@@ -9,7 +12,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -42,12 +44,13 @@ public class UniversePatchTable extends VBox {
     private final HardwareDiscoveryService hardwareService;
     private final List<UniverseRow> universeRows = new ArrayList<>();
     private final List<HBox> dividers = new ArrayList<>();
+    private MainWindow mainWindow;
 
     /**
      * Erstellt die Universum-Patch-Tabelle mit Standard-Hardwareerkennung.
      */
     public UniversePatchTable() {
-        this(new HardwareDiscoveryService());
+        this(new HardwareDiscoveryService(), null);
     }
 
     /**
@@ -56,8 +59,19 @@ public class UniversePatchTable extends VBox {
      * @param hardwareService Service zur Hardware-Erkennung
      */
     public UniversePatchTable(HardwareDiscoveryService hardwareService) {
+        this(hardwareService, null);
+    }
+
+    /**
+     * Erstellt die Universum-Patch-Tabelle mit {@link HardwareDiscoveryService} und Referenz auf {@link MainWindow}.
+     *
+     * @param hardwareService Service zur Hardware-Erkennung
+     * @param mainWindow      Hauptfenster für In-App Overlays
+     */
+    public UniversePatchTable(HardwareDiscoveryService hardwareService, MainWindow mainWindow) {
         super(10);
         this.hardwareService = Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
+        this.mainWindow = mainWindow;
 
         // Styling als elegante Studio-Dark Karte (12px Ecken-Rundung)
         getStyleClass().add("universe-patch-table");
@@ -73,7 +87,7 @@ public class UniversePatchTable extends VBox {
 
         // 3. Zeilen für Universum 1 bis 4
         for (int i = 0; i < 4; i++) {
-            UniverseRow row = new UniverseRow(i + 1, i, hardwareService);
+            UniverseRow row = new UniverseRow(i + 1, i, hardwareService, () -> this.mainWindow);
             universeRows.add(row);
             getChildren().add(row);
 
@@ -84,6 +98,24 @@ public class UniversePatchTable extends VBox {
                 getChildren().add(divider);
             }
         }
+    }
+
+    /**
+     * Setzt die Referenz auf das übergeordnete Hauptfenster für Modal-Overlays.
+     *
+     * @param mainWindow Hauptfenster
+     */
+    public void setMainWindow(MainWindow mainWindow) {
+        this.mainWindow = mainWindow;
+    }
+
+    /**
+     * Liefert das verknüpfte Hauptfenster.
+     *
+     * @return Hauptfenster oder null
+     */
+    public MainWindow getMainWindow() {
+        return mainWindow;
     }
 
     /**
@@ -133,7 +165,6 @@ public class UniversePatchTable extends VBox {
         return wrapper;
     }
 
-
     public List<UniverseRow> getUniverseRows() {
         return List.copyOf(universeRows);
     }
@@ -148,16 +179,23 @@ public class UniversePatchTable extends VBox {
     public static class UniverseRow extends HBox {
 
         private final int universeNumber;
+        private final int universeIndex;
+        private final java.util.function.Supplier<MainWindow> mainWindowSupplier;
         private final CustomDropdownButton inputDropdown;
         private final CustomDropdownButton outputDropdown;
         private final Circle statusDot;
         private final Label statusText;
         private final Button configBtn;
         private final BooleanProperty active = new SimpleBooleanProperty(false);
+        private UniverseConfig config;
 
-        public UniverseRow(int universeNumber, int universeIndex, HardwareDiscoveryService hardwareService) {
+        public UniverseRow(int universeNumber, int universeIndex, HardwareDiscoveryService hardwareService, java.util.function.Supplier<MainWindow> mainWindowSupplier) {
             super(COL_SPACING);
             this.universeNumber = universeNumber;
+            this.universeIndex = universeIndex;
+            this.mainWindowSupplier = mainWindowSupplier;
+            this.config = UniverseConfig.defaultFor(universeIndex);
+
             setAlignment(Pos.CENTER_LEFT);
             setPadding(new Insets(4, 0, 4, 0));
 
@@ -202,7 +240,7 @@ public class UniversePatchTable extends VBox {
             outputDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> updateStatus());
             updateStatus();
 
-            // Spalte 5: Detail-Config Button
+            // Spalte 5: Detail-Config Button (Fenster-im-Fenster Modal)
             configBtn = new Button();
             configBtn.setGraphic(new LucideIcon("settings", 15, StudioTheme.COLOR_PRIMARY_GRAY));
             configBtn.setCursor(Cursor.HAND);
@@ -234,18 +272,42 @@ public class UniversePatchTable extends VBox {
             }
         }
 
-        private void showConfigDialog() {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Konfiguration - Universum " + universeNumber);
-            alert.setHeaderText("Universum " + universeNumber + " Details");
-            alert.setContentText("Input: " + inputDropdown.getSelectedItem() + "\n" +
-                    "Output: " + outputDropdown.getSelectedItem() + "\n" +
-                    "Status: " + (active.get() ? "Aktiv" : "Aus"));
-            alert.showAndWait();
+        /**
+         * Öffnet den In-App Modal Dialog ("Fenster im Fenster") zur Art-Net- und Universum-Konfiguration.
+         */
+        public void showConfigDialog() {
+            MainWindow mw = mainWindowSupplier != null ? mainWindowSupplier.get() : null;
+            if (mw != null) {
+                String in = inputDropdown.getSelectedItem();
+                String out = outputDropdown.getSelectedItem();
+                UniverseConfig currentConfig = this.config
+                        .withInputSource(in != null ? in : "Kein Input")
+                        .withOutputTarget(out != null ? out : "Kein Output");
+
+                UniverseConfigDialog.show(mw, currentConfig, updated -> {
+                    this.config = updated;
+                    if (outputDropdown.getSelectedItem() != null && outputDropdown.getSelectedItem().startsWith("Art-Net")) {
+                        String newLabel = "Art-Net (" + updated.artNetIp() + ", Uni " + updated.artNetUniverse() + ")";
+                        outputDropdown.selectItem(newLabel);
+                    }
+                });
+            }
         }
 
         public int getUniverseNumber() {
             return universeNumber;
+        }
+
+        public int getUniverseIndex() {
+            return universeIndex;
+        }
+
+        public UniverseConfig getConfig() {
+            return config;
+        }
+
+        public void setConfig(UniverseConfig config) {
+            this.config = Objects.requireNonNull(config, "config darf nicht null sein");
         }
 
         public CustomDropdownButton getInputDropdown() {

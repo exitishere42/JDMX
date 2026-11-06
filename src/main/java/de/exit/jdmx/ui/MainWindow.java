@@ -2,6 +2,7 @@ package de.exit.jdmx.ui;
 
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
+import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.FixturePatchDialog;
@@ -206,7 +207,7 @@ public class MainWindow extends StackPane {
         tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
-        tabViews[4] = new IOWorkspaceView();
+        tabViews[4] = new IOWorkspaceView(new HardwareDiscoveryService(), this);
     }
 
     public FixtureLibraryService getFixtureLibraryService() {
