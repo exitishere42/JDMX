@@ -327,12 +327,6 @@ public class CanvasDeskView extends VBox {
             gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10));
             gc.setFill(Color.web("#A1A1AA"));
             gc.fillText(String.valueOf(ch + 1), colCenterX, h - 7);
-
-            // 5. Akzentstrich am Fuß (Pult-Orange #F59E0B bei gepatchten Kanälen)
-            if (data.getChannelType() != null || data.getFixtureName() != null || data.getFixtureColor() != null) {
-                gc.setFill(COLOR_PRIMARY_ORANGE);
-                gc.fillRect(screenX + 4, h - 3, channelWidth - 8, 2);
-            }
         }
     }
 

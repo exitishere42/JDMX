@@ -98,7 +98,7 @@ class LightDeskWorkspaceViewTest {
                 assertThat(desk.getCanvasDeskView().getChannelValue(5)).isEqualTo(180);
 
                 // Alle zurücksetzen
-                desk.getBtnResetAll().fire();
+                desk.resetAllChannels();
                 assertThat(desk.getCanvasDeskView().getChannelValue(5)).isEqualTo(0);
             } catch (Throwable t) {
                 error.set(t);

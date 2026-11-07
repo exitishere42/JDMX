@@ -37,7 +37,6 @@ public class LightDeskWorkspaceView extends VBox {
 
     // Header Controls
     private final ComboBox<String> comboUniverse;
-    private final Button btnResetAll;
 
     // SplitPane mit 50/50 Aufteilung
     private final SplitPane splitPane;
@@ -61,7 +60,6 @@ public class LightDeskWorkspaceView extends VBox {
 
         // 1. Headerzeile initialisieren
         this.comboUniverse = new ComboBox<>();
-        this.btnResetAll = new Button("Alle Kanäle 0");
         HBox headerBar = buildHeaderBar();
 
         // 2. Oberes Fader-Dock (50 % der Bildschirmhöhe)
@@ -109,12 +107,7 @@ public class LightDeskWorkspaceView extends VBox {
         comboUniverse.getStyleClass().add("desk-universe-combo");
         comboUniverse.valueProperty().addListener((obs, oldVal, newVal) -> refreshPatchedFixtures());
 
-        // Alle Kanäle auf 0 zurücksetzen
-        btnResetAll.getStyleClass().add("desk-action-btn");
-        btnResetAll.setGraphic(new LucideIcon("rotate-ccw", 13, StudioTheme.COLOR_ICON_RED));
-        btnResetAll.setOnAction(e -> resetAllChannels());
-
-        header.getChildren().addAll(new Label("Universum:"), comboUniverse, btnResetAll);
+        header.getChildren().addAll(new Label("Universum:"), comboUniverse);
         return header;
     }
 
@@ -199,9 +192,5 @@ public class LightDeskWorkspaceView extends VBox {
 
     public StackPane getBottomWorkspaceArea() {
         return bottomWorkspaceArea;
-    }
-
-    public Button getBtnResetAll() {
-        return btnResetAll;
     }
 }
