@@ -36,9 +36,9 @@ public class CanvasDeskView extends VBox {
     public static final int TOTAL_CHANNELS = 512;
     public static final int VISIBLE_COUNT = 32;
 
-    public static final double ICON_CENTER_Y = 14.0;
-    public static final double ICON_SIZE = 16.0;
-    public static final double TRACK_TOP = 26.0;
+    public static final double ICON_CENTER_Y = 17.0;
+    public static final double ICON_SIZE = 22.0;
+    public static final double TRACK_TOP = 33.0;
     public static final double TRACK_BOTTOM_MARGIN = 22.0;
 
     public static final Color COLOR_PRIMARY_ORANGE = Color.web("#F59E0B");

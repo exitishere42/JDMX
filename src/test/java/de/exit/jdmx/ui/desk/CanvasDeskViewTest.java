@@ -223,17 +223,17 @@ class CanvasDeskViewTest {
                 assertThat(channel2).isEqualTo(2);
 
                 // DMX-Wert Berechnung:
-                // TrackTop = 26, TrackBottom = 178, TrackH = 152
-                // Bei y = 26 (ganz oben im Track) -> Wert 255
-                int valTop = desk.getValueAtY(26.0);
+                // TrackTop = 33, TrackBottom = 178, TrackH = 145
+                // Bei y = 33 (ganz oben im Track) -> Wert 255
+                int valTop = desk.getValueAtY(33.0);
                 assertThat(valTop).isEqualTo(255);
 
                 // Bei y = 178 (ganz unten) -> Wert 0
                 int valBottom = desk.getValueAtY(178.0);
                 assertThat(valBottom).isEqualTo(0);
 
-                // Bei y = 102 (genau in der Mitte zwischen 26 und 178) -> Wert ca. 128
-                int valMid = desk.getValueAtY(102.0);
+                // Bei y = 105.5 (genau in der Mitte zwischen 33 und 178) -> Wert ca. 128
+                int valMid = desk.getValueAtY(105.5);
                 assertThat(valMid).isBetween(126, 129);
             } catch (Throwable t) {
                 error.set(t);
@@ -249,9 +249,9 @@ class CanvasDeskViewTest {
     @Test
     @DisplayName("Sollte Track-Dimensionen und Primär-Orange für Fader-Akzentstriche bereitstellen")
     void shouldProvideDimensionsAndOrangeAccent() {
-        assertThat(CanvasDeskView.TRACK_TOP).isEqualTo(26.0);
-        assertThat(CanvasDeskView.ICON_SIZE).isEqualTo(16.0);
-        assertThat(CanvasDeskView.ICON_CENTER_Y).isEqualTo(14.0);
+        assertThat(CanvasDeskView.TRACK_TOP).isEqualTo(33.0);
+        assertThat(CanvasDeskView.ICON_SIZE).isEqualTo(22.0);
+        assertThat(CanvasDeskView.ICON_CENTER_Y).isEqualTo(17.0);
         assertThat(CanvasDeskView.COLOR_PRIMARY_ORANGE).isEqualTo(Color.web("#F59E0B"));
     }
 }

@@ -298,6 +298,30 @@ public class LucideIcon extends StackPane {
             case "users" ->
                 // Lucide users
                 "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75";
+            case "zap", "flash" ->
+                // Lucide zap
+                "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z";
+            case "gem", "diamond", "prism" ->
+                // Lucide gem
+                "M6 3h12l4 6-10 12L2 9z M11 3 8 9l4 12 4-12-3-6 M2 9h20";
+            case "gauge", "speed" ->
+                // Lucide gauge
+                "m12 14 4-4 M3.34 19a10 10 0 1 1 17.32 0";
+            case "disc", "gobo" ->
+                // Lucide disc
+                "M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20z M12 10a2 2 0 1 0 0 4a2 2 0 0 0 0-4z";
+            case "arrow-up-down", "tilt" ->
+                // Lucide arrow-up-down
+                "m21 16-4 4-4-4 M17 20V4 M3 8l4-4 4 4 M7 4v16";
+            case "arrow-left-right", "pan" ->
+                // Lucide arrow-left-right
+                "M8 3 4 7l4 4 M4 7h16 M16 21l4-4-4-4 M20 17H4";
+            case "wrench", "maintenance" ->
+                // Lucide wrench
+                "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z";
+            case "circle" ->
+                // Lucide circle
+                "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";
             default ->
                 // Lucide circle
                 "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";
