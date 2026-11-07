@@ -11,26 +11,27 @@ import java.util.function.Consumer;
 /**
  * Längliche, rechteckige Custom-Scrollbar für die DMX-Faderbank im LightDesk.
  * <p>
- * Erfüllt exakt die gestalterischen Vorgaben des Pult-Designs:
+ * Exakt nach dem Vorbild des Simple-Desk-Drag-Parts (1:1 Pixel- und Farb-Referenz):
  * <ul>
- *     <li><b>Rechteckig & länglich:</b> Dunkler, flacher Track mit 14 px Höhe ohne abgerundete Kanten.</li>
- *     <li><b>Grauer Fader-Thumb:</b> Rechteckiger Schieber in dezentem Pult-Grau ({@code #3A3A40}).</li>
- *     <li><b>Vertikale Center-Linie:</b> Crisp gezeichnete, hellgraue Mittellinie ({@code #D1D5DB}) als Griffmarkierung.</li>
- *     <li><b>Blau beim Anklicken:</b> Wechselt beim Anklicken oder Ziehen sofort in sattes Pult-Blau ({@code #2563EB}).</li>
+ *     <li><b>18 px flacher Track:</b> Dunkelgrauer Track ({@code #333338}) mit feinen 1px Begrenzungslinien.</li>
+ *     <li><b>Rechteckiger Drag-Thumb:</b> Scharfkantiger, satter Mittelgrau-Schieber ({@code #555558}), der die gesamte Höhe füllt.</li>
+ *     <li><b>Vertikaler Center-Grip:</b> Exakt zentrierte, 2.5 px breite Grip-Linie ({@code #727276}) mit dezentem Randabstand.</li>
+ *     <li><b>Aktiv-Zustand:</b> Wechselt bei Klick & Drag in leuchtendes Pult-Blau ({@code #2563EB}) mit weißer Grip-Linie.</li>
  * </ul>
  * </p>
  */
 public class DeskScrollBar extends Pane {
 
-    public static final double BAR_HEIGHT = 14.0;
+    public static final double BAR_HEIGHT = 18.0;
     public static final double MIN_THUMB_WIDTH = 48.0;
 
-    public static final Color COLOR_TRACK_BG = Color.web("#161619");
-    public static final Color COLOR_TRACK_BORDER = Color.web("#27272A");
-    public static final Color COLOR_THUMB_NORMAL = Color.web("#3A3A40");
-    public static final Color COLOR_THUMB_HOVER = Color.web("#4A4A52");
+    public static final Color COLOR_TRACK_BG = Color.web("#333338");
+    public static final Color COLOR_TRACK_BORDER = Color.web("#222225");
+    public static final Color COLOR_THUMB_NORMAL = Color.web("#555558");
+    public static final Color COLOR_THUMB_HOVER = Color.web("#636368");
     public static final Color COLOR_THUMB_PRESSED = Color.web("#2563EB"); // Blau beim Anklicken!
-    public static final Color COLOR_CENTER_LINE = Color.web("#D1D5DB");  // Hellgraue Mittellinie
+    public static final Color COLOR_CENTER_LINE = Color.web("#727276");  // Grip-Linie normal
+    public static final Color COLOR_CENTER_LINE_PRESSED = Color.WHITE;    // Grip-Linie aktiv
 
     private final int totalChannels;
     private final int visibleChannels;
@@ -266,20 +267,24 @@ public class DeskScrollBar extends Pane {
 
         gc.setStroke(COLOR_TRACK_BORDER);
         gc.setLineWidth(1.0);
-        gc.strokeLine(0, 0, w, 0);
+        gc.strokeLine(0, 0.5, w, 0.5);
+        gc.strokeLine(0, h - 0.5, w, h - 0.5);
 
-        // 2. Rechteckiger Thumb (Grau, bei Klick Blau)
+        // 2. Rechteckiger Thumb (Schieber füllt die gesamte Höhe nahtlos aus)
         double thumbW = getThumbWidth(w);
         double thumbX = getThumbX(w, thumbW);
 
         gc.setFill(getCurrentThumbColor());
-        gc.fillRect(thumbX, 1, thumbW, h - 2);
+        gc.fillRect(thumbX, 0, thumbW, h);
 
-        // 3. Vertikale hellgraue Center-Linie in der Mitte
-        double midX = Math.round(thumbX + (thumbW / 2.0)) + 0.5;
-        gc.setStroke(isPressed ? Color.WHITE : COLOR_CENTER_LINE);
-        gc.setLineWidth(1.5);
-        gc.strokeLine(midX, 2.5, midX, h - 2.5);
+        // 3. Vertikale Center-Grip-Linie (2.5 px breit, 3 px Randabstand)
+        double lineW = 2.5;
+        double lineH = Math.max(4.0, h - 6.0);
+        double lineX = Math.round(thumbX + (thumbW - lineW) / 2.0);
+        double lineY = 3.0;
+
+        gc.setFill(isPressed ? COLOR_CENTER_LINE_PRESSED : COLOR_CENTER_LINE);
+        gc.fillRect(lineX, lineY, lineW, lineH);
     }
 
     /**

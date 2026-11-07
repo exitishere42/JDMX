@@ -98,20 +98,20 @@ class DeskScrollBarTest {
         Platform.runLater(() -> {
             try {
                 DeskScrollBar scrollBar = new DeskScrollBar();
-                scrollBar.setSimulatedDimensions(800.0, 14.0);
+                scrollBar.setSimulatedDimensions(800.0, DeskScrollBar.BAR_HEIGHT);
 
                 assertThat(scrollBar.isPressedState()).isFalse();
-                assertThat(scrollBar.getCurrentThumbColor()).isEqualTo(Color.web("#3A3A40")); // Grau
+                assertThat(scrollBar.getCurrentThumbColor()).isEqualTo(DeskScrollBar.COLOR_THUMB_NORMAL);
 
                 // Klick simulieren
                 scrollBar.handlePress(50.0);
                 assertThat(scrollBar.isPressedState()).isTrue();
-                assertThat(scrollBar.getCurrentThumbColor()).isEqualTo(Color.web("#2563EB")); // Blau beim Anklicken!
+                assertThat(scrollBar.getCurrentThumbColor()).isEqualTo(DeskScrollBar.COLOR_THUMB_PRESSED); // Blau beim Anklicken!
 
                 // Loslassen simulieren
                 scrollBar.handleRelease();
                 assertThat(scrollBar.isPressedState()).isFalse();
-                assertThat(scrollBar.getCurrentThumbColor()).isEqualTo(Color.web("#3A3A40")); // Wieder grau
+                assertThat(scrollBar.getCurrentThumbColor()).isEqualTo(DeskScrollBar.COLOR_THUMB_NORMAL);
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -132,7 +132,7 @@ class DeskScrollBarTest {
         Platform.runLater(() -> {
             try {
                 DeskScrollBar scrollBar = new DeskScrollBar();
-                scrollBar.setSimulatedDimensions(800.0, 14.0);
+                scrollBar.setSimulatedDimensions(800.0, DeskScrollBar.BAR_HEIGHT);
 
                 // Bei 800px Breite und min 48px Thumb:
                 // Wenn man zur Mitte zieht (ca. x = 400), sollte der Wert ca. 240 sein
