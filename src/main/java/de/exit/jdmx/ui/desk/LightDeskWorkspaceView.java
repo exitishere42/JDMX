@@ -13,9 +13,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,8 +22,8 @@ import java.util.Objects;
  * <p>
  * Bietet ein professionelles Lichtmischpult-Layout mit 50/50-Teilung:
  * <ul>
- *     <li><b>Kopfzeile:</b> Universums-Umschaltung (Universum 1–4), Schnell-Reset und Bank-Navigation (1–32, 33–64...).</li>
- *     <li><b>Oberes Fader-Dock (50 % Höhe):</b> Puristische Canvas-Balken ohne Text-Overhead mit Kanalnummern am Fuß.</li>
+ *     <li><b>Kopfzeile:</b> Universums-Umschaltung (Universum 1–4) und Schnell-Reset.</li>
+ *     <li><b>Oberes Fader-Dock (50 % Höhe):</b> Puristische Canvas-Balken ohne Text-Overhead mit Kanalnummern am Fuß und rechteckiger Custom-Scrollbar.</li>
  *     <li><b>Unterer Bereich (50 % Höhe):</b> Strukturierte Arbeitsfläche für die nächsten Ausbauschritte.</li>
  * </ul>
  * </p>
@@ -33,8 +31,6 @@ import java.util.Objects;
 public class LightDeskWorkspaceView extends VBox {
 
     public static final int TOTAL_CHANNELS = CanvasDeskView.TOTAL_CHANNELS;
-    public static final int CHANNELS_PER_BANK = CanvasDeskView.VISIBLE_COUNT;
-    public static final int TOTAL_BANKS = TOTAL_CHANNELS / CHANNELS_PER_BANK; // 16 Bänke
 
     private final DmxService dmxService;
     private final ProjectExplorerService explorerService;
@@ -42,9 +38,6 @@ public class LightDeskWorkspaceView extends VBox {
     // Header Controls
     private final ComboBox<String> comboUniverse;
     private final Button btnResetAll;
-    private final HBox bankButtonContainer;
-    private final List<Button> bankButtons = new ArrayList<>();
-    private int currentBank = 1;
 
     // SplitPane mit 50/50 Aufteilung
     private final SplitPane splitPane;
@@ -69,15 +62,10 @@ public class LightDeskWorkspaceView extends VBox {
         // 1. Headerzeile initialisieren
         this.comboUniverse = new ComboBox<>();
         this.btnResetAll = new Button("Alle Kanäle 0");
-        this.bankButtonContainer = new HBox(4);
         HBox headerBar = buildHeaderBar();
 
         // 2. Oberes Fader-Dock (50 % der Bildschirmhöhe)
         this.canvasDeskView = new CanvasDeskView();
-        canvasDeskView.setOnScrollChanged(offset -> {
-            int bank = (int) Math.floor(offset / CHANNELS_PER_BANK) + 1;
-            updateBankHighlight(bank);
-        });
 
         this.topFaderDock = new VBox(canvasDeskView);
         topFaderDock.getStyleClass().add("desk-top-dock");
@@ -126,58 +114,8 @@ public class LightDeskWorkspaceView extends VBox {
         btnResetAll.setGraphic(new LucideIcon("rotate-ccw", 13, StudioTheme.COLOR_ICON_RED));
         btnResetAll.setOnAction(e -> resetAllChannels());
 
-        // Bänke Navigation
-        bankButtonContainer.setAlignment(Pos.CENTER_LEFT);
-        for (int b = 1; b <= TOTAL_BANKS; b++) {
-            final int bankIndex = b;
-            int startCh = (b - 1) * CHANNELS_PER_BANK + 1;
-            int endCh = b * CHANNELS_PER_BANK;
-            Button btnBank = new Button(startCh + "–" + endCh);
-            btnBank.getStyleClass().add("desk-bank-btn");
-            if (b == currentBank) {
-                btnBank.getStyleClass().add("active");
-            }
-            btnBank.setOnAction(e -> selectBank(bankIndex));
-            bankButtons.add(btnBank);
-            bankButtonContainer.getChildren().add(btnBank);
-        }
-
-        ScrollPane bankScrollPane = new ScrollPane(bankButtonContainer);
-        bankScrollPane.getStyleClass().addAll("desk-bank-scrollpane", "edge-to-edge");
-        bankScrollPane.setFitToHeight(true);
-        bankScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        bankScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        HBox.setHgrow(bankScrollPane, Priority.ALWAYS);
-
-        header.getChildren().addAll(new Label("Universum:"), comboUniverse, btnResetAll, new Separator(javafx.geometry.Orientation.VERTICAL), new Label("Bänke:"), bankScrollPane);
+        header.getChildren().addAll(new Label("Universum:"), comboUniverse, btnResetAll);
         return header;
-    }
-
-    /**
-     * Wählt eine Faderbank (1 bis 16) aus und scrollt die Faderbank dorthin.
-     *
-     * @param bankIndex 1-basierter Bank-Index (1 bis 16)
-     */
-    public void selectBank(int bankIndex) {
-        if (bankIndex < 1 || bankIndex > TOTAL_BANKS) {
-            return;
-        }
-        updateBankHighlight(bankIndex);
-
-        int targetChannel = (bankIndex - 1) * CHANNELS_PER_BANK + 1;
-        canvasDeskView.scrollToChannel(targetChannel);
-    }
-
-    private void updateBankHighlight(int bankIndex) {
-        int clamped = Math.max(1, Math.min(TOTAL_BANKS, bankIndex));
-        this.currentBank = clamped;
-        for (int i = 0; i < bankButtons.size(); i++) {
-            Button btn = bankButtons.get(i);
-            btn.getStyleClass().remove("active");
-            if (i == clamped - 1) {
-                btn.getStyleClass().add("active");
-            }
-        }
     }
 
     /**
@@ -187,8 +125,6 @@ public class LightDeskWorkspaceView extends VBox {
      */
     public void scrollToChannel(int channel) {
         canvasDeskView.scrollToChannel(channel);
-        int bank = ((channel - 1) / CHANNELS_PER_BANK) + 1;
-        updateBankHighlight(bank);
     }
 
     /**
@@ -263,10 +199,6 @@ public class LightDeskWorkspaceView extends VBox {
 
     public StackPane getBottomWorkspaceArea() {
         return bottomWorkspaceArea;
-    }
-
-    public int getCurrentBank() {
-        return currentBank;
     }
 
     public Button getBtnResetAll() {

@@ -84,7 +84,7 @@ public class UniversePatchTable extends VBox {
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setPadding(new Insets(2, 4, 6, 4));
 
-        Label titleLabel = new Label("UNIVERSUM-ZUORDNUNG");
+        Label titleLabel = new Label("I/O Patching");
         titleLabel.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-letter-spacing: 0.5px;");
 
         Region spacer = new Region();

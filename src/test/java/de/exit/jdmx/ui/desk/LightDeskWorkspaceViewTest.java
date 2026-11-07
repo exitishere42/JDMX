@@ -157,8 +157,8 @@ class LightDeskWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Bank-Navigation unterstützen (z. B. Bank 1: 1-32, Bank 2: 33-64)")
-    void shouldSupportBankNavigation() throws Throwable {
+    @DisplayName("Sollte Scroll-Navigation über DeskScrollBar und scrollToChannel unterstützen")
+    void shouldSupportScrollNavigation() throws Throwable {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
 
@@ -168,12 +168,18 @@ class LightDeskWorkspaceViewTest {
                 ProjectExplorerService explorerService = new ProjectExplorerService();
                 LightDeskWorkspaceView desk = new LightDeskWorkspaceView(dmxService, explorerService);
 
-                assertThat(desk.getCurrentBank()).isEqualTo(1);
-                desk.selectBank(2);
-                assertThat(desk.getCurrentBank()).isEqualTo(2);
+                // ScrollBar ist vorhanden und initial auf 0
+                DeskScrollBar scrollBar = desk.getCanvasDeskView().getScrollBar();
+                assertThat(scrollBar).isNotNull();
+                assertThat(desk.getCanvasDeskView().getScrollOffset()).isEqualTo(0.0);
 
-                // Scrollposition muss Bank 2 (Kanal 33 -> Offset 32) widerspiegeln
-                assertThat(desk.getCanvasDeskView().getScrollOffset()).isEqualTo(32.0);
+                // Zu Kanal 65 scrollen
+                desk.scrollToChannel(65);
+                assertThat(desk.getCanvasDeskView().getScrollOffset()).isEqualTo(64.0);
+
+                // Direkt über ScrollBar scrollen
+                scrollBar.setValue(128.0);
+                assertThat(desk.getCanvasDeskView().getScrollOffset()).isEqualTo(128.0);
             } catch (Throwable t) {
                 error.set(t);
             } finally {

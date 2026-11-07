@@ -4,7 +4,7 @@ chcp 65001 >nul 2>&1
 
 set "REPO=exitishere42/JDMX"
 set "INSTALL_DIR=%USERPROFILE%\jdmx"
-set "JAR_NAME=jdmx-1.11.2-all.jar"
+set "JAR_NAME=jdmx-1.11.3-all.jar"
 set "RELEASE_URL=https://github.com/%REPO%/releases/latest/download"
 set "RAW_URL=https://raw.githubusercontent.com/%REPO%/main"
 

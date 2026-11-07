@@ -5,7 +5,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.ScrollBar;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -28,6 +27,7 @@ import java.util.function.Consumer;
  *     <li><b>Pinsel-Modus:</b> Ziehen mit gedrückter Maustaste quer über Kanäle setzt mehrere Werte in einer Wischbewegung.</li>
  *     <li><b>Schnell-Reset:</b> Doppelklick auf einen Kanal setzt den Wert sofort auf 0.</li>
  *     <li><b>Direct Rendering:</b> Hardwarebeschleunigtes Zeichnen in unter 1 ms pro Frame.</li>
+ *     <li><b>Custom Scrollbar:</b> Rechteckige, flache Leiste mit blauem Aktivzustand beim Anklicken.</li>
  * </ul>
  * </p>
  */
@@ -41,14 +41,13 @@ public class CanvasDeskView extends VBox {
 
     private final Canvas canvas;
     private final CanvasPane canvasPane;
-    private final ScrollBar scrollBar;
+    private final DeskScrollBar scrollBar;
 
     private final DeskChannelData[] channels = new DeskChannelData[TOTAL_CHANNELS];
 
     private double channelWidth = 25.0;
     private double barWidth = 19.0;
     private double scrollOffsetChannels = 0.0;
-    private int hoveredChannel = -1;
 
     private BiConsumer<Integer, Integer> onChannelValueChanged;
     private Consumer<Double> onScrollChanged;
@@ -70,18 +69,10 @@ public class CanvasDeskView extends VBox {
         this.canvasPane = new CanvasPane(canvas, this);
         VBox.setVgrow(canvasPane, Priority.ALWAYS);
 
-        // 2. Horizontale ScrollBar
-        this.scrollBar = new ScrollBar();
-        scrollBar.getStyleClass().add("desk-canvas-scrollbar");
-        scrollBar.setMin(0);
-        scrollBar.setMax(TOTAL_CHANNELS - VISIBLE_COUNT);
-        scrollBar.setVisibleAmount(VISIBLE_COUNT);
-        scrollBar.setBlockIncrement(VISIBLE_COUNT);
-        scrollBar.setUnitIncrement(1);
-        scrollBar.setPadding(new Insets(2, 0, 0, 0));
-
-        scrollBar.valueProperty().addListener((obs, oldVal, newVal) -> {
-            this.scrollOffsetChannels = newVal.doubleValue();
+        // 2. Horizontale Custom-Scrollbar (Rechteckig, grauer Thumb mit Center-Linie, Blau bei Klick)
+        this.scrollBar = new DeskScrollBar(TOTAL_CHANNELS, VISIBLE_COUNT);
+        scrollBar.setOnValueChanged(newVal -> {
+            this.scrollOffsetChannels = newVal;
             if (onScrollChanged != null) {
                 onScrollChanged.accept(scrollOffsetChannels);
             }
@@ -93,7 +84,7 @@ public class CanvasDeskView extends VBox {
             double delta = e.getDeltaY() != 0 ? e.getDeltaY() : e.getDeltaX();
             if (delta != 0) {
                 double step = (delta > 0 ? -3 : 3);
-                double target = Math.max(0, Math.min(scrollBar.getMax(), scrollBar.getValue() + step));
+                double target = Math.max(0, Math.min(scrollBar.getMaxValue(), scrollBar.getValue() + step));
                 scrollBar.setValue(target);
             }
         });
@@ -115,27 +106,6 @@ public class CanvasDeskView extends VBox {
                 if (ch >= 1 && ch <= TOTAL_CHANNELS) {
                     setChannelValue(ch, 0);
                 }
-            }
-        });
-
-        // 6. Hover-Highlight
-        canvasPane.setOnMouseMoved(e -> {
-            int ch = getChannelAtX(e.getX()) - 1; // 0-basiert
-            if (ch >= 0 && ch < TOTAL_CHANNELS) {
-                if (ch != hoveredChannel) {
-                    hoveredChannel = ch;
-                    render();
-                }
-            } else if (hoveredChannel != -1) {
-                hoveredChannel = -1;
-                render();
-            }
-        });
-
-        canvasPane.setOnMouseExited(e -> {
-            if (hoveredChannel != -1) {
-                hoveredChannel = -1;
-                render();
             }
         });
 
@@ -242,7 +212,7 @@ public class CanvasDeskView extends VBox {
      * @param channelNum 1-basierte Kanalnummer (1–512)
      */
     public void scrollToChannel(int channelNum) {
-        double target = Math.max(0, Math.min(TOTAL_CHANNELS - VISIBLE_COUNT, channelNum - 1));
+        double target = Math.max(0, Math.min(scrollBar.getMaxValue(), channelNum - 1));
         scrollBar.setValue(target);
     }
 
@@ -339,7 +309,7 @@ public class CanvasDeskView extends VBox {
             // 2. Ausgefüllter Pegelbalken von unten nach oben
             if (val > 0 && trackH > 0) {
                 double barH = (val / 255.0) * trackH;
-                Color barCol = (ch == hoveredChannel) ? Color.web("#38BDF8") : data.getBarColor();
+                Color barCol = data.getBarColor();
                 gc.setFill(barCol);
                 gc.fillRoundRect(barX, trackBottom - barH, barWidth, barH, 3, 3);
             }
@@ -353,13 +323,6 @@ public class CanvasDeskView extends VBox {
             if (data.getFixtureColor() != null) {
                 gc.setFill(data.getFixtureColor());
                 gc.fillRect(screenX + 4, h - 3, channelWidth - 8, 2);
-            }
-
-            // 5. Hover-Rahmen
-            if (ch == hoveredChannel) {
-                gc.setStroke(Color.web("#38BDF8"));
-                gc.setLineWidth(1.5);
-                gc.strokeRect(screenX + 1, 2, channelWidth - 2, h - 4);
             }
         }
     }
@@ -376,7 +339,7 @@ public class CanvasDeskView extends VBox {
         return scrollOffsetChannels;
     }
 
-    public ScrollBar getScrollBar() {
+    public DeskScrollBar getScrollBar() {
         return scrollBar;
     }
 
