@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TDD Unit-Tests für den {@link LightDeskWorkspaceView} (Tab 2: LightDesk).
- * Prüft den visuellen Aufbau, Layout-Hierarchien, Fader-Erzeugung und Navigation.
+ * Prüft den visuellen Aufbau, Layout-Hierarchien, performante Canvas-Balkenbank und Navigation.
  */
 class LightDeskWorkspaceViewTest {
 
@@ -35,7 +35,7 @@ class LightDeskWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte LightDesk mit Universums-Dropdown, Faderbank und Fixture-Liste aufbauen")
+    @DisplayName("Sollte LightDesk mit Universums-Dropdown, CanvasDeskView und Fixture-Liste aufbauen")
     void shouldBuildLightDeskLayout() throws Throwable {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
@@ -56,16 +56,10 @@ class LightDeskWorkspaceViewTest {
                 assertThat(comboUni.getItems()).containsExactly("Universum 1", "Universum 2", "Universum 3", "Universum 4");
                 assertThat(comboUni.getValue()).isEqualTo("Universum 1");
 
-                // 2. Faderbank
-                assertThat(desk.getFaderContainer()).isNotNull();
-                assertThat(desk.getChannelStrips()).hasSize(512);
-
-                // Erster Kanalstreifen prüfen
-                DeskChannelStrip firstStrip = desk.getChannelStrips().get(0);
-                assertThat(firstStrip.getChannelNumber()).isEqualTo(1);
-                assertThat(firstStrip.getSlider().getMin()).isEqualTo(0.0);
-                assertThat(firstStrip.getSlider().getMax()).isEqualTo(255.0);
-                assertThat(firstStrip.getValueLabel().getText()).isEqualTo("0");
+                // 2. Performante Canvas-Faderbank
+                assertThat(desk.getCanvasDeskView()).isNotNull();
+                assertThat(desk.getCanvasDeskView().getTotalChannels()).isEqualTo(512);
+                assertThat(desk.getCanvasDeskView().getChannelValue(1)).isEqualTo(0);
 
                 // 3. Fixture-Liste
                 assertThat(desk.getFixtureListContainer()).isNotNull();
@@ -81,7 +75,7 @@ class LightDeskWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Kanalwert über Slider ändern und über Reset-Button auf 0 zurücksetzen")
+    @DisplayName("Sollte Kanalwert über CanvasDeskView ändern und über Reset-Button auf 0 zurücksetzen")
     void shouldChangeAndResetChannelValue() throws Throwable {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
@@ -92,16 +86,13 @@ class LightDeskWorkspaceViewTest {
                 ProjectExplorerService explorerService = new ProjectExplorerService();
                 LightDeskWorkspaceView desk = new LightDeskWorkspaceView(dmxService, explorerService);
 
-                DeskChannelStrip strip = desk.getChannelStrips().get(4); // Kanal 5
+                // Wert für Kanal 5 setzen
+                desk.getCanvasDeskView().setChannelValue(5, 180);
+                assertThat(desk.getCanvasDeskView().getChannelValue(5)).isEqualTo(180);
 
-                // Slider bewegen
-                strip.getSlider().setValue(180.0);
-                assertThat(strip.getValueLabel().getText()).isEqualTo("180");
-
-                // Reset-Button drücken
-                strip.getBtnReset().fire();
-                assertThat(strip.getSlider().getValue()).isEqualTo(0.0);
-                assertThat(strip.getValueLabel().getText()).isEqualTo("0");
+                // Alle zurücksetzen
+                desk.getBtnResetAll().fire();
+                assertThat(desk.getCanvasDeskView().getChannelValue(5)).isEqualTo(0);
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -142,16 +133,16 @@ class LightDeskWorkspaceViewTest {
                 assertThat(desk.getFixtureCards().get(0).getTitleLabel().getText()).contains("Moving Head 1");
                 assertThat(desk.getFixtureCards().get(0).getChannelsLabel().getText()).contains("1 - 3");
 
-                // Kanalstreifen-Labels prüfen
-                DeskChannelStrip strip1 = desk.getChannelStrips().get(0);
-                DeskChannelStrip strip2 = desk.getChannelStrips().get(1);
-                DeskChannelStrip strip3 = desk.getChannelStrips().get(2);
-                DeskChannelStrip strip4 = desk.getChannelStrips().get(3); // Unbelegt
+                // Kanal-Daten in CanvasDeskView prüfen
+                DeskChannelData data1 = desk.getCanvasDeskView().getChannelData(1);
+                DeskChannelData data2 = desk.getCanvasDeskView().getChannelData(2);
+                DeskChannelData data3 = desk.getCanvasDeskView().getChannelData(3);
+                DeskChannelData data4 = desk.getCanvasDeskView().getChannelData(4); // Unbelegt
 
-                assertThat(strip1.getChannelFunctionLabel().getText()).isEqualTo("Dimmer");
-                assertThat(strip2.getChannelFunctionLabel().getText()).isEqualTo("Pan");
-                assertThat(strip3.getChannelFunctionLabel().getText()).isEqualTo("Tilt");
-                assertThat(strip4.getChannelFunctionLabel().getText()).isEqualTo("-");
+                assertThat(data1.getFunctionName()).isEqualTo("Dimmer");
+                assertThat(data2.getFunctionName()).isEqualTo("Pan");
+                assertThat(data3.getFunctionName()).isEqualTo("Tilt");
+                assertThat(data4.getFunctionName()).isEqualTo("-");
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -179,8 +170,8 @@ class LightDeskWorkspaceViewTest {
                 desk.selectBank(2);
                 assertThat(desk.getCurrentBank()).isEqualTo(2);
 
-                // Scrollposition muss sich verändert haben
-                assertThat(desk.getFaderScrollPane().getHvalue()).isGreaterThan(0.0);
+                // Scrollposition muss Bank 2 (Kanal 33 -> Offset 32) widerspiegeln
+                assertThat(desk.getCanvasDeskView().getScrollOffset()).isEqualTo(32.0);
             } catch (Throwable t) {
                 error.set(t);
             } finally {

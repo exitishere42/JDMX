@@ -22,18 +22,18 @@ import java.util.Objects;
 /**
  * Arbeitsbereich für Tab 2 (LightDesk - Fader-Pult).
  * <p>
- * Bietet ein professionelles Lichtmischpult-Layout im QLC+ Fader-Desk-Stil:
+ * Bietet ein professionelles Lichtmischpult-Layout mit ziehbaren Pegelbalken nach dem Vorbild von {@code artnet2dmx}:
  * <ul>
  *     <li>Kopfzeile mit Universums-Umschaltung (Universum 1–4), Schnell-Reset und Bank-Navigation (1–32, 33–64...).</li>
- *     <li>Zentrale 512-Kanal-Faderbank mit reibungslosem horizontalen Scrolling und Dirty-Rendering.</li>
+ *     <li>Performante 512-Kanal-Faderbank auf Canvas-Basis mit interaktivem Ziehen, Wischen und Nullstellen ohne jeden Lag.</li>
  *     <li>Untere Schnellzugriffsleiste mit gepatchten Scheinwerfern und Auto-Scroll zum Startkanal.</li>
  * </ul>
  * </p>
  */
 public class LightDeskWorkspaceView extends VBox {
 
-    public static final int TOTAL_CHANNELS = 512;
-    public static final int CHANNELS_PER_BANK = 32;
+    public static final int TOTAL_CHANNELS = CanvasDeskView.TOTAL_CHANNELS;
+    public static final int CHANNELS_PER_BANK = CanvasDeskView.VISIBLE_COUNT;
     public static final int TOTAL_BANKS = TOTAL_CHANNELS / CHANNELS_PER_BANK; // 16 Bänke
 
     private final DmxService dmxService;
@@ -46,10 +46,8 @@ public class LightDeskWorkspaceView extends VBox {
     private final List<Button> bankButtons = new ArrayList<>();
     private int currentBank = 1;
 
-    // Faderbank
-    private final ScrollPane faderScrollPane;
-    private final HBox faderContainer;
-    private final List<DeskChannelStrip> channelStrips = new ArrayList<>(TOTAL_CHANNELS);
+    // Canvas Faderbank
+    private final CanvasDeskView canvasDeskView;
 
     // Untere Leiste: Gepatchte Scheinwerfer
     private final ScrollPane fixtureScrollPane;
@@ -76,24 +74,12 @@ public class LightDeskWorkspaceView extends VBox {
         this.bankButtonContainer = new HBox(4);
         HBox headerBar = buildHeaderBar();
 
-        // 2. Faderbank (512 Kanäle) initialisieren
-        this.faderContainer = new HBox(2);
-        this.faderContainer.getStyleClass().add("desk-fader-container");
-        this.faderContainer.setAlignment(Pos.CENTER_LEFT);
-        this.faderContainer.setPadding(new Insets(8, 12, 8, 12));
-
-        for (int ch = 1; ch <= TOTAL_CHANNELS; ch++) {
-            DeskChannelStrip strip = new DeskChannelStrip(ch);
-            channelStrips.add(strip);
-            faderContainer.getChildren().add(strip);
-        }
-
-        this.faderScrollPane = new ScrollPane(faderContainer);
-        this.faderScrollPane.getStyleClass().addAll("desk-fader-scrollpane", "edge-to-edge");
-        this.faderScrollPane.setFitToHeight(true);
-        this.faderScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        this.faderScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
-        VBox.setVgrow(faderScrollPane, Priority.ALWAYS);
+        // 2. Performante Canvas-Faderbank initialisieren
+        this.canvasDeskView = new CanvasDeskView();
+        canvasDeskView.setOnScrollChanged(offset -> {
+            int bank = (int) Math.floor(offset / CHANNELS_PER_BANK) + 1;
+            updateBankHighlight(bank);
+        });
 
         // 3. Untere Leiste: Gepatchte Scheinwerfer
         this.fixtureListContainer = new HBox(6);
@@ -112,7 +98,7 @@ public class LightDeskWorkspaceView extends VBox {
 
         HBox bottomBar = buildBottomBar();
 
-        getChildren().addAll(headerBar, faderScrollPane, bottomBar);
+        getChildren().addAll(headerBar, canvasDeskView, bottomBar);
 
         // Gepatchte Geräte laden & Event-Listener verdrahten
         refreshPatchedFixtures();
@@ -188,19 +174,22 @@ public class LightDeskWorkspaceView extends VBox {
         if (bankIndex < 1 || bankIndex > TOTAL_BANKS) {
             return;
         }
-        this.currentBank = bankIndex;
+        updateBankHighlight(bankIndex);
 
-        // Button-Highlightings aktualisieren
+        int targetChannel = (bankIndex - 1) * CHANNELS_PER_BANK + 1;
+        canvasDeskView.scrollToChannel(targetChannel);
+    }
+
+    private void updateBankHighlight(int bankIndex) {
+        int clamped = Math.max(1, Math.min(TOTAL_BANKS, bankIndex));
+        this.currentBank = clamped;
         for (int i = 0; i < bankButtons.size(); i++) {
             Button btn = bankButtons.get(i);
             btn.getStyleClass().remove("active");
-            if (i == bankIndex - 1) {
+            if (i == clamped - 1) {
                 btn.getStyleClass().add("active");
             }
         }
-
-        int targetChannel = (bankIndex - 1) * CHANNELS_PER_BANK + 1;
-        scrollToChannel(targetChannel);
     }
 
     /**
@@ -209,29 +198,16 @@ public class LightDeskWorkspaceView extends VBox {
      * @param channel 1-basierter Kanal (1 bis 512)
      */
     public void scrollToChannel(int channel) {
-        int clamped = Math.max(1, Math.min(TOTAL_CHANNELS, channel));
-        double targetH = (double) (clamped - 1) / (TOTAL_CHANNELS - 1);
-        faderScrollPane.setHvalue(targetH);
-
-        // Bank-Highlight aktualisieren
-        int bank = ((clamped - 1) / CHANNELS_PER_BANK) + 1;
-        this.currentBank = bank;
-        for (int i = 0; i < bankButtons.size(); i++) {
-            Button btn = bankButtons.get(i);
-            btn.getStyleClass().remove("active");
-            if (i == bank - 1) {
-                btn.getStyleClass().add("active");
-            }
-        }
+        canvasDeskView.scrollToChannel(channel);
+        int bank = ((channel - 1) / CHANNELS_PER_BANK) + 1;
+        updateBankHighlight(bank);
     }
 
     /**
      * Setzt alle 512 Kanäle im Desk auf den DMX-Wert 0 zurück.
      */
     public void resetAllChannels() {
-        for (DeskChannelStrip strip : channelStrips) {
-            strip.reset();
-        }
+        canvasDeskView.resetAll();
     }
 
     /**
@@ -240,11 +216,7 @@ public class LightDeskWorkspaceView extends VBox {
     public void refreshPatchedFixtures() {
         fixtureCards.clear();
         fixtureListContainer.getChildren().clear();
-
-        // Zuerst alle Kanalstreifen zurücksetzen
-        for (DeskChannelStrip strip : channelStrips) {
-            strip.clearFixtureAssignment();
-        }
+        canvasDeskView.clearFixtureAssignments();
 
         if (explorerService == null) {
             return;
@@ -270,11 +242,10 @@ public class LightDeskWorkspaceView extends VBox {
                 if (instance.getActiveMode() != null && instance.getActiveMode().getChannels() != null) {
                     List<ChannelDefinition> channels = instance.getActiveMode().getChannels();
                     for (int i = 0; i < channels.size(); i++) {
-                        int chIndex = startAddr - 1 + i;
-                        if (chIndex >= 0 && chIndex < channelStrips.size()) {
+                        int ch = startAddr + i;
+                        if (ch >= 1 && ch <= TOTAL_CHANNELS) {
                             ChannelDefinition chDef = channels.get(i);
-                            DeskChannelStrip strip = channelStrips.get(chIndex);
-                            strip.assignFixtureChannel(instance.getName(), chDef.type(), item.getColor());
+                            canvasDeskView.assignFixtureChannel(ch, instance.getName(), chDef.type(), item.getColor());
                         }
                     }
                 }
@@ -297,16 +268,8 @@ public class LightDeskWorkspaceView extends VBox {
         return comboUniverse;
     }
 
-    public HBox getFaderContainer() {
-        return faderContainer;
-    }
-
-    public List<DeskChannelStrip> getChannelStrips() {
-        return Collections.unmodifiableList(channelStrips);
-    }
-
-    public ScrollPane getFaderScrollPane() {
-        return faderScrollPane;
+    public CanvasDeskView getCanvasDeskView() {
+        return canvasDeskView;
     }
 
     public HBox getFixtureListContainer() {

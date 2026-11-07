@@ -1427,63 +1427,18 @@
 }
 
 .desk-bank-scrollpane,
-.desk-fader-scrollpane,
 .desk-fixture-scrollpane {
     -fx-background-color: transparent;
     -fx-background: transparent;
 }
 
-.desk-channel-strip {
-    -fx-background-color: #18181C;
-    -fx-border-color: #26262B;
-    -fx-border-width: 1;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
-    -fx-padding: 6 3 6 3;
+.canvas-desk-view {
+    -fx-background-color: #121212;
 }
 
-.desk-channel-strip:hover {
-    -fx-border-color: #3F3F46;
-    -fx-background-color: #1C1C22;
-}
-
-.desk-channel-function {
-    -fx-font-size: 9px;
-    -fx-text-fill: #A1A1AA;
-    -fx-alignment: CENTER;
-}
-
-.desk-channel-value {
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #F4F4F5;
-    -fx-font-family: monospace;
-    -fx-alignment: CENTER;
-}
-
-.desk-channel-number {
-    -fx-font-size: 10px;
-    -fx-text-fill: #71717A;
-    -fx-alignment: CENTER;
-}
-
-.desk-reset-btn {
-    -fx-background-color: transparent;
-    -fx-border-width: 0;
-    -fx-background-radius: 3px;
-    -fx-padding: 2;
-    -fx-min-width: 18px;
-    -fx-pref-width: 18px;
-    -fx-max-width: 18px;
-    -fx-min-height: 18px;
-    -fx-pref-height: 18px;
-    -fx-max-height: 18px;
-    -fx-cursor: hand;
-    -fx-alignment: CENTER;
-}
-
-.desk-reset-btn:hover {
-    -fx-background-color: #27272A;
+.desk-canvas-scrollbar {
+    -fx-background-color: #18181B;
+    -fx-pref-height: 8px;
 }
 
 .desk-bottom-bar {
