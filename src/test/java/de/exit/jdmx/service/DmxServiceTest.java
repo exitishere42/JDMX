@@ -226,4 +226,49 @@ class DmxServiceTest {
         assertThat(rate).isGreaterThanOrEqualTo(2);
         assertThat(dmxService.getCurrentRate()).isEqualTo(rate);
     }
+
+    @Test
+    @DisplayName("setChannel und getChannel setzen und lesen DMX-Kanalwerte direkt")
+    void setChannel_and_getChannel_worksCorrectly() {
+        dmxService.setChannel(0, 10, 175);
+        assertThat(dmxService.getChannel(0, 10)).isEqualTo(175);
+        assertThat(dmxService.getUniverse(0).getChannel(10)).isEqualTo(175);
+
+        // Ungültige Werte validieren
+        assertThatThrownBy(() -> dmxService.setChannel(-1, 10, 100))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> dmxService.setChannel(0, 0, 100))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> dmxService.setChannel(0, 513, 100))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> dmxService.setChannel(0, 10, 256))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("ChannelChangeListener wird bei Kanaländerungen und Blackout benachrichtigt")
+    void channelChangeListener_isNotifiedOnChannelChange() {
+        java.util.concurrent.atomic.AtomicInteger lastUni = new java.util.concurrent.atomic.AtomicInteger(-1);
+        java.util.concurrent.atomic.AtomicInteger lastCh = new java.util.concurrent.atomic.AtomicInteger(-1);
+        java.util.concurrent.atomic.AtomicInteger lastVal = new java.util.concurrent.atomic.AtomicInteger(-1);
+
+        DmxService.ChannelChangeListener listener = (uni, ch, val) -> {
+            lastUni.set(uni);
+            lastCh.set(ch);
+            lastVal.set(val);
+        };
+
+        dmxService.addChannelChangeListener(listener);
+        dmxService.setChannel(1, 42, 210);
+
+        assertThat(lastUni.get()).isEqualTo(1);
+        assertThat(lastCh.get()).isEqualTo(42);
+        assertThat(lastVal.get()).isEqualTo(210);
+
+        // Listener wieder entfernen
+        dmxService.removeChannelChangeListener(listener);
+        dmxService.setChannel(1, 42, 50);
+        // Wert im Listener darf sich nicht mehr geändert haben
+        assertThat(lastVal.get()).isEqualTo(210);
+    }
 }

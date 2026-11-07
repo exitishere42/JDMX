@@ -5,6 +5,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -103,9 +104,9 @@ public class CanvasDeskView extends VBox {
 
         canvasPane.setOnMouseReleased(e -> canvasPane.setCursor(Cursor.DEFAULT));
 
-        // 5. Doppelklick für Null-Stellung
+        // 5. Doppelklick oder Rechtsklick für Null-Stellung
         canvasPane.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2) {
+            if (e.getClickCount() == 2 || e.getButton() == MouseButton.SECONDARY) {
                 int ch = getChannelAtX(e.getX());
                 if (ch >= 1 && ch <= TOTAL_CHANNELS) {
                     setChannelValue(ch, 0);
@@ -323,10 +324,20 @@ public class CanvasDeskView extends VBox {
                 gc.fillRoundRect(barX, trackBottom - barH, barWidth, barH, 3, 3);
             }
 
-            // 4. Kanalnummer unten (1..512)
-            gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10));
+            // 4. DMX-Pegelwert (0..255)
+            if (val > 0) {
+                gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 9.0));
+                gc.setFill(Color.WHITE);
+            } else {
+                gc.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 8.5));
+                gc.setFill(Color.web("#52525B"));
+            }
+            gc.fillText(String.valueOf(val), colCenterX, h - 12);
+
+            // 5. Kanalnummer unten (1..512)
+            gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10.0));
             gc.setFill(Color.web("#A1A1AA"));
-            gc.fillText(String.valueOf(ch + 1), colCenterX, h - 7);
+            gc.fillText(String.valueOf(ch + 1), colCenterX, h - 3);
         }
     }
 

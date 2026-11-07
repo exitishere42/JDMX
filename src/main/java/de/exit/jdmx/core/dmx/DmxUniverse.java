@@ -19,9 +19,18 @@ public class DmxUniverse {
     /** Anzahl der Kanäle pro DMX512-Universum. */
     public static final int CHANNEL_COUNT = 512;
 
+    /**
+     * Listener für Änderungen einzelner DMX-Kanäle.
+     */
+    @FunctionalInterface
+    public interface ChannelChangeListener {
+        void onChannelChanged(int universeIndex, int channel, int value);
+    }
+
     private final int universeIndex;
     private final byte[] channels = new byte[CHANNEL_COUNT];
     private final Object lock = new Object();
+    private volatile ChannelChangeListener changeListener;
 
     /**
      * Erstellt ein neues Universum mit dem angegebenen Null-basierten Index.
@@ -30,6 +39,15 @@ public class DmxUniverse {
      */
     public DmxUniverse(int universeIndex) {
         this.universeIndex = universeIndex;
+    }
+
+    /**
+     * Setzt den Listener für Kanaländerungen in diesem Universum.
+     *
+     * @param changeListener Listener oder null
+     */
+    public void setChangeListener(ChannelChangeListener changeListener) {
+        this.changeListener = changeListener;
     }
 
     /**
@@ -51,8 +69,14 @@ public class DmxUniverse {
     public void setChannel(int channel, int value) {
         validateChannel(channel);
         validateValue(value);
+        boolean changed;
         synchronized (lock) {
+            int old = channels[channel - 1] & 0xFF;
+            changed = (old != value);
             channels[channel - 1] = (byte) (value & 0xFF);
+        }
+        if (changed && changeListener != null) {
+            changeListener.onChannelChanged(universeIndex, channel, value);
         }
     }
 
@@ -108,6 +132,11 @@ public class DmxUniverse {
     public void blackout() {
         synchronized (lock) {
             Arrays.fill(channels, (byte) 0);
+        }
+        if (changeListener != null) {
+            for (int ch = 1; ch <= CHANNEL_COUNT; ch++) {
+                changeListener.onChannelChanged(universeIndex, ch, 0);
+            }
         }
     }
 

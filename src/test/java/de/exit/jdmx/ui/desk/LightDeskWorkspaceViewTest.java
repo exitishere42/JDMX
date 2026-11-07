@@ -68,8 +68,9 @@ class LightDeskWorkspaceViewTest {
                 assertThat(desk.getCanvasDeskView().getTotalChannels()).isEqualTo(512);
                 assertThat(desk.getCanvasDeskView().getChannelValue(1)).isEqualTo(0);
 
-                // 4. Unterer Bereich (reserviert für Schritt 2)
+                // 4. Unterer Bereich mit DeskFixtureListView
                 assertThat(desk.getBottomWorkspaceArea()).isNotNull();
+                assertThat(desk.getDeskFixtureListView()).isNotNull();
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -96,10 +97,13 @@ class LightDeskWorkspaceViewTest {
                 // Wert für Kanal 5 setzen
                 desk.getCanvasDeskView().setChannelValue(5, 180);
                 assertThat(desk.getCanvasDeskView().getChannelValue(5)).isEqualTo(180);
+                // DMX-Service muss den Wert im Backend atomar empfangen haben
+                assertThat(dmxService.getChannel(0, 5)).isEqualTo(180);
 
                 // Alle zurücksetzen
                 desk.resetAllChannels();
                 assertThat(desk.getCanvasDeskView().getChannelValue(5)).isEqualTo(0);
+                assertThat(dmxService.getChannel(0, 5)).isEqualTo(0);
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -145,6 +149,19 @@ class LightDeskWorkspaceViewTest {
                 assertThat(data2.getFunctionName()).isEqualTo("Pan");
                 assertThat(data3.getFunctionName()).isEqualTo("Tilt");
                 assertThat(data4.getFunctionName()).isEqualTo("-");
+
+                // Test: Fixture in DeskFixtureListView vorhanden
+                assertThat(desk.getDeskFixtureListView().getDisplayedFixturesCount()).isEqualTo(1);
+
+                // Test: Locate-Funktion schaltet Dimmer auf 255 und Pan/Tilt mittig (128)
+                desk.locateFixture(instance);
+                assertThat(dmxService.getChannel(0, 1)).isEqualTo(255);
+                assertThat(dmxService.getChannel(0, 2)).isEqualTo(128);
+                assertThat(dmxService.getChannel(0, 3)).isEqualTo(128);
+
+                // Test: Zero-Funktion schaltet Dimmer auf 0
+                desk.zeroFixture(instance);
+                assertThat(dmxService.getChannel(0, 1)).isEqualTo(0);
             } catch (Throwable t) {
                 error.set(t);
             } finally {

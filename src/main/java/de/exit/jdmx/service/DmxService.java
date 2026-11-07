@@ -10,6 +10,7 @@ import javafx.scene.paint.Color;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -39,10 +40,19 @@ public class DmxService implements AutoCloseable {
     /** Standard-Anzahl verwalteter Universen. */
     public static final int UNIVERSE_COUNT = 4;
 
+    /**
+     * Listener für Echtzeit-Kanaländerungen in einem DMX-Universum.
+     */
+    @FunctionalInterface
+    public interface ChannelChangeListener {
+        void onChannelChanged(int universeIndex, int channel, int value);
+    }
+
     private final DmxUniverse[] universes = new DmxUniverse[UNIVERSE_COUNT];
     private final UniverseConfig[] configs = new UniverseConfig[UNIVERSE_COUNT];
     private final ArtNetSender artNetSender;
     private final ScheduledExecutorService frameLoopExecutor;
+    private final List<ChannelChangeListener> channelChangeListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     private final java.util.concurrent.atomic.AtomicInteger packetCounter = new java.util.concurrent.atomic.AtomicInteger(0);
     private final java.util.concurrent.atomic.AtomicInteger currentRate = new java.util.concurrent.atomic.AtomicInteger(0);
@@ -67,6 +77,7 @@ public class DmxService implements AutoCloseable {
 
         for (int i = 0; i < UNIVERSE_COUNT; i++) {
             universes[i] = new DmxUniverse(i);
+            universes[i].setChangeListener(this::notifyChannelChanged);
             configs[i] = UniverseConfig.defaultFor(i);
         }
 
@@ -126,6 +137,61 @@ public class DmxService implements AutoCloseable {
     public void setUniverseConfig(int universeIndex, UniverseConfig config) {
         validateUniverseIndex(universeIndex);
         configs[universeIndex] = Objects.requireNonNull(config, "config darf nicht null sein");
+    }
+
+    /**
+     * Registriert einen Listener für Echtzeit-Kanaländerungen in allen Universen.
+     *
+     * @param listener Callback für geänderte Kanalwerte
+     */
+    public void addChannelChangeListener(ChannelChangeListener listener) {
+        if (listener != null) {
+            channelChangeListeners.add(listener);
+        }
+    }
+
+    /**
+     * Entfernt einen registrierten Kanal-Listener.
+     *
+     * @param listener Zu entfernender Listener
+     */
+    public void removeChannelChangeListener(ChannelChangeListener listener) {
+        channelChangeListeners.remove(listener);
+    }
+
+    private void notifyChannelChanged(int universeIndex, int channel, int value) {
+        for (ChannelChangeListener listener : channelChangeListeners) {
+            try {
+                listener.onChannelChanged(universeIndex, channel, value);
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Fehler in ChannelChangeListener", e);
+            }
+        }
+    }
+
+    /**
+     * Setzt den DMX-Wert für einen einzelnen Kanal in einem bestimmten Universum und sendet diesen asynchron.
+     *
+     * @param universeIndex Null-basierter Index des Universums (0 bis 3)
+     * @param channel       1-basierte Kanalnummer (1 bis 512)
+     * @param value         DMX-Wert (0 bis 255)
+     */
+    public void setChannel(int universeIndex, int channel, int value) {
+        validateUniverseIndex(universeIndex);
+        universes[universeIndex].setChannel(channel, value);
+        sendUniverseAsync(universeIndex);
+    }
+
+    /**
+     * Liest den aktuellen DMX-Wert eines Kanals in einem bestimmten Universum.
+     *
+     * @param universeIndex Null-basierter Index des Universums (0 bis 3)
+     * @param channel       1-basierte Kanalnummer (1 bis 512)
+     * @return DMX-Wert (0 bis 255)
+     */
+    public int getChannel(int universeIndex, int channel) {
+        validateUniverseIndex(universeIndex);
+        return universes[universeIndex].getChannel(channel);
     }
 
     /**

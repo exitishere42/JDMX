@@ -5,26 +5,31 @@ import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.FixtureInstance;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
-import de.exit.jdmx.ui.icon.LucideIcon;
-import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.SplitPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Arbeitsbereich für Tab 2 (LightDesk - Fader-Pult).
+ * Arbeitsbereich für Tab 2 (LightDesk - Fader-Pult & Live-Steuerung).
  * <p>
- * Bietet ein professionelles Lichtmischpult-Layout mit 50/50-Teilung:
+ * Bietet ein professionelles Lichtmischpult-Layout mit 50/50-Teilung und voller DMX-Backend-Verdrahtung:
  * <ul>
- *     <li><b>Kopfzeile:</b> Universums-Umschaltung (Universum 1–4) und Schnell-Reset.</li>
- *     <li><b>Oberes Fader-Dock (50 % Höhe):</b> Puristische Canvas-Balken ohne Text-Overhead mit Kanalnummern am Fuß und rechteckiger Custom-Scrollbar.</li>
- *     <li><b>Unterer Bereich (50 % Höhe):</b> Strukturierte Arbeitsfläche für die nächsten Ausbauschritte.</li>
+ *     <li><b>Kopfzeile:</b> Universums-Umschaltung (Universum 1–4) mit autom. DMX-Puffer-Synchronisation.</li>
+ *     <li><b>Oberes Fader-Dock (50 % Höhe):</b> Puristische Canvas-Balken mit DMX-Pegelwert (0..255), Kanalnummer,
+ *         Funktions-Icons von lucide.dev, Custom-Scrollbar und Doppel-/Rechtsklick-Schnellnullung.</li>
+ *     <li><b>Unterer Arbeitsbereich (50 % Höhe):</b> Interaktive {@link DeskFixtureListView} mit Scheinwerfer-Karten,
+ *         Auto-Scroll beim Anklicken, DMX-Kanal-Inspektor und Quick Actions ([Locate], [Full], [Zero]).</li>
  * </ul>
  * </p>
  */
@@ -43,11 +48,14 @@ public class LightDeskWorkspaceView extends VBox {
     private final VBox topFaderDock;
     private final StackPane bottomWorkspaceArea;
     private final CanvasDeskView canvasDeskView;
+    private final DeskFixtureListView deskFixtureListView;
+
+    private final DmxService.ChannelChangeListener dmxChannelListener;
 
     /**
-     * Erstellt einen neuen LightDesk-Arbeitsbereich.
+     * Erstellt einen neuen LightDesk-Arbeitsbereich mit voller DMX- und Projekt-Synchronisation.
      *
-     * @param dmxService      DMX-Service für künftige Universumsdaten
+     * @param dmxService      DMX-Service für reale Universumsdaten & Netzwerk-Output
      * @param explorerService Projekt-Explorer-Service für gepatchte Scheinwerfer
      */
     public LightDeskWorkspaceView(DmxService dmxService, ProjectExplorerService explorerService) {
@@ -69,12 +77,10 @@ public class LightDeskWorkspaceView extends VBox {
         topFaderDock.getStyleClass().add("desk-top-dock");
         VBox.setVgrow(canvasDeskView, Priority.ALWAYS);
 
-        // 3. Unterer Bereich (50 % der Bildschirmhöhe) - reserviert für Schritt 2
-        this.bottomWorkspaceArea = new StackPane();
+        // 3. Unterer Bereich: Vollwertige DeskFixtureListView (50 % der Bildschirmhöhe)
+        this.deskFixtureListView = new DeskFixtureListView();
+        this.bottomWorkspaceArea = new StackPane(deskFixtureListView);
         bottomWorkspaceArea.getStyleClass().add("desk-bottom-workspace");
-        Label lblPlaceholder = new Label("LightDesk Arbeitsbereich (Schritt 2)");
-        lblPlaceholder.getStyleClass().add("desk-placeholder-label");
-        bottomWorkspaceArea.getChildren().add(lblPlaceholder);
 
         // 4. Vertikaler SplitPane (50% / 50%)
         this.splitPane = new SplitPane();
@@ -88,8 +94,40 @@ public class LightDeskWorkspaceView extends VBox {
 
         getChildren().addAll(headerBar, splitPane);
 
+        // ==========================================
+        // 5. Bidirektionale DMX- & UI-Logik verdrahten
+        // ==========================================
+
+        // A. Fader-Änderung im Canvas -> DMX-Ausgabe über DmxService
+        this.canvasDeskView.setOnChannelValueChanged((channel, value) -> {
+            int uniIdx = getSelectedUniverseIndex();
+            dmxService.setChannel(uniIdx, channel, value);
+            deskFixtureListView.updateChannelValue(uniIdx, channel, value);
+        });
+
+        // B. Externe DMX-Änderungen (z. B. durch Stage, Chaser, Blackout) -> Fader im Desk synchronisieren
+        this.dmxChannelListener = (uniIdx, channel, value) -> {
+            if (uniIdx == getSelectedUniverseIndex()) {
+                Platform.runLater(() -> {
+                    if (canvasDeskView.getChannelValue(channel) != value) {
+                        canvasDeskView.setChannelValue(channel, value);
+                    }
+                    deskFixtureListView.updateChannelValue(uniIdx, channel, value);
+                });
+            }
+        };
+        this.dmxService.addChannelChangeListener(dmxChannelListener);
+
+        // C. DeskFixtureListView Callbacks verdrahten
+        this.deskFixtureListView.setOnJumpToChannel(this::scrollToChannel);
+        this.deskFixtureListView.setOnLocateFixture(this::locateFixture);
+        this.deskFixtureListView.setOnFullFixture(this::fullFixture);
+        this.deskFixtureListView.setOnZeroFixture(this::zeroFixture);
+
         // Gepatchte Geräte laden & Event-Listener verdrahten
         refreshPatchedFixtures();
+        loadUniverseValues(getSelectedUniverseIndex());
+
         if (explorerService != null) {
             explorerService.addChangeListener(() -> Platform.runLater(this::refreshPatchedFixtures));
         }
@@ -105,7 +143,10 @@ public class LightDeskWorkspaceView extends VBox {
         comboUniverse.getItems().addAll("Universum 1", "Universum 2", "Universum 3", "Universum 4");
         comboUniverse.setValue("Universum 1");
         comboUniverse.getStyleClass().add("desk-universe-combo");
-        comboUniverse.valueProperty().addListener((obs, oldVal, newVal) -> refreshPatchedFixtures());
+        comboUniverse.valueProperty().addListener((obs, oldVal, newVal) -> {
+            refreshPatchedFixtures();
+            loadUniverseValues(getSelectedUniverseIndex());
+        });
 
         header.getChildren().addAll(new Label("Universum:"), comboUniverse);
         return header;
@@ -121,10 +162,76 @@ public class LightDeskWorkspaceView extends VBox {
     }
 
     /**
-     * Setzt alle 512 Kanäle im Desk auf den DMX-Wert 0 zurück.
+     * Setzt alle 512 Kanäle des aktuellen Universums in der UI und im DMX-Backend auf 0 zurück.
      */
     public void resetAllChannels() {
+        int uniIdx = getSelectedUniverseIndex();
+        for (int ch = 1; ch <= TOTAL_CHANNELS; ch++) {
+            dmxService.setChannel(uniIdx, ch, 0);
+        }
         canvasDeskView.resetAll();
+    }
+
+    /**
+     * Lädt die aktuellen DMX-Pufferwerte aus dem Service in das Fader-Desk.
+     *
+     * @param universeIndex Null-basierter Universums-Index (0 bis 3)
+     */
+    public void loadUniverseValues(int universeIndex) {
+        if (dmxService == null || universeIndex < 0 || universeIndex >= dmxService.getUniverseCount()) {
+            return;
+        }
+        byte[] data = dmxService.getUniverse(universeIndex).getDmxData();
+        for (int i = 0; i < TOTAL_CHANNELS; i++) {
+            int val = data[i] & 0xFF;
+            canvasDeskView.setChannelValue(i + 1, val);
+            deskFixtureListView.updateChannelValue(universeIndex, i + 1, val);
+        }
+    }
+
+    /**
+     * Führt eine standardkonforme Locate-Funktion für das gewählte Fixture aus.
+     * (Dimmer 100%, Pan/Tilt Mitte, Shutter offen, RGBW 100%).
+     *
+     * @param fixture Scheinwerfer-Instanz
+     */
+    public void locateFixture(FixtureInstance fixture) {
+        if (fixture == null || fixture.getActiveMode() == null) {
+            return;
+        }
+        int uniIdx = fixture.getUniverse() - 1;
+        int start = fixture.getStartAddress();
+
+        for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
+            int absAddr = start + ch.index() - 1;
+            int val = switch (ch.type()) {
+                case DIMMER, SHUTTER -> 255;
+                case PAN, TILT -> 128;
+                case RED, GREEN, BLUE, WHITE, AMBER, UV -> 255;
+                default -> 0;
+            };
+            dmxService.setChannel(uniIdx, absAddr, val);
+        }
+    }
+
+    /**
+     * Setzt die Intensität des Scheinwerfers auf 100 % (Full).
+     *
+     * @param fixture Scheinwerfer-Instanz
+     */
+    public void fullFixture(FixtureInstance fixture) {
+        if (fixture == null) return;
+        dmxService.setIntensity(fixture, 1.0);
+    }
+
+    /**
+     * Setzt die Intensität des Scheinwerfers auf 0 % (Zero / Aus).
+     *
+     * @param fixture Scheinwerfer-Instanz
+     */
+    public void zeroFixture(FixtureInstance fixture) {
+        if (fixture == null) return;
+        dmxService.setIntensity(fixture, 0.0);
     }
 
     /**
@@ -134,11 +241,14 @@ public class LightDeskWorkspaceView extends VBox {
         canvasDeskView.clearFixtureAssignments();
 
         if (explorerService == null) {
+            deskFixtureListView.setFixtures(List.of(), getSelectedUniverseIndex() + 1);
             return;
         }
 
         List<ExplorerItem> devices = explorerService.getItemsInFolder(ProjectExplorerService.FOLDER_DEVICES_ID);
         int selectedUniverse = getSelectedUniverseIndex(); // 0-basiert (0 bis 3)
+
+        deskFixtureListView.setFixtures(devices, selectedUniverse + 1);
 
         for (ExplorerItem item : devices) {
             FixtureInstance instance = item.getFixtureInstance();
@@ -180,6 +290,10 @@ public class LightDeskWorkspaceView extends VBox {
 
     public CanvasDeskView getCanvasDeskView() {
         return canvasDeskView;
+    }
+
+    public DeskFixtureListView getDeskFixtureListView() {
+        return deskFixtureListView;
     }
 
     public SplitPane getSplitPane() {
