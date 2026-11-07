@@ -2,6 +2,7 @@ package de.exit.jdmx.service;
 
 import de.exit.jdmx.core.artnet.ArtNetSender;
 import de.exit.jdmx.core.dmx.DmxUniverse;
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.ChannelDefinition;
 import de.exit.jdmx.core.model.ChannelType;
 import de.exit.jdmx.core.model.FixtureInstance;
@@ -178,6 +179,7 @@ public class DmxService implements AutoCloseable {
      */
     public void setChannel(int universeIndex, int channel, int value) {
         validateUniverseIndex(universeIndex);
+        AppLogger.dmx("setChannel -> Uni=%d, Ch=%d, Val=%d", universeIndex + 1, channel, value);
         universes[universeIndex].setChannel(channel, value);
         sendUniverseAsync(universeIndex);
     }
@@ -213,6 +215,7 @@ public class DmxService implements AutoCloseable {
         DmxUniverse universe = universes[uniIdx];
         int startAddress = fixture.getStartAddress();
         int dmxVal = (int) Math.round(clamp(intensity, 0.0, 1.0) * 255.0);
+        AppLogger.dmx("setIntensity -> Fixture='%s' (Start=%d, Uni=%d) -> %.2f (DMX: %d)", fixture.getName(), startAddress, fixture.getUniverse(), intensity, dmxVal);
 
         boolean hasDimmer = false;
         boolean hasColorChannels = false;
@@ -294,6 +297,7 @@ public class DmxService implements AutoCloseable {
         int g = (int) Math.round(clamp(color.getGreen(), 0.0, 1.0) * 255.0);
         int b = (int) Math.round(clamp(color.getBlue(), 0.0, 1.0) * 255.0);
         int w = Math.min(r, Math.min(g, b));
+        AppLogger.dmx("setColor -> Fixture='%s' (Start=%d, Uni=%d) -> R=%d, G=%d, B=%d, W=%d", fixture.getName(), startAddress, fixture.getUniverse(), r, g, b, w);
 
         for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
             int absAddr = startAddress + ch.index() - 1;
@@ -356,6 +360,7 @@ public class DmxService implements AutoCloseable {
         } else {
             tiltCoarse = (int) Math.round(clamp(tilt, 0.0, 1.0) * 255.0);
             tiltFine = 0;
+            AppLogger.dmx("setPosition -> Fixture='%s' (Start=%d, Uni=%d) -> Pan=%.2f, Tilt=%.2f", fixture.getName(), startAddress, fixture.getUniverse(), pan, tilt);
         }
 
         for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {

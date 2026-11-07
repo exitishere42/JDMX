@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.ShortcutItem;
 import de.exit.jdmx.service.ShortcutService;
@@ -12,6 +13,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -224,7 +227,39 @@ public class SettingsDialog {
         folderRow.getChildren().addAll(tfFolder, btnBrowse);
         folderBox.getChildren().addAll(lblFolder, folderRow);
 
-        box.getChildren().addAll(langRow, cbFullscreen, cbConfirmExit, autoSaveRow, folderBox);
+        // 6. Diagnose & Log-Datei (für Fehleranalyse)
+        VBox logBox = new VBox(6);
+        Label lblLog = new Label("Diagnose & Log-Datei:");
+        lblLog.getStyleClass().add("settings-label");
+
+        HBox logRow = new HBox(8);
+        logRow.setAlignment(Pos.CENTER_LEFT);
+        TextField tfLog = new TextField(AppLogger.getLogFilePath().toAbsolutePath().toString());
+        tfLog.setEditable(false);
+        tfLog.getStyleClass().add("settings-textfield");
+        HBox.setHgrow(tfLog, Priority.ALWAYS);
+
+        Button btnOpenLog = new Button("Log-Ordner öffnen");
+        btnOpenLog.getStyleClass().add("settings-btn-secondary");
+        btnOpenLog.setGraphic(new LucideIcon("folder", 14, StudioTheme.COLOR_ICON_FADER));
+        btnOpenLog.setCursor(Cursor.HAND);
+        btnOpenLog.setOnAction(e -> AppLogger.openLogFolder());
+
+        Button btnCopyLog = new Button("Kopieren");
+        btnCopyLog.getStyleClass().add("settings-btn-secondary");
+        btnCopyLog.setGraphic(new LucideIcon("copy", 14, StudioTheme.COLOR_ICON_FADER));
+        btnCopyLog.setCursor(Cursor.HAND);
+        btnCopyLog.setOnAction(e -> {
+            ClipboardContent content = new ClipboardContent();
+            content.putString(tfLog.getText());
+            Clipboard.getSystemClipboard().setContent(content);
+            btnCopyLog.setText("Kopiert!");
+        });
+
+        logRow.getChildren().addAll(tfLog, btnOpenLog, btnCopyLog);
+        logBox.getChildren().addAll(lblLog, logRow);
+
+        box.getChildren().addAll(langRow, cbFullscreen, cbConfirmExit, autoSaveRow, folderBox, logBox);
         return box;
     }
 

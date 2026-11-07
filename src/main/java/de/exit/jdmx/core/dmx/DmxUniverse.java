@@ -1,5 +1,7 @@
 package de.exit.jdmx.core.dmx;
 
+import de.exit.jdmx.core.log.AppLogger;
+
 import java.util.Arrays;
 
 /**
@@ -69,14 +71,18 @@ public class DmxUniverse {
     public void setChannel(int channel, int value) {
         validateChannel(channel);
         validateValue(value);
+        int old;
         boolean changed;
         synchronized (lock) {
-            int old = channels[channel - 1] & 0xFF;
+            old = channels[channel - 1] & 0xFF;
             changed = (old != value);
             channels[channel - 1] = (byte) (value & 0xFF);
         }
-        if (changed && changeListener != null) {
-            changeListener.onChannelChanged(universeIndex, channel, value);
+        if (changed) {
+            AppLogger.logDmxChange(universeIndex + 1, channel, old, value, null, null);
+            if (changeListener != null) {
+                changeListener.onChannelChanged(universeIndex, channel, value);
+            }
         }
     }
 
@@ -133,6 +139,7 @@ public class DmxUniverse {
         synchronized (lock) {
             Arrays.fill(channels, (byte) 0);
         }
+        AppLogger.dmx("Universum %d: Blackout ausgeführt (alle 512 Kanäle auf 0)", universeIndex + 1);
         if (changeListener != null) {
             for (int ch = 1; ch <= CHANNEL_COUNT; ch++) {
                 changeListener.onChannelChanged(universeIndex, ch, 0);
