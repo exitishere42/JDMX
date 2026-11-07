@@ -154,4 +154,74 @@ class ProjectExplorerServiceTest {
         service.moveItemToFolder("s1", service.getStandardFolders().get(0).getId());
         assertThat(count[0]).isEqualTo(2);
     }
+
+    @Test
+    @DisplayName("Sollte eindeutige Fixture-Namen generieren (Basisname, dann (1), (2) usw.)")
+    void shouldGenerateUniqueFixtureNamesWithIncrementingNumbers() {
+        ProjectExplorerService service = new ProjectExplorerService();
+
+        // 1. Wenn noch kein Gerät existiert -> Basisname bleibt unverändert
+        String name1 = service.generateUniqueFixtureName("ZQ02042");
+        assertThat(name1).isEqualTo("ZQ02042");
+
+        // Gerät hinzufügen
+        service.addItem(new ExplorerItem("f1", name1, ExplorerItemType.FIXTURE, false, "box", Color.BLUE));
+
+        // 2. Zweites Gerät mit demselben Namen -> erhält Suffix " (1)"
+        String name2 = service.generateUniqueFixtureName("ZQ02042");
+        assertThat(name2).isEqualTo("ZQ02042 (1)");
+        service.addItem(new ExplorerItem("f2", name2, ExplorerItemType.FIXTURE, false, "box", Color.BLUE));
+
+        // 3. Drittes Gerät -> erhält Suffix " (2)"
+        String name3 = service.generateUniqueFixtureName("ZQ02042");
+        assertThat(name3).isEqualTo("ZQ02042 (2)");
+        service.addItem(new ExplorerItem("f3", name3, ExplorerItemType.FIXTURE, false, "box", Color.BLUE));
+
+        // 4. Ein anderes Modell ("MiniSpot") -> startet wieder ohne Suffix
+        String other1 = service.generateUniqueFixtureName("MiniSpot");
+        assertThat(other1).isEqualTo("MiniSpot");
+        service.addItem(new ExplorerItem("f4", other1, ExplorerItemType.FIXTURE, false, "box", Color.BLUE));
+
+        String other2 = service.generateUniqueFixtureName("MiniSpot");
+        assertThat(other2).isEqualTo("MiniSpot (1)");
+
+        // 5. Wenn ZQ02042 (1) gelöscht wird, wird die Lücke (1) wiederverwendet
+        service.removeItem("f2");
+        String reused = service.generateUniqueFixtureName("ZQ02042");
+        assertThat(reused).isEqualTo("ZQ02042 (1)");
+    }
+
+    @Test
+    @DisplayName("Sollte Items umbenennen und FixtureInstance sowie Listener synchronisieren")
+    void shouldRenameItemAndSyncFixtureInstance() {
+        ProjectExplorerService service = new ProjectExplorerService();
+
+        de.exit.jdmx.core.model.ChannelDefinition ch = new de.exit.jdmx.core.model.ChannelDefinition(1, "Dimmer", de.exit.jdmx.core.model.ChannelType.DIMMER, 0, false);
+        de.exit.jdmx.core.model.DmxMode mode = new de.exit.jdmx.core.model.DmxMode("1CH", List.of(ch));
+        de.exit.jdmx.core.model.FixtureDefinition def = new de.exit.jdmx.core.model.FixtureDefinition("dim", "Gen", "Dimmer", ExplorerItemType.FIXTURE, List.of(mode));
+        de.exit.jdmx.core.model.FixtureInstance inst = new de.exit.jdmx.core.model.FixtureInstance("inst-1", "Altes Fixture", def, mode, 1, 1, 0, 0);
+
+        ExplorerItem item = new ExplorerItem("f1", "Altes Fixture", ExplorerItemType.FIXTURE, false, "lamp", Color.BLUE, inst);
+        service.addItem(item);
+
+        int[] changeCount = new int[1];
+        service.addChangeListener(() -> changeCount[0]++);
+
+        // Umbenennen
+        boolean renamed = service.renameItem("f1", "Neuer Scheinwerfer");
+        assertThat(renamed).isTrue();
+        assertThat(item.getName()).isEqualTo("Neuer Scheinwerfer");
+        assertThat(inst.getName()).isEqualTo("Neuer Scheinwerfer");
+        assertThat(changeCount[0]).isEqualTo(1);
+
+        // Ungültige Umbenennungen
+        assertThat(service.renameItem("f1", "")).isFalse();
+        assertThat(service.renameItem("f1", "   ")).isFalse();
+        assertThat(service.renameItem("f1", null)).isFalse();
+        assertThat(service.renameItem("unknown-id", "Neu")).isFalse();
+
+        // Standard-Ordner dürfen nicht umbenannt werden
+        String devicesFolderId = service.getStandardFolders().get(0).getId();
+        assertThat(service.renameItem(devicesFolderId, "Anderer Name")).isFalse();
+    }
 }

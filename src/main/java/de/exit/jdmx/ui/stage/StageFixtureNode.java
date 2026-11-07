@@ -225,7 +225,7 @@ public class StageFixtureNode extends Pane {
         xHitLine.setStroke(Color.TRANSPARENT);
         xHitLine.setStrokeWidth(14.0);
 
-        Line xVisibleLine = new Line(SQUARE_SIZE, SQUARE_SIZE / 2.0, SQUARE_SIZE + 32.0, SQUARE_SIZE / 2.0);
+        Line xVisibleLine = new Line(SQUARE_SIZE, SQUARE_SIZE / 2.0, SQUARE_SIZE + 24.0, SQUARE_SIZE / 2.0);
         xVisibleLine.setStroke(Color.web("#EF4444"));
         xVisibleLine.setStrokeWidth(2.0);
         xVisibleLine.setMouseTransparent(true);
@@ -310,7 +310,7 @@ public class StageFixtureNode extends Pane {
         yHitLine.setStroke(Color.TRANSPARENT);
         yHitLine.setStrokeWidth(14.0);
 
-        Line yVisibleLine = new Line(SQUARE_SIZE / 2.0, 0, SQUARE_SIZE / 2.0, -32.0);
+        Line yVisibleLine = new Line(SQUARE_SIZE / 2.0, 0, SQUARE_SIZE / 2.0, -24.0);
         yVisibleLine.setStroke(Color.web("#22C55E"));
         yVisibleLine.setStrokeWidth(2.0);
         yVisibleLine.setMouseTransparent(true);
@@ -631,6 +631,15 @@ public class StageFixtureNode extends Pane {
 
     public Label getNameBadge() {
         return nameBadge;
+    }
+
+    /**
+     * Aktualisiert den Text des Namens-Badges mit dem aktuellen Namen des Items und DMX-Adresse.
+     */
+    public void updateBadgeName() {
+        if (nameBadge != null) {
+            nameBadge.setText(buildBadgeText());
+        }
     }
 
     public boolean hasPanTilt() {

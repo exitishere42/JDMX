@@ -209,6 +209,75 @@ public class ProjectExplorerService {
     }
 
     /**
+     * Benennt ein Item um und synchronisiert die verknüpfte FixtureInstance (falls vorhanden).
+     * Standard-Ordner sind geschützt und können nicht umbenannt werden.
+     *
+     * @param itemId  Die ID des umzubenennenden Items
+     * @param newName Der neue Anzeigename (darf nicht leer oder null sein)
+     * @return true bei erfolgreicher Umbenennung, false bei ungültigem Namen oder geschütztem Ordner
+     */
+    public boolean renameItem(String itemId, String newName) {
+        if (newName == null || newName.isBlank()) {
+            return false;
+        }
+        for (ExplorerItem folder : standardFolders) {
+            if (folder.getId().equals(itemId)) {
+                return false;
+            }
+        }
+        ExplorerItem item = findItemById(itemId);
+        if (item == null) {
+            return false;
+        }
+        String trimmedName = newName.trim();
+        item.setName(trimmedName);
+        if (item.getFixtureInstance() != null) {
+            item.getFixtureInstance().setName(trimmedName);
+        }
+        fireChange();
+        return true;
+    }
+
+    /**
+     * Generiert einen eindeutigen Namen für ein neues Scheinwerfer-Item.
+     * <p>
+     * Ist der Basisname noch nicht vergeben, wird er unverändert zurückgegeben (z. B. "ZQ02042").
+     * Ist er bereits vergeben, wird ein fortlaufendes Suffix der Form " (1)", " (2)" usw. angehängt.
+     * </p>
+     *
+     * @param baseName Der gewünschte Basisname
+     * @return Ein im Projekt noch ungenutzter, eindeutiger Name
+     */
+    public String generateUniqueFixtureName(String baseName) {
+        if (baseName == null || baseName.isBlank()) {
+            return "Fixture";
+        }
+        String cleanBase = baseName.trim();
+        Set<String> existingNames = getAllItemNames();
+        if (!existingNames.contains(cleanBase)) {
+            return cleanBase;
+        }
+        int index = 1;
+        while (existingNames.contains(cleanBase + " (" + index + ")")) {
+            index++;
+        }
+        return cleanBase + " (" + index + ")";
+    }
+
+    private Set<String> getAllItemNames() {
+        Set<String> names = new HashSet<>();
+        for (List<ExplorerItem> list : folderContents.values()) {
+            for (ExplorerItem item : list) {
+                names.add(item.getName());
+            }
+        }
+        for (ExplorerItem item : unassignedItems) {
+            names.add(item.getName());
+        }
+        return names;
+    }
+
+    /**
      * Sucht ein Item anhand seiner ID (egal ob in einem Ordner oder unzugeordnet).
      */
     public ExplorerItem findItemById(String itemId) {

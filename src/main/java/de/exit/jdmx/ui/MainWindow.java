@@ -268,6 +268,7 @@ public class MainWindow extends StackPane {
      */
     private void initTabViews() {
         this.stageWorkspaceView = new StageWorkspaceView(dmxService);
+        stageWorkspaceView.getProjectExplorerView().setMainWindow(this);
         stageWorkspaceView.getProjectExplorerView().getAddMenu().setOnAction("fixture", () -> {
             FixturePatchDialog.show(this, fixtureLibraryService, stageWorkspaceView.getExplorerService(), stageWorkspaceView.getStageCanvasView());
         });

@@ -222,4 +222,30 @@ class StageGizmoInteractionTest {
 
         assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
     }
+
+    @Test
+    @DisplayName("Soll sichtbare Pfeillinie bündig an der Dreiecksbasis beenden (kein Durchstich der Pfeilspitze)")
+    void shouldEndVisibleLineAtArrowHeadBase() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                StageFixtureNode node = createTestFixture("f1", "Spot 1", 50.0, 50.0);
+
+                // X-Pfeil: Linie endet bündig an der Basis (60.0) und Dreiecksspitze ragt bis 68.0
+                javafx.scene.Group xGroup = (javafx.scene.Group) node.getGizmoXArrow();
+                javafx.scene.shape.Line xLine = (javafx.scene.shape.Line) xGroup.getChildren().get(1);
+                assertThat(xLine.getEndX()).isEqualTo(60.0);
+
+                // Y-Pfeil: Linie endet bündig an der Basis (-24.0) und Dreiecksspitze ragt bis -32.0
+                javafx.scene.Group yGroup = (javafx.scene.Group) node.getGizmoYArrow();
+                javafx.scene.shape.Line yLine = (javafx.scene.shape.Line) yGroup.getChildren().get(1);
+                assertThat(yLine.getEndY()).isEqualTo(-24.0);
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
 }

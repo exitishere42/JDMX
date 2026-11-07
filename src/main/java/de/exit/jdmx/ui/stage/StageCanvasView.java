@@ -475,6 +475,52 @@ public class StageCanvasView extends StackPane {
     }
 
     /**
+     * Entfernt ein bestimmtes Fixture anhand seiner Item-ID von der 2D-Bühne.
+     *
+     * @param itemId Die eindeutige ID des zu entfernenden Elements
+     * @return true, falls das Element gefunden und entfernt wurde
+     */
+    public boolean removeFixture(String itemId) {
+        if (itemId == null) {
+            return false;
+        }
+        StageFixtureNode toRemove = null;
+        for (StageFixtureNode node : placedFixtures) {
+            if (node.getItem() != null && itemId.equals(node.getItem().getId())) {
+                toRemove = node;
+                break;
+            }
+        }
+        if (toRemove != null) {
+            placedFixtures.remove(toRemove);
+            stageSurface.getChildren().remove(toRemove);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Aktualisiert den Anzeigenamen eines Fixtures auf der Bühne anhand seiner Item-ID.
+     *
+     * @param itemId  Die eindeutige ID des Elements
+     * @param newName Der neue Name
+     * @return true, falls das Element gefunden und aktualisiert wurde
+     */
+    public boolean updateFixtureName(String itemId, String newName) {
+        if (itemId == null || newName == null || newName.isBlank()) {
+            return false;
+        }
+        for (StageFixtureNode node : placedFixtures) {
+            if (node.getItem() != null && itemId.equals(node.getItem().getId())) {
+                node.getItem().setName(newName);
+                node.updateBadgeName();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Hebt die Selektion aller platzierten Scheinwerfer auf und blendet deren Badges aus.
      */
     public void deselectAll() {

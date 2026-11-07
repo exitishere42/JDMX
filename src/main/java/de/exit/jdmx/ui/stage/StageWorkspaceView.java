@@ -113,6 +113,7 @@ public class StageWorkspaceView extends SplitPane {
 
         // 2. Rechter Bereich: Project Explorer über die volle Höhe
         this.projectExplorerView = new ProjectExplorerView(explorerService);
+        projectExplorerView.setStageCanvasView(stageCanvasView);
         projectExplorerView.setOnToggleCollapse(this::toggleProjectExplorer);
 
         // 3. Horizontales Haupt-SplitPane zusammenbauen

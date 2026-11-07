@@ -3,8 +3,11 @@ package de.exit.jdmx.ui.stage;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.ui.MainWindow;
+import de.exit.jdmx.ui.dialog.RenameItemDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.menu.ExplorerAddMenu;
+import de.exit.jdmx.ui.menu.ExplorerItemContextMenu;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
@@ -31,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Der Project Explorer für Tab 1 (Stage & Fixtures).
@@ -65,6 +69,11 @@ public class ProjectExplorerView extends VBox {
     private final TreeItem<ExplorerItem> rootItem;
 
     private Runnable onToggleCollapse;
+    private MainWindow mainWindow;
+    private StageCanvasView stageCanvasView;
+    private ExplorerItemContextMenu contextMenu;
+    private Consumer<ExplorerItem> onItemRenameRequested;
+    private Consumer<ExplorerItem> onItemDeleteRequested;
 
     public ProjectExplorerView() {
         this(new ProjectExplorerService());
@@ -119,8 +128,8 @@ public class ProjectExplorerView extends VBox {
         treeView.getStyleClass().add("project-explorer-tree");
         VBox.setVgrow(treeView, Priority.ALWAYS);
 
-        // Saubere Zellen-Konfiguration mit Drag & Drop
-        treeView.setCellFactory(tv -> new ProjectExplorerTreeCell(service));
+        // Saubere Zellen-Konfiguration mit Drag & Drop und Rechtsklick-Kontextmenü
+        treeView.setCellFactory(tv -> new ProjectExplorerTreeCell(service, this));
 
         // Drag & Drop auf freie Fläche der TreeView (zieht Item zurück auf Root-Ebene)
         setupTreeViewDropTarget();
@@ -264,18 +273,103 @@ public class ProjectExplorerView extends VBox {
         return service;
     }
 
+    public MainWindow getMainWindow() {
+        return mainWindow;
+    }
+
+    public void setMainWindow(MainWindow mainWindow) {
+        this.mainWindow = mainWindow;
+    }
+
+    public StageCanvasView getStageCanvasView() {
+        return stageCanvasView;
+    }
+
+    public void setStageCanvasView(StageCanvasView stageCanvasView) {
+        this.stageCanvasView = stageCanvasView;
+    }
+
+    public ExplorerItemContextMenu getContextMenu() {
+        return contextMenu;
+    }
+
+    public void setOnItemRenameRequested(Consumer<ExplorerItem> onItemRenameRequested) {
+        this.onItemRenameRequested = onItemRenameRequested;
+    }
+
+    public void setOnItemDeleteRequested(Consumer<ExplorerItem> onItemDeleteRequested) {
+        this.onItemDeleteRequested = onItemDeleteRequested;
+    }
+
     /**
-     * Spezifische TreeCell für den Project Explorer mit Drag & Drop Unterstützung.
+     * Spezifische TreeCell für den Project Explorer mit Drag & Drop Unterstützung
+     * sowie Rechtsklick-Kontextmenü zum Umbenennen und Entfernen von Elementen.
      */
     public static class ProjectExplorerTreeCell extends TreeCell<ExplorerItem> {
 
         private final ProjectExplorerService service;
+        private final ProjectExplorerView parentView;
         private Node defaultDisclosureNode;
+        private ExplorerItemContextMenu currentContextMenu;
 
         public ProjectExplorerTreeCell(ProjectExplorerService service) {
+            this(service, null);
+        }
+
+        public ProjectExplorerTreeCell(ProjectExplorerService service, ProjectExplorerView parentView) {
             this.service = service;
+            this.parentView = parentView;
             setupDragAndDrop();
             setupClickHandler();
+            setupContextMenu();
+        }
+
+        public ExplorerItemContextMenu getCurrentContextMenu() {
+            return currentContextMenu;
+        }
+
+        private void setupContextMenu() {
+            setOnContextMenuRequested(event -> {
+                ExplorerItem item = getItem();
+                if (item == null || item.isStandardFolder()) {
+                    return;
+                }
+
+                ExplorerItemContextMenu menu = new ExplorerItemContextMenu();
+                currentContextMenu = menu;
+                if (parentView != null) {
+                    parentView.contextMenu = menu;
+                }
+
+                menu.setOnRename(() -> {
+                    if (parentView != null && parentView.onItemRenameRequested != null) {
+                        parentView.onItemRenameRequested.accept(item);
+                    } else if (parentView != null && parentView.mainWindow != null) {
+                        RenameItemDialog.show(parentView.mainWindow, item, service, parentView.stageCanvasView);
+                    }
+                });
+
+                menu.setOnDelete(() -> {
+                    if (parentView != null && parentView.onItemDeleteRequested != null) {
+                        parentView.onItemDeleteRequested.accept(item);
+                    } else {
+                        if (service != null) {
+                            service.removeItem(item.getId());
+                        }
+                        if (parentView != null && parentView.stageCanvasView != null) {
+                            parentView.stageCanvasView.removeFixture(item.getId());
+                        }
+                        if (parentView != null && parentView.mainWindow != null) {
+                            parentView.mainWindow.autoSave();
+                        }
+                    }
+                });
+
+                if (getScene() != null && getScene().getWindow() != null) {
+                    menu.showMenu(getScene().getWindow(), event.getScreenX(), event.getScreenY());
+                }
+                event.consume();
+            });
         }
 
         private void setupClickHandler() {

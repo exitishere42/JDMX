@@ -315,7 +315,9 @@ public class FixturePatchDialog {
             }
 
             String id = "fixture-" + UUID.randomUUID().toString().substring(0, 8);
-            String name = def.getModel() + (quantity > 1 ? " " + (i + 1) : "");
+            String name = (explorerService != null)
+                    ? explorerService.generateUniqueFixtureName(def.getModel())
+                    : def.getModel();
 
             double startX = 180.0 + (i * 85.0);
             double startY = 160.0;
