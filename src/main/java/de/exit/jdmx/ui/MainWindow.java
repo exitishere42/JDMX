@@ -7,6 +7,7 @@ import de.exit.jdmx.core.model.DmxMode;
 import de.exit.jdmx.core.model.FixtureInstance;
 import de.exit.jdmx.core.model.UniverseConfig;
 import de.exit.jdmx.core.project.model.FixtureDataDto;
+import de.exit.jdmx.core.project.model.GroupDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import de.exit.jdmx.service.DmxService;
@@ -274,6 +275,7 @@ public class MainWindow extends StackPane {
         });
         stageWorkspaceView.getStageCanvasView().setOnFixtureMoved((item, pt) -> autoSave());
         stageWorkspaceView.getStageCanvasView().setOnFixturePlaced((item, pt) -> autoSave());
+        stageWorkspaceView.getStageCanvasView().setOnFixturesDeleted(this::autoSave);
         tabViews[0] = stageWorkspaceView;
 
         tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
@@ -577,13 +579,21 @@ public class MainWindow extends StackPane {
             }
         }
 
+        List<GroupDataDto> groupDtos = new ArrayList<>();
+        if (stageWorkspaceView != null) {
+            for (ExplorerItem groupItem : stageWorkspaceView.getExplorerService().getItemsInFolder(ProjectExplorerService.FOLDER_GROUPS_ID)) {
+                groupDtos.add(new GroupDataDto(groupItem.getId(), groupItem.getName(), groupItem.getMemberFixtureIds()));
+            }
+        }
+
         String name = currentProjectFile != null ? currentProjectFile.getName().replace(".jdmx", "") : "Default Project";
         return new ProjectData(
                 ProjectData.CURRENT_VERSION,
                 name,
                 java.time.Instant.now().toString(),
                 universes,
-                fixtures
+                fixtures,
+                groupDtos
         );
     }
 
@@ -654,8 +664,27 @@ public class MainWindow extends StackPane {
                 String iconName = (def != null && def.getModel() != null && def.getModel().toLowerCase().contains("dimmer"))
                         ? "sun" : "lamp";
                 ExplorerItem item = new ExplorerItem(fDto.id(), fDto.name(), ExplorerItemType.FIXTURE, false, iconName, Color.web("#60A5FA"), instance);
-                explorer.addItemToFolder("folder-devices", item);
+                explorer.addItemToFolder(ProjectExplorerService.FOLDER_DEVICES_ID, item);
                 canvas.placeFixture(item, fDto.stageX(), fDto.stageY());
+            }
+        }
+
+        // 3. Gerätegruppen wiederherstellen
+        if (data.groups() != null && stageWorkspaceView != null) {
+            ProjectExplorerService explorer = stageWorkspaceView.getExplorerService();
+            for (GroupDataDto gDto : data.groups()) {
+                ExplorerItem group = new ExplorerItem(
+                        gDto.id(),
+                        gDto.name(),
+                        ExplorerItemType.GROUP,
+                        false,
+                        "layers",
+                        Color.web("#34D399")
+                );
+                if (gDto.fixtureIds() != null) {
+                    group.setMemberFixtureIds(gDto.fixtureIds());
+                }
+                explorer.addItemToFolder(ProjectExplorerService.FOLDER_GROUPS_ID, group);
             }
         }
     }

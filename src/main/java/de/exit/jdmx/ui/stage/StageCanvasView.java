@@ -7,6 +7,8 @@ import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * 2D-Arbeitsbereich für die Bühne (Tab 1: Stage & Fixtures).
@@ -63,6 +66,8 @@ public class StageCanvasView extends StackPane {
     private ProjectExplorerService explorerService;
     private BiConsumer<ExplorerItem, Point2D> onFixturePlaced;
     private BiConsumer<ExplorerItem, Point2D> onFixtureMoved;
+    private Runnable onFixturesDeleted;
+    private Consumer<StageFixtureNode> onFixtureSelected;
 
     // Zustand für Kamera-Verschiebung (Pan) mit mittlerer Maustaste
     private double panStartMouseX;
@@ -108,6 +113,7 @@ public class StageCanvasView extends StackPane {
 
         setupNavigation();
         setupDropTarget();
+        setupKeyboardInteractions();
 
         getChildren().add(stageSurface);
     }
@@ -379,12 +385,20 @@ public class StageCanvasView extends StackPane {
                     }
                 }
             }
+            if (Boolean.TRUE.equals(newVal) && onFixtureSelected != null) {
+                onFixtureSelected.accept(node);
+            }
         });
 
         // Einzelklick- und Additiv-Selektion (Shift/Strg)
         node.setOnFixtureClicked((targetNode, mouseEvent) -> {
             if (mouseEvent.isShiftDown() || mouseEvent.isControlDown() || mouseEvent.isShortcutDown()) {
-                targetNode.setSelected(!targetNode.isSelected());
+                multiSelecting = true;
+                try {
+                    targetNode.setSelected(!targetNode.isSelected());
+                } finally {
+                    multiSelecting = false;
+                }
             } else {
                 for (StageFixtureNode other : placedFixtures) {
                     if (other != targetNode) {
@@ -542,6 +556,84 @@ public class StageCanvasView extends StackPane {
         return placedFixtures.stream()
                 .filter(StageFixtureNode::isSelected)
                 .toList();
+    }
+
+    public void setMultiSelecting(boolean multiSelecting) {
+        this.multiSelecting = multiSelecting;
+    }
+
+    public boolean isMultiSelecting() {
+        return multiSelecting;
+    }
+
+    /**
+     * Wählt eine Menge von Scheinwerfern aus (hebt vorherige Auswahl auf).
+     *
+     * @param nodes Die auszuwählenden Knoten
+     */
+    public void selectFixtures(java.util.Collection<StageFixtureNode> nodes) {
+        multiSelecting = true;
+        try {
+            for (StageFixtureNode node : placedFixtures) {
+                node.setSelected(nodes != null && nodes.contains(node));
+            }
+        } finally {
+            multiSelecting = false;
+        }
+    }
+
+    private void setupKeyboardInteractions() {
+        setFocusTraversable(true);
+        setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.DELETE || event.getCode() == KeyCode.BACK_SPACE) {
+                if (deleteSelectedFixtures() > 0) {
+                    event.consume();
+                }
+            }
+        });
+        stageSurface.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> requestFocus());
+    }
+
+    /**
+     * Löscht alle aktuell ausgewählten Scheinwerfer von der 2D-Bühne und aus dem ProjectExplorerService.
+     *
+     * @return Anzahl der gelöschten Scheinwerfer
+     */
+    public int deleteSelectedFixtures() {
+        List<StageFixtureNode> selected = getSelectedFixtures();
+        if (selected.isEmpty()) {
+            return 0;
+        }
+
+        for (StageFixtureNode node : selected) {
+            placedFixtures.remove(node);
+            stageSurface.getChildren().remove(node);
+            if (explorerService != null && node.getItem() != null) {
+                explorerService.removeItem(node.getItem().getId());
+            }
+        }
+
+        if (onFixturesDeleted != null) {
+            onFixturesDeleted.run();
+        }
+
+        return selected.size();
+    }
+
+    public void setOnFixturesDeleted(Runnable onFixturesDeleted) {
+        this.onFixturesDeleted = onFixturesDeleted;
+    }
+
+    public Runnable getOnFixturesDeleted() {
+        return onFixturesDeleted;
+    }
+
+    public void setOnFixtureSelected(Consumer<StageFixtureNode> onFixtureSelected) {
+        this.onFixtureSelected = onFixtureSelected;
+    }
+
+    public Consumer<StageFixtureNode> getOnFixtureSelected() {
+        return onFixtureSelected;
     }
 
     /**

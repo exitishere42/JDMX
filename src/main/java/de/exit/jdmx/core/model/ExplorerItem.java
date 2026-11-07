@@ -2,6 +2,9 @@ package de.exit.jdmx.core.model;
 
 import javafx.scene.paint.Color;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -17,6 +20,7 @@ public class ExplorerItem {
     private final String iconName;
     private final Color color;
     private FixtureInstance fixtureInstance;
+    private final List<String> memberFixtureIds = new ArrayList<>();
 
     /**
      * Erstellt ein neues ExplorerItem.
@@ -87,6 +91,46 @@ public class ExplorerItem {
 
     public Color getColor() {
         return color;
+    }
+
+    /**
+     * Liefert eine unmodifizierbare Liste aller zugeordneten Scheinwerfer-IDs (für Gruppen).
+     */
+    public List<String> getMemberFixtureIds() {
+        return Collections.unmodifiableList(memberFixtureIds);
+    }
+
+    /**
+     * Setzt die Liste der zugeordneten Scheinwerfer-IDs.
+     */
+    public void setMemberFixtureIds(List<String> ids) {
+        memberFixtureIds.clear();
+        if (ids != null) {
+            memberFixtureIds.addAll(ids);
+        }
+    }
+
+    /**
+     * Fügt eine Scheinwerfer-ID zur Gruppe hinzu.
+     */
+    public void addMemberFixtureId(String id) {
+        if (id != null && !memberFixtureIds.contains(id)) {
+            memberFixtureIds.add(id);
+        }
+    }
+
+    /**
+     * Entfernt eine Scheinwerfer-ID aus der Gruppe.
+     */
+    public void removeMemberFixtureId(String id) {
+        memberFixtureIds.remove(id);
+    }
+
+    /**
+     * Prüft, ob ein bestimmter Scheinwerfer Teil der Gruppe ist.
+     */
+    public boolean hasMemberFixture(String id) {
+        return memberFixtureIds.contains(id);
     }
 
     @Override

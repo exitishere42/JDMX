@@ -1,5 +1,7 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.core.model.ExplorerItem;
+import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.ui.icon.LucideIcon;
@@ -14,6 +16,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -194,26 +197,68 @@ public class StageWorkspaceView extends SplitPane {
         controlDock.getPositionModule().getPanSlider().valueProperty().addListener((obs, o, n) -> updatePosition.run());
         controlDock.getPositionModule().getTiltSlider().valueProperty().addListener((obs, o, n) -> updatePosition.run());
 
-        // Bei Neuplatzierung von Fixtures: Selektions-Listener registrieren
-        stageCanvasView.setOnFixturePlaced((item, point) -> registerFixtureSelectionSync());
-    }
-
-    private void registerFixtureSelectionSync() {
-        for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
-            node.selectedProperty().removeListener(this::onFixtureSelectionChanged);
-            node.selectedProperty().addListener(this::onFixtureSelectionChanged);
-        }
-    }
-
-    private void onFixtureSelectionChanged(javafx.beans.value.ObservableValue<? extends Boolean> obs, Boolean oldVal, Boolean newVal) {
-        if (Boolean.TRUE.equals(newVal)) {
-            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
-                if (node.isSelected()) {
-                    syncDockToFixture(node);
-                    break;
+        // Bidirektionale Selektion: Klick auf Bühne -> Dock & Explorer aktualisieren
+        stageCanvasView.setOnFixtureSelected(node -> {
+            if (isSelectionSyncing) return;
+            syncDockToFixture(node);
+            isSelectionSyncing = true;
+            try {
+                if (node.getItem() != null) {
+                    projectExplorerView.selectItem(node.getItem().getId());
                 }
+            } finally {
+                isSelectionSyncing = false;
             }
-        }
+        });
+
+        setupBidirectionalSelection();
+    }
+
+    private boolean isSelectionSyncing = false;
+
+    private void setupBidirectionalSelection() {
+        projectExplorerView.getTreeView().getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (isSelectionSyncing || newVal == null || newVal.getValue() == null) {
+                return;
+            }
+            ExplorerItem item = newVal.getValue();
+            if (item.isStandardFolder()) {
+                return;
+            }
+
+            isSelectionSyncing = true;
+            try {
+                if (item.getType() == ExplorerItemType.FIXTURE) {
+                    for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                        boolean match = node.getItem() != null && item.getId().equals(node.getItem().getId());
+                        node.setSelected(match);
+                        if (match) {
+                            syncDockToFixture(node);
+                        }
+                    }
+                } else if (item.getType() == ExplorerItemType.GROUP) {
+                    List<String> memberIds = item.getMemberFixtureIds();
+                    StageFixtureNode firstMatch = null;
+                    stageCanvasView.setMultiSelecting(true);
+                    try {
+                        for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                            boolean inGroup = node.getItem() != null && memberIds.contains(node.getItem().getId());
+                            node.setSelected(inGroup);
+                            if (inGroup && firstMatch == null) {
+                                firstMatch = node;
+                            }
+                        }
+                    } finally {
+                        stageCanvasView.setMultiSelecting(false);
+                    }
+                    if (firstMatch != null) {
+                        syncDockToFixture(firstMatch);
+                    }
+                }
+            } finally {
+                isSelectionSyncing = false;
+            }
+        });
     }
 
     private void syncDockToFixture(StageFixtureNode node) {
@@ -223,6 +268,10 @@ public class StageWorkspaceView extends SplitPane {
             controlDock.getIntensityModule().getStrobeSlider().setValue(node.isStrobing() ? 50.0 : 0.0);
             if (node.hasColorChannels()) {
                 controlDock.getColorModule().setColor(node.getBaseColor());
+            }
+            if (node.hasPanTilt()) {
+                controlDock.getPositionModule().getPanSlider().setValue(node.getPan() * 100.0);
+                controlDock.getPositionModule().getTiltSlider().setValue(node.getTilt() * 100.0);
             }
         } finally {
             isSyncing = false;

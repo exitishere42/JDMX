@@ -69,6 +69,8 @@ public class StageFixtureNode extends Pane {
 
     private Color baseColor = Color.WHITE;
     private double dimmer = 0.0;
+    private double pan = 0.5;
+    private double tilt = 0.5;
     private boolean strobing = false;
     private boolean strobePhase = false;
 
@@ -509,12 +511,15 @@ public class StageFixtureNode extends Pane {
      * @param tilt Vertikale Tilt-Position (0.5 = Mitte)
      */
     public void setPosition(double pan, double tilt) {
+        this.pan = Math.clamp(pan, 0.0, 1.0);
+        this.tilt = Math.clamp(tilt, 0.0, 1.0);
+
         if (!panTiltSupported) {
             return;
         }
 
-        double dx = (pan - 0.5) * 2.0 * MAX_TRACKER_OFFSET;
-        double dy = (tilt - 0.5) * 2.0 * MAX_TRACKER_OFFSET;
+        double dx = (this.pan - 0.5) * 2.0 * MAX_TRACKER_OFFSET;
+        double dy = (this.tilt - 0.5) * 2.0 * MAX_TRACKER_OFFSET;
 
         // Auf Kreisradius begrenzen
         double dist = Math.sqrt(dx * dx + dy * dy);
@@ -526,6 +531,14 @@ public class StageFixtureNode extends Pane {
 
         trackerDot.setTranslateX(dx);
         trackerDot.setTranslateY(dy);
+    }
+
+    public double getPan() {
+        return pan;
+    }
+
+    public double getTilt() {
+        return tilt;
     }
 
     /**

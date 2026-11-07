@@ -150,10 +150,19 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
        - Bei Klick (Selektion) blendet sich direkt unter dem 36x36px Viereck ein eleganter Badge mit Border, Name und Adresse ein (`#18181B`, `border: 1px solid #38BDF8`).
        - Gehäuse erhält bei Selektion einen leuchtenden Cyan-Rahmen (`#38BDF8`).
    - Scheinwerfer frei per Drag & Drop aus dem Project Explorer auf der Bühne platzierbar und mit der Maus verschiebbar.
+   - **Tastatur-Löschung (`Entf` / `Backspace`):** Markierte Scheinwerfer (Einzel- oder Mehrfachauswahl via Marquee) können direkt per `Entf` (Delete) oder `Backspace` von der Bühne und aus dem Explorer entfernt werden.
+   - **Bidirektionale Selektions-Synchronisation:**
+     - Klick auf der Bühne selektiert das Element im Project Explorer und klappt geschlossene Ordner automatisch auf.
+     - Klick im Project Explorer auf ein Gerät selektiert den Scheinwerfer auf der Bühne (inkl. Gizmo und Dock-Sync).
+     - Klick im Project Explorer auf eine Gerätegruppe selektiert alle zur Gruppe gehörenden Scheinwerfer auf der Bühne gleichzeitig.
    - Vektor-Beams simulieren Abstrahlrichtung, Pan/Tilt-Winkel, Farbe und Helligkeit in Echtzeit an die Wand.
 3. **Rechte Leiste (Project Explorer):**
    - Durchgehende Seitenleiste über die volle Höhe rechts neben Bühne und Dock.
    - Baumansicht (`TreeView`) mit 5 aufklappbaren Standard-Ordnern (`Geräte`, `Gerätegruppen`, `Presets`, `Szenenlisten`, `Effekte`).
+   - **Gerätegruppen (`GROUP`):**
+     - Erstellen über `+` -> `Gerätegruppe` übernimmt automatisch alle aktuell auf der Bühne ausgewählten Scheinwerfer.
+     - Drag & Drop eines Scheinwerfers auf eine Gruppe fügt diesen zur Gruppe hinzu.
+     - Vollständig persistent im JSON-Projektmodell (`GroupDataDto`) gespeichert und wiederhergestellt.
    - Neue/unkategorisierte Items erscheinen frei unterhalb der Standard-Ordner.
    - **Umfassendes Drag & Drop:**
      - Items können per Drag & Drop in Standard-Ordner einsortiert, zwischen Ordnern verschoben oder im Root-Bereich frei umsortiert werden.

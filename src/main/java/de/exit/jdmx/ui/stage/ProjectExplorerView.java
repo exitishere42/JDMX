@@ -22,6 +22,7 @@ import javafx.scene.control.TreeView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -133,6 +134,7 @@ public class ProjectExplorerView extends VBox {
 
         // Drag & Drop auf freie Fläche der TreeView (zieht Item zurück auf Root-Ebene)
         setupTreeViewDropTarget();
+        setupKeyboardInteractions();
 
         // Initialer Baumaufbau und Registrierung am Service
         rebuildTree();
@@ -213,16 +215,70 @@ public class ProjectExplorerView extends VBox {
 
     private void initDefaultAddActions() {
         addMenu.setOnAction("group", () -> {
-            service.addItemToFolder("groups", new ExplorerItem("group-" + System.currentTimeMillis(), "Neue Gruppe", ExplorerItemType.GROUP, false, "layers", StudioTheme.COLOR_ICON_TIMELINE));
+            List<String> memberIds = new ArrayList<>();
+            if (stageCanvasView != null) {
+                for (StageFixtureNode node : stageCanvasView.getSelectedFixtures()) {
+                    if (node.getItem() != null) {
+                        memberIds.add(node.getItem().getId());
+                    }
+                }
+            }
+            String groupName = service.generateUniqueFixtureName("Gruppe");
+            ExplorerItem group = new ExplorerItem(
+                    "group-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+                    groupName,
+                    ExplorerItemType.GROUP,
+                    false,
+                    "layers",
+                    javafx.scene.paint.Color.web("#34D399")
+            );
+            group.setMemberFixtureIds(memberIds);
+            service.addItemToFolder(ProjectExplorerService.FOLDER_GROUPS_ID, group);
+            if (mainWindow != null) {
+                mainWindow.autoSave();
+            }
         });
         addMenu.setOnAction("chaser", () -> {
-            service.addItemToFolder("cue_lists", new ExplorerItem("chaser-" + System.currentTimeMillis(), "Neuer Chaser", ExplorerItemType.CUELIST, false, "list-music", StudioTheme.COLOR_ICON_FADER));
+            String name = service.generateUniqueFixtureName("Chaser");
+            service.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, new ExplorerItem(
+                    "chaser-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+                    name,
+                    ExplorerItemType.CUELIST,
+                    false,
+                    "list-music",
+                    StudioTheme.COLOR_ICON_FADER
+            ));
+            if (mainWindow != null) {
+                mainWindow.autoSave();
+            }
         });
         addMenu.setOnAction("effect", () -> {
-            service.addItemToFolder("effects", new ExplorerItem("effect-" + System.currentTimeMillis(), "Neuer Effekt", ExplorerItemType.EFFECT, false, "sparkles", StudioTheme.COLOR_ICON_MATRIX));
+            String name = service.generateUniqueFixtureName("Effekt");
+            service.addItemToFolder(ProjectExplorerService.FOLDER_EFFECTS_ID, new ExplorerItem(
+                    "effect-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+                    name,
+                    ExplorerItemType.EFFECT,
+                    false,
+                    "sparkles",
+                    StudioTheme.COLOR_ICON_MATRIX
+            ));
+            if (mainWindow != null) {
+                mainWindow.autoSave();
+            }
         });
         addMenu.setOnAction("preset", () -> {
-            service.addItemToFolder("presets", new ExplorerItem("preset-" + System.currentTimeMillis(), "Neues Preset", ExplorerItemType.PRESET, false, "star", javafx.scene.paint.Color.web("#FB923C")));
+            String name = service.generateUniqueFixtureName("Preset");
+            service.addItemToFolder(ProjectExplorerService.FOLDER_PRESETS_ID, new ExplorerItem(
+                    "preset-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+                    name,
+                    ExplorerItemType.PRESET,
+                    false,
+                    "star",
+                    javafx.scene.paint.Color.web("#FB923C")
+            ));
+            if (mainWindow != null) {
+                mainWindow.autoSave();
+            }
         });
     }
 
@@ -299,6 +355,70 @@ public class ProjectExplorerView extends VBox {
 
     public void setOnItemDeleteRequested(Consumer<ExplorerItem> onItemDeleteRequested) {
         this.onItemDeleteRequested = onItemDeleteRequested;
+    }
+
+    private void setupKeyboardInteractions() {
+        treeView.setOnKeyPressed(event -> {
+            if (event.getCode() == KeyCode.DELETE || event.getCode() == KeyCode.BACK_SPACE) {
+                TreeItem<ExplorerItem> selectedTreeItem = treeView.getSelectionModel().getSelectedItem();
+                if (selectedTreeItem != null && selectedTreeItem.getValue() != null) {
+                    ExplorerItem item = selectedTreeItem.getValue();
+                    if (!item.isStandardFolder()) {
+                        service.removeItem(item.getId());
+                        if (stageCanvasView != null) {
+                            stageCanvasView.removeFixture(item.getId());
+                        }
+                        if (mainWindow != null) {
+                            mainWindow.autoSave();
+                        }
+                        event.consume();
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Wählt ein Item anhand seiner ID im TreeView aus, klappt übergeordnete Ordner auf
+     * und scrollt das Element in den sichtbaren Bereich.
+     *
+     * @param itemId ID des auszuwählenden Elements
+     * @return true, wenn das Element gefunden und ausgewählt wurde
+     */
+    public boolean selectItem(String itemId) {
+        if (itemId == null) {
+            treeView.getSelectionModel().clearSelection();
+            return false;
+        }
+        TreeItem<ExplorerItem> found = findTreeItemById(rootItem, itemId);
+        if (found != null) {
+            // Übergeordnete Ordner aufklappen
+            TreeItem<ExplorerItem> p = found.getParent();
+            while (p != null) {
+                p.setExpanded(true);
+                p = p.getParent();
+            }
+            treeView.getSelectionModel().select(found);
+            treeView.scrollTo(treeView.getRow(found));
+            return true;
+        }
+        return false;
+    }
+
+    private TreeItem<ExplorerItem> findTreeItemById(TreeItem<ExplorerItem> parent, String id) {
+        if (parent == null || id == null) {
+            return null;
+        }
+        if (parent.getValue() != null && id.equals(parent.getValue().getId())) {
+            return parent;
+        }
+        for (TreeItem<ExplorerItem> child : parent.getChildren()) {
+            TreeItem<ExplorerItem> match = findTreeItemById(child, id);
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
     }
 
     /**
@@ -441,6 +561,12 @@ public class ProjectExplorerView extends VBox {
                     if (target.getType() == ExplorerItemType.FOLDER) {
                         // In Zielordner verschieben
                         service.moveItemToFolder(draggedId, target.getId());
+                    } else if (target.getType() == ExplorerItemType.GROUP) {
+                        // Zur Gerätegruppe hinzufügen
+                        target.addMemberFixtureId(draggedId);
+                        if (parentView != null && parentView.mainWindow != null) {
+                            parentView.mainWindow.autoSave();
+                        }
                     } else {
                         // Neben anderes Item verschieben (gleicher Ordner oder freie Liste)
                         String parentFolderId = service.findParentFolderId(target.getId());
