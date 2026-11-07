@@ -18,6 +18,7 @@ import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.service.UndoRedoService;
+import de.exit.jdmx.ui.desk.LightDeskWorkspaceView;
 import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
@@ -98,6 +99,9 @@ public class MainWindow extends StackPane {
 
     /** Referenz auf den Stage-Workspace (Tab 1). */
     private StageWorkspaceView stageWorkspaceView;
+
+    /** Referenz auf den LightDesk-Workspace (Tab 2). */
+    private LightDeskWorkspaceView lightDeskWorkspaceView;
 
     /** Referenz auf den IO-Workspace (Tab 5). */
     private IOWorkspaceView ioWorkspaceView;
@@ -297,7 +301,8 @@ public class MainWindow extends StackPane {
         });
         tabViews[0] = stageWorkspaceView;
 
-        tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
+        this.lightDeskWorkspaceView = new LightDeskWorkspaceView(dmxService, stageWorkspaceView.getExplorerService());
+        tabViews[1] = lightDeskWorkspaceView;
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
         tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
 
@@ -312,6 +317,10 @@ public class MainWindow extends StackPane {
 
     public StageWorkspaceView getStageWorkspaceView() {
         return stageWorkspaceView;
+    }
+
+    public LightDeskWorkspaceView getLightDeskWorkspaceView() {
+        return lightDeskWorkspaceView;
     }
 
     public FixtureLibraryService getFixtureLibraryService() {

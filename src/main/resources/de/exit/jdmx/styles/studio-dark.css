@@ -1360,3 +1360,167 @@
     -fx-opacity: 0.30;
     -fx-cursor: default;
 }
+
+
+/* =========================================================================
+   Tab 2: LightDesk (512-Channel Fader Desk & Fast Strip Styling)
+   ========================================================================= */
+.lightdesk-workspace {
+    -fx-background-color: #121212;
+}
+
+.desk-header-bar {
+    -fx-background-color: #18181B;
+    -fx-border-color: #27272A;
+    -fx-border-width: 0 0 1 0;
+}
+
+.desk-universe-combo {
+    -fx-background-color: #27272A;
+    -fx-border-color: #3F3F46;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-size: 11px;
+}
+
+.desk-action-btn {
+    -fx-background-color: #27272A;
+    -fx-text-fill: #E4E4E7;
+    -fx-border-color: #3F3F46;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 10 4 10;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+
+.desk-action-btn:hover {
+    -fx-background-color: #3F3F46;
+}
+
+.desk-action-btn:pressed {
+    -fx-background-color: #52525B;
+}
+
+.desk-bank-btn {
+    -fx-background-color: #202024;
+    -fx-text-fill: #A1A1AA;
+    -fx-border-color: #2E2E33;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3 8 3 8;
+    -fx-font-size: 10px;
+    -fx-font-family: monospace;
+    -fx-cursor: hand;
+}
+
+.desk-bank-btn:hover {
+    -fx-background-color: #2A2A30;
+    -fx-text-fill: #F4F4F5;
+}
+
+.desk-bank-btn.active {
+    -fx-background-color: #1E293B;
+    -fx-text-fill: #38BDF8;
+    -fx-border-color: #38BDF8;
+    -fx-font-weight: bold;
+}
+
+.desk-bank-scrollpane,
+.desk-fader-scrollpane,
+.desk-fixture-scrollpane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.desk-channel-strip {
+    -fx-background-color: #18181C;
+    -fx-border-color: #26262B;
+    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 6 3 6 3;
+}
+
+.desk-channel-strip:hover {
+    -fx-border-color: #3F3F46;
+    -fx-background-color: #1C1C22;
+}
+
+.desk-channel-function {
+    -fx-font-size: 9px;
+    -fx-text-fill: #A1A1AA;
+    -fx-alignment: CENTER;
+}
+
+.desk-channel-value {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #F4F4F5;
+    -fx-font-family: monospace;
+    -fx-alignment: CENTER;
+}
+
+.desk-channel-number {
+    -fx-font-size: 10px;
+    -fx-text-fill: #71717A;
+    -fx-alignment: CENTER;
+}
+
+.desk-reset-btn {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 3px;
+    -fx-padding: 2;
+    -fx-min-width: 18px;
+    -fx-pref-width: 18px;
+    -fx-max-width: 18px;
+    -fx-min-height: 18px;
+    -fx-pref-height: 18px;
+    -fx-max-height: 18px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+.desk-reset-btn:hover {
+    -fx-background-color: #27272A;
+}
+
+.desk-bottom-bar {
+    -fx-background-color: #18181B;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1 0 0 0;
+}
+
+.desk-bottom-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #71717A;
+}
+
+.desk-fixture-card {
+    -fx-background-color: #222226;
+    -fx-border-color: #33333A;
+    -fx-border-width: 1;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 10 4 8;
+    -fx-cursor: hand;
+}
+
+.desk-fixture-card:hover {
+    -fx-background-color: #2A2A30;
+    -fx-border-color: #4A4A55;
+}
+
+.desk-fixture-card-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FAFAFA;
+}
+
+.desk-fixture-card-channels {
+    -fx-font-size: 10px;
+    -fx-text-fill: #A1A1AA;
+    -fx-font-family: monospace;
+}
