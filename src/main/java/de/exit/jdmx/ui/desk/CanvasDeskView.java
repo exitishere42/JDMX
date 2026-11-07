@@ -36,8 +36,12 @@ public class CanvasDeskView extends VBox {
     public static final int TOTAL_CHANNELS = 512;
     public static final int VISIBLE_COUNT = 32;
 
-    private static final double TRACK_TOP = 8.0;
-    private static final double TRACK_BOTTOM_MARGIN = 22.0;
+    public static final double ICON_CENTER_Y = 14.0;
+    public static final double ICON_SIZE = 16.0;
+    public static final double TRACK_TOP = 26.0;
+    public static final double TRACK_BOTTOM_MARGIN = 22.0;
+
+    public static final Color COLOR_PRIMARY_ORANGE = Color.web("#F59E0B");
 
     private final Canvas canvas;
     private final CanvasPane canvasPane;
@@ -302,11 +306,16 @@ public class CanvasDeskView extends VBox {
             gc.setFill(Color.web("#181818"));
             gc.fillRect(screenX + 1, 2, channelWidth - 2, h - 4);
 
-            // 1. Track-Hintergrund (Leerzustand, neutrales Grau)
+            // 1. QLC+ Funktions-Icon (wenn Fixture gepatcht ist)
+            if (data.getChannelType() != null) {
+                DeskChannelIconRenderer.renderIcon(gc, colCenterX, ICON_CENTER_Y, ICON_SIZE, data.getChannelType(), data.getBarColor());
+            }
+
+            // 2. Track-Hintergrund (Leerzustand, neutrales Grau)
             gc.setFill(Color.web("#262626"));
             gc.fillRoundRect(barX, trackTop, barWidth, trackH, 3, 3);
 
-            // 2. Ausgefüllter Pegelbalken von unten nach oben
+            // 3. Ausgefüllter Pegelbalken von unten nach oben
             if (val > 0 && trackH > 0) {
                 double barH = (val / 255.0) * trackH;
                 Color barCol = data.getBarColor();
@@ -314,14 +323,14 @@ public class CanvasDeskView extends VBox {
                 gc.fillRoundRect(barX, trackBottom - barH, barWidth, barH, 3, 3);
             }
 
-            // 3. Kanalnummer unten (1..512)
+            // 4. Kanalnummer unten (1..512)
             gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10));
             gc.setFill(Color.web("#A1A1AA"));
             gc.fillText(String.valueOf(ch + 1), colCenterX, h - 7);
 
-            // 4. Fixture-Akzentstrich am Fuß
-            if (data.getFixtureColor() != null) {
-                gc.setFill(data.getFixtureColor());
+            // 5. Akzentstrich am Fuß (Pult-Orange #F59E0B bei gepatchten Kanälen)
+            if (data.getChannelType() != null || data.getFixtureName() != null || data.getFixtureColor() != null) {
+                gc.setFill(COLOR_PRIMARY_ORANGE);
                 gc.fillRect(screenX + 4, h - 3, channelWidth - 8, 2);
             }
         }
