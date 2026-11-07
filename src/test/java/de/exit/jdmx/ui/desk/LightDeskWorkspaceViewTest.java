@@ -57,10 +57,10 @@ class LightDeskWorkspaceViewTest {
                 assertThat(comboUni.getItems()).containsExactly("Universum 1", "Universum 2", "Universum 3", "Universum 4");
                 assertThat(comboUni.getValue()).isEqualTo("Universum 1");
 
-                // 2. 50/50 SplitPane
+                // 2. SplitPane (großes Faderdock oben, schlanke Fixture-Leiste unten)
                 assertThat(desk.getSplitPane()).isNotNull();
                 assertThat(desk.getSplitPane().getOrientation()).isEqualTo(Orientation.VERTICAL);
-                assertThat(desk.getSplitPane().getDividerPositions()).contains(0.5);
+                assertThat(desk.getSplitPane().getDividerPositions()).contains(0.78);
 
                 // 3. Oberes Fader-Dock
                 assertThat(desk.getTopFaderDock()).isNotNull();
@@ -68,9 +68,9 @@ class LightDeskWorkspaceViewTest {
                 assertThat(desk.getCanvasDeskView().getTotalChannels()).isEqualTo(512);
                 assertThat(desk.getCanvasDeskView().getChannelValue(1)).isEqualTo(0);
 
-                // 4. Unterer Bereich mit DeskFixtureListView
+                // 4. Unterer Bereich mit DeskFixtureBarView
                 assertThat(desk.getBottomWorkspaceArea()).isNotNull();
-                assertThat(desk.getDeskFixtureListView()).isNotNull();
+                assertThat(desk.getDeskFixtureBarView()).isNotNull();
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -150,8 +150,8 @@ class LightDeskWorkspaceViewTest {
                 assertThat(data3.getFunctionName()).isEqualTo("Tilt");
                 assertThat(data4.getFunctionName()).isEqualTo("-");
 
-                // Test: Fixture in DeskFixtureListView vorhanden
-                assertThat(desk.getDeskFixtureListView().getDisplayedFixturesCount()).isEqualTo(1);
+                // Test: Fixture in DeskFixtureBarView vorhanden
+                assertThat(desk.getDeskFixtureBarView().getFixtureRowCount()).isEqualTo(1);
 
                 // Test: Locate-Funktion schaltet Dimmer auf 255 und Pan/Tilt mittig (128)
                 desk.locateFixture(instance);

@@ -124,4 +124,20 @@ class UniversePatchTableTest {
         assertThat(table.getUniverseRows().getFirst().getOutputDropdown().getItems())
                 .contains("JMS USB to DMX PRO (COM7)");
     }
+
+    @Test
+    @DisplayName("Sollte saubere Spaltenüberschriften ohne unschöne Klammerzusätze wie '(Dropdown)' besitzen")
+    void shouldHaveCleanHeaderLabelsWithoutDropdownSuffix() {
+        UniversePatchTable table = new UniversePatchTable();
+        // Suche alle Labels in der Tabelle und prüfe, dass kein einziges '(Dropdown)' enthält
+        for (javafx.scene.Node node : table.getChildren()) {
+            if (node instanceof javafx.scene.layout.HBox hBox) {
+                for (javafx.scene.Node child : hBox.getChildren()) {
+                    if (child instanceof javafx.scene.control.Label lbl) {
+                        assertThat(lbl.getText()).doesNotContain("(Dropdown)");
+                    }
+                }
+            }
+        }
+    }
 }

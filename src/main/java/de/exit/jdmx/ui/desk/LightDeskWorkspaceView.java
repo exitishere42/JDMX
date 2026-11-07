@@ -17,19 +17,20 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Arbeitsbereich für Tab 2 (LightDesk - Fader-Pult & Live-Steuerung).
  * <p>
- * Bietet ein professionelles Lichtmischpult-Layout mit 50/50-Teilung und voller DMX-Backend-Verdrahtung:
+ * Bietet ein professionelles Lichtmischpult-Layout mit Faderdock und schlanker Fixture-Leiste:
  * <ul>
  *     <li><b>Kopfzeile:</b> Universums-Umschaltung (Universum 1–4) mit autom. DMX-Puffer-Synchronisation.</li>
- *     <li><b>Oberes Fader-Dock (50 % Höhe):</b> Puristische Canvas-Balken mit DMX-Pegelwert (0..255), Kanalnummer,
+ *     <li><b>Oberes Fader-Dock:</b> Puristische Canvas-Balken mit DMX-Pegelwert (0..255), Kanalnummer,
  *         Funktions-Icons von lucide.dev, Custom-Scrollbar und Doppel-/Rechtsklick-Schnellnullung.</li>
- *     <li><b>Unterer Arbeitsbereich (50 % Höhe):</b> Interaktive {@link DeskFixtureListView} mit Scheinwerfer-Karten,
- *         Auto-Scroll beim Anklicken, DMX-Kanal-Inspektor und Quick Actions ([Locate], [Full], [Zero]).</li>
+ *     <li><b>Unterer Bereich:</b> Schlanke {@link DeskFixtureBarView} mit einzeiliger Darstellung aller
+ *         gepatchten Geräte (Brand Model │ Start–End │ N Kanäle) und Klick-zu-Kanal-Navigation.</li>
  * </ul>
  * </p>
  */
@@ -43,12 +44,12 @@ public class LightDeskWorkspaceView extends VBox {
     // Header Controls
     private final ComboBox<String> comboUniverse;
 
-    // SplitPane mit 50/50 Aufteilung
+    // Layout
     private final SplitPane splitPane;
     private final VBox topFaderDock;
     private final StackPane bottomWorkspaceArea;
     private final CanvasDeskView canvasDeskView;
-    private final DeskFixtureListView deskFixtureListView;
+    private final DeskFixtureBarView deskFixtureBarView;
 
     private final DmxService.ChannelChangeListener dmxChannelListener;
     private boolean updatingFromDmx = false;
@@ -71,26 +72,26 @@ public class LightDeskWorkspaceView extends VBox {
         this.comboUniverse = new ComboBox<>();
         HBox headerBar = buildHeaderBar();
 
-        // 2. Oberes Fader-Dock (50 % der Bildschirmhöhe)
+        // 2. Oberes Fader-Dock (CanvasDeskView)
         this.canvasDeskView = new CanvasDeskView();
 
         this.topFaderDock = new VBox(canvasDeskView);
         topFaderDock.getStyleClass().add("desk-top-dock");
         VBox.setVgrow(canvasDeskView, Priority.ALWAYS);
 
-        // 3. Unterer Bereich: Vollwertige DeskFixtureListView (50 % der Bildschirmhöhe)
-        this.deskFixtureListView = new DeskFixtureListView();
-        this.bottomWorkspaceArea = new StackPane(deskFixtureListView);
+        // 3. Unterer Bereich: Schlanke DeskFixtureBarView
+        this.deskFixtureBarView = new DeskFixtureBarView();
+        this.bottomWorkspaceArea = new StackPane(deskFixtureBarView);
         bottomWorkspaceArea.getStyleClass().add("desk-bottom-workspace");
 
-        // 4. Vertikaler SplitPane (50% / 50%)
+        // 4. Vertikaler SplitPane (Großzügiges oberes Dock, schlanke untere Leiste)
         this.splitPane = new SplitPane();
         splitPane.setOrientation(Orientation.VERTICAL);
         splitPane.getStyleClass().add("desk-vertical-split");
         splitPane.getItems().addAll(topFaderDock, bottomWorkspaceArea);
-        splitPane.setDividerPositions(0.5);
+        splitPane.setDividerPositions(0.78);
         SplitPane.setResizableWithParent(topFaderDock, true);
-        SplitPane.setResizableWithParent(bottomWorkspaceArea, true);
+        SplitPane.setResizableWithParent(bottomWorkspaceArea, false);
         VBox.setVgrow(splitPane, Priority.ALWAYS);
 
         getChildren().addAll(headerBar, splitPane);
@@ -106,7 +107,6 @@ public class LightDeskWorkspaceView extends VBox {
             }
             int uniIdx = getSelectedUniverseIndex();
             dmxService.setChannel(uniIdx, channel, value);
-            deskFixtureListView.updateChannelValue(uniIdx, channel, value);
         });
 
         // B. Externe DMX-Änderungen (z. B. durch Stage, Chaser, Blackout) -> Fader im Desk synchronisieren
@@ -121,17 +121,13 @@ public class LightDeskWorkspaceView extends VBox {
                             updatingFromDmx = false;
                         }
                     }
-                    deskFixtureListView.updateChannelValue(uniIdx, channel, value);
                 });
             }
         };
         this.dmxService.addChannelChangeListener(dmxChannelListener);
 
-        // C. DeskFixtureListView Callbacks verdrahten
-        this.deskFixtureListView.setOnJumpToChannel(this::scrollToChannel);
-        this.deskFixtureListView.setOnLocateFixture(this::locateFixture);
-        this.deskFixtureListView.setOnFullFixture(this::fullFixture);
-        this.deskFixtureListView.setOnZeroFixture(this::zeroFixture);
+        // C. Klick auf Fixture in der Leiste -> Faderdock sofort zentriert zum Startkanal scrollen
+        this.deskFixtureBarView.setOnJumpToChannel(this::scrollToChannel);
 
         // Gepatchte Geräte laden & Event-Listener verdrahten
         refreshPatchedFixtures();
@@ -194,7 +190,6 @@ public class LightDeskWorkspaceView extends VBox {
         for (int i = 0; i < TOTAL_CHANNELS; i++) {
             int val = data[i] & 0xFF;
             canvasDeskView.setChannelValue(i + 1, val);
-            deskFixtureListView.updateChannelValue(universeIndex, i + 1, val);
         }
     }
 
@@ -253,14 +248,15 @@ public class LightDeskWorkspaceView extends VBox {
         canvasDeskView.clearFixtureAssignments();
 
         if (explorerService == null) {
-            deskFixtureListView.setFixtures(List.of(), getSelectedUniverseIndex() + 1);
+            deskFixtureBarView.setFixtures(List.of(), getSelectedUniverseIndex() + 1);
             return;
         }
 
-        List<ExplorerItem> devices = explorerService.getItemsInFolder(ProjectExplorerService.FOLDER_DEVICES_ID);
+        // Snapshot-Kopie verhindert ConcurrentModificationException bei parallelen Updates
+        List<ExplorerItem> devices = new ArrayList<>(explorerService.getItemsInFolder(ProjectExplorerService.FOLDER_DEVICES_ID));
         int selectedUniverse = getSelectedUniverseIndex(); // 0-basiert (0 bis 3)
 
-        deskFixtureListView.setFixtures(devices, selectedUniverse + 1);
+        deskFixtureBarView.setFixtures(devices, selectedUniverse + 1);
 
         for (ExplorerItem item : devices) {
             FixtureInstance instance = item.getFixtureInstance();
@@ -304,8 +300,8 @@ public class LightDeskWorkspaceView extends VBox {
         return canvasDeskView;
     }
 
-    public DeskFixtureListView getDeskFixtureListView() {
-        return deskFixtureListView;
+    public DeskFixtureBarView getDeskFixtureBarView() {
+        return deskFixtureBarView;
     }
 
     public SplitPane getSplitPane() {

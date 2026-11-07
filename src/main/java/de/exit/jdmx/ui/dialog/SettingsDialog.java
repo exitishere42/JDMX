@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.ShortcutItem;
@@ -271,7 +272,18 @@ public class SettingsDialog {
                 new LanguageOption("en", "English"),
                 new LanguageOption("ru", "Русский")
         );
-        combo.setValue(combo.getItems().getFirst());
+        String currentLang = I18n.getCurrentLanguage();
+        LanguageOption initial = combo.getItems().stream()
+                .filter(opt -> opt.code().equalsIgnoreCase(currentLang))
+                .findFirst()
+                .orElse(combo.getItems().getFirst());
+        combo.setValue(initial);
+
+        combo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                I18n.setLanguage(newVal.code());
+            }
+        });
 
         // Custom Cell Factory für Flagge + Text
         combo.setCellFactory(lv -> new ListCell<>() {

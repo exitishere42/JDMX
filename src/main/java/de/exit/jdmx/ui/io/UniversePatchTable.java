@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.io;
 
 import de.exit.jdmx.core.model.UniverseConfig;
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.component.CustomDropdownButton;
@@ -164,10 +165,10 @@ public class UniversePatchTable extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(2, 0, 4, 0));
 
-        Label lblUni = createHeaderLabel("Universum", COL_WIDTH_UNIVERSE, Pos.CENTER_LEFT);
-        Label lblIn = createHeaderLabel("Input (Dropdown)", COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
-        Label lblOut = createHeaderLabel("Output (Dropdown)", COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
-        Label lblStatus = createHeaderLabel("Status", COL_WIDTH_STATUS, Pos.CENTER_LEFT);
+        Label lblUni = createHeaderLabel(I18n.get("io.col.universe"), COL_WIDTH_UNIVERSE, Pos.CENTER_LEFT);
+        Label lblIn = createHeaderLabel(I18n.get("io.col.input"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
+        Label lblOut = createHeaderLabel(I18n.get("io.col.output"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
+        Label lblStatus = createHeaderLabel(I18n.get("io.col.status"), COL_WIDTH_STATUS, Pos.CENTER_LEFT);
         Label lblCfg = createHeaderLabel("", COL_WIDTH_CONFIG, Pos.CENTER);
 
         header.getChildren().addAll(lblUni, lblIn, lblOut, lblStatus, lblCfg);
