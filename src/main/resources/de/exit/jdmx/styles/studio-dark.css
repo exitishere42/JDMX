@@ -1479,3 +1479,26 @@
     -fx-text-fill: #A1A1AA;
     -fx-font-family: monospace;
 }
+
+/* 50/50 Redesign Split & Docks */
+.desk-vertical-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.desk-top-dock {
+    -fx-background-color: #141417;
+    -fx-border-color: #27272A;
+    -fx-border-width: 0 0 1 0;
+}
+
+.desk-bottom-workspace {
+    -fx-background-color: #121212;
+    -fx-alignment: CENTER;
+}
+
+.desk-placeholder-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #52525B;
+}

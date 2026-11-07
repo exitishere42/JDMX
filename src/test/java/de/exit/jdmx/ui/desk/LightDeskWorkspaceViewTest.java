@@ -4,6 +4,7 @@ import de.exit.jdmx.core.model.*;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
 import javafx.application.Platform;
+import javafx.geometry.Orientation;
 import javafx.scene.control.ComboBox;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TDD Unit-Tests für den {@link LightDeskWorkspaceView} (Tab 2: LightDesk).
- * Prüft den visuellen Aufbau, Layout-Hierarchien, performante Canvas-Balkenbank und Navigation.
+ * Prüft den visuellen Aufbau mit 50/50 Split, das obere Fader-Dock und Navigation.
  */
 class LightDeskWorkspaceViewTest {
 
@@ -35,7 +36,7 @@ class LightDeskWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte LightDesk mit Universums-Dropdown, CanvasDeskView und Fixture-Liste aufbauen")
+    @DisplayName("Sollte LightDesk mit Universums-Dropdown, 50/50 SplitPane und oberem Fader-Dock aufbauen")
     void shouldBuildLightDeskLayout() throws Throwable {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
@@ -56,13 +57,19 @@ class LightDeskWorkspaceViewTest {
                 assertThat(comboUni.getItems()).containsExactly("Universum 1", "Universum 2", "Universum 3", "Universum 4");
                 assertThat(comboUni.getValue()).isEqualTo("Universum 1");
 
-                // 2. Performante Canvas-Faderbank
+                // 2. 50/50 SplitPane
+                assertThat(desk.getSplitPane()).isNotNull();
+                assertThat(desk.getSplitPane().getOrientation()).isEqualTo(Orientation.VERTICAL);
+                assertThat(desk.getSplitPane().getDividerPositions()).contains(0.5);
+
+                // 3. Oberes Fader-Dock
+                assertThat(desk.getTopFaderDock()).isNotNull();
                 assertThat(desk.getCanvasDeskView()).isNotNull();
                 assertThat(desk.getCanvasDeskView().getTotalChannels()).isEqualTo(512);
                 assertThat(desk.getCanvasDeskView().getChannelValue(1)).isEqualTo(0);
 
-                // 3. Fixture-Liste
-                assertThat(desk.getFixtureListContainer()).isNotNull();
+                // 4. Unterer Bereich (reserviert für Schritt 2)
+                assertThat(desk.getBottomWorkspaceArea()).isNotNull();
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -105,8 +112,8 @@ class LightDeskWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte gepatchte Geräte in der unteren Liste anzeigen und Kanalbeschriftungen zuordnen")
-    void shouldDisplayPatchedFixturesAndChannelLabels() throws Throwable {
+    @DisplayName("Sollte gepatchte Geräte den Kanälen zuordnen")
+    void shouldAssignPatchedFixturesToChannels() throws Throwable {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
 
@@ -127,11 +134,6 @@ class LightDeskWorkspaceViewTest {
                 explorerService.addItemToFolder(ProjectExplorerService.FOLDER_DEVICES_ID, item);
 
                 LightDeskWorkspaceView desk = new LightDeskWorkspaceView(dmxService, explorerService);
-
-                // Fixture-Karten prüfen
-                assertThat(desk.getFixtureCards()).hasSize(1);
-                assertThat(desk.getFixtureCards().get(0).getTitleLabel().getText()).contains("Moving Head 1");
-                assertThat(desk.getFixtureCards().get(0).getChannelsLabel().getText()).contains("1 - 3");
 
                 // Kanal-Daten in CanvasDeskView prüfen
                 DeskChannelData data1 = desk.getCanvasDeskView().getChannelData(1);

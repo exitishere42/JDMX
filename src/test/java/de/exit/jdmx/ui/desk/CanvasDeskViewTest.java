@@ -223,17 +223,17 @@ class CanvasDeskViewTest {
                 assertThat(channel2).isEqualTo(2);
 
                 // DMX-Wert Berechnung:
-                // TrackTop = 28, TrackBottom = 172, TrackH = 144
-                // Bei y = 28 (ganz oben) -> Wert 255
-                int valTop = desk.getValueAtY(28.0);
+                // TrackTop = 8, TrackBottom = 178, TrackH = 170
+                // Bei y = 8 (ganz oben) -> Wert 255
+                int valTop = desk.getValueAtY(8.0);
                 assertThat(valTop).isEqualTo(255);
 
-                // Bei y = 172 (ganz unten) -> Wert 0
-                int valBottom = desk.getValueAtY(172.0);
+                // Bei y = 178 (ganz unten) -> Wert 0
+                int valBottom = desk.getValueAtY(178.0);
                 assertThat(valBottom).isEqualTo(0);
 
-                // Bei y = 100 (genau in der Mitte) -> Wert ca. 128
-                int valMid = desk.getValueAtY(100.0);
+                // Bei y = 93 (genau in der Mitte) -> Wert ca. 128
+                int valMid = desk.getValueAtY(93.0);
                 assertThat(valMid).isBetween(126, 129);
             } catch (Throwable t) {
                 error.set(t);

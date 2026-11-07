@@ -1,7 +1,6 @@
 package de.exit.jdmx.ui.desk;
 
 import de.exit.jdmx.core.model.ChannelType;
-import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
@@ -15,7 +14,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -26,6 +24,7 @@ import java.util.function.Consumer;
  * <ul>
  *     <li><b>Zero-Lag & Zero-Overhead:</b> Genau 1 unmanaged {@link Canvas}-Knoten für alle 512 Kanäle.</li>
  *     <li><b>Interaktive Balken:</b> Balken können per Maus direkt gegriffen und hoch-/runtergezogen werden.</li>
+ *     <li><b>Puristisches Design:</b> Maximale Fader-Höhe ohne Text-Overhead, mit Kanalnummern direkt am Fuß.</li>
  *     <li><b>Pinsel-Modus:</b> Ziehen mit gedrückter Maustaste quer über Kanäle setzt mehrere Werte in einer Wischbewegung.</li>
  *     <li><b>Schnell-Reset:</b> Doppelklick auf einen Kanal setzt den Wert sofort auf 0.</li>
  *     <li><b>Direct Rendering:</b> Hardwarebeschleunigtes Zeichnen in unter 1 ms pro Frame.</li>
@@ -37,8 +36,8 @@ public class CanvasDeskView extends VBox {
     public static final int TOTAL_CHANNELS = 512;
     public static final int VISIBLE_COUNT = 32;
 
-    private static final double TRACK_TOP = 28.0;
-    private static final double TRACK_BOTTOM_MARGIN = 28.0;
+    private static final double TRACK_TOP = 8.0;
+    private static final double TRACK_BOTTOM_MARGIN = 22.0;
 
     private final Canvas canvas;
     private final CanvasPane canvasPane;
@@ -330,52 +329,33 @@ public class CanvasDeskView extends VBox {
             double barX = screenX + (channelWidth - barWidth) / 2.0;
 
             // Spalten-Hintergrund leicht abgesetzt
-            gc.setFill(Color.web("#1A1A1E"));
+            gc.setFill(Color.web("#19191D"));
             gc.fillRect(screenX + 1, 2, channelWidth - 2, h - 4);
 
-            // 1. Funktionstext oben (z. B. Dimmer, Pan, Tilt, Rot)
-            gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 9));
-            if (data.getChannelType() != null) {
-                gc.setFill(data.getBarColor());
-                gc.fillText(data.getFunctionName(), colCenterX, 13);
-            } else {
-                gc.setFill(Color.web("#71717A"));
-                gc.fillText("-", colCenterX, 13);
-            }
+            // 1. Track-Hintergrund (Leerzustand, füllt fast die gesamte Höhe)
+            gc.setFill(Color.web("#222226"));
+            gc.fillRoundRect(barX, trackTop, barWidth, trackH, 3, 3);
 
-            // 2. DMX-Wertanzeige (0..255)
-            gc.setFont(Font.font("Consolas", FontWeight.BOLD, 10));
-            if (val > 0) {
-                gc.setFill(Color.web("#FAFAFA"));
-            } else {
-                gc.setFill(Color.web("#52525B"));
-            }
-            gc.fillText(String.valueOf(val), colCenterX, 24);
-
-            // 3. Track-Hintergrund (Leerzustand)
-            gc.setFill(Color.web("#242429"));
-            gc.fillRect(barX, trackTop, barWidth, trackH);
-
-            // 4. Ausgefüllter Pegelbalken von unten nach oben
+            // 2. Ausgefüllter Pegelbalken von unten nach oben
             if (val > 0 && trackH > 0) {
                 double barH = (val / 255.0) * trackH;
                 Color barCol = (ch == hoveredChannel) ? Color.web("#38BDF8") : data.getBarColor();
                 gc.setFill(barCol);
-                gc.fillRect(barX, trackBottom - barH, barWidth, barH);
+                gc.fillRoundRect(barX, trackBottom - barH, barWidth, barH, 3, 3);
             }
 
-            // 5. Kanalnummer unten (1..512)
-            gc.setFont(Font.font("Segoe UI", 9));
+            // 3. Kanalnummer unten (1..512)
+            gc.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10));
             gc.setFill(Color.web("#A1A1AA"));
-            gc.fillText(String.valueOf(ch + 1), colCenterX, h - 14);
+            gc.fillText(String.valueOf(ch + 1), colCenterX, h - 7);
 
-            // 6. Fixture-Akzentstrich am Fuß
+            // 4. Fixture-Akzentstrich am Fuß
             if (data.getFixtureColor() != null) {
                 gc.setFill(data.getFixtureColor());
-                gc.fillRect(screenX + 4, h - 8, channelWidth - 8, 3);
+                gc.fillRect(screenX + 4, h - 3, channelWidth - 8, 2);
             }
 
-            // 7. Hover-Rahmen
+            // 5. Hover-Rahmen
             if (ch == hoveredChannel) {
                 gc.setStroke(Color.web("#38BDF8"));
                 gc.setLineWidth(1.5);
@@ -423,8 +403,8 @@ public class CanvasDeskView extends VBox {
             getChildren().add(canvas);
             canvas.setManaged(false);
 
-            setMinHeight(120);
-            setPrefHeight(240);
+            setMinHeight(100);
+            setPrefHeight(200);
             setMaxHeight(Double.MAX_VALUE);
             setMinWidth(200);
             setMaxWidth(Double.MAX_VALUE);

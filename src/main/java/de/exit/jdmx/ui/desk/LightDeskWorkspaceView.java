@@ -9,24 +9,24 @@ import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Arbeitsbereich für Tab 2 (LightDesk - Fader-Pult).
  * <p>
- * Bietet ein professionelles Lichtmischpult-Layout mit ziehbaren Pegelbalken nach dem Vorbild von {@code artnet2dmx}:
+ * Bietet ein professionelles Lichtmischpult-Layout mit 50/50-Teilung:
  * <ul>
- *     <li>Kopfzeile mit Universums-Umschaltung (Universum 1–4), Schnell-Reset und Bank-Navigation (1–32, 33–64...).</li>
- *     <li>Performante 512-Kanal-Faderbank auf Canvas-Basis mit interaktivem Ziehen, Wischen und Nullstellen ohne jeden Lag.</li>
- *     <li>Untere Schnellzugriffsleiste mit gepatchten Scheinwerfern und Auto-Scroll zum Startkanal.</li>
+ *     <li><b>Kopfzeile:</b> Universums-Umschaltung (Universum 1–4), Schnell-Reset und Bank-Navigation (1–32, 33–64...).</li>
+ *     <li><b>Oberes Fader-Dock (50 % Höhe):</b> Puristische Canvas-Balken ohne Text-Overhead mit Kanalnummern am Fuß.</li>
+ *     <li><b>Unterer Bereich (50 % Höhe):</b> Strukturierte Arbeitsfläche für die nächsten Ausbauschritte.</li>
  * </ul>
  * </p>
  */
@@ -46,13 +46,11 @@ public class LightDeskWorkspaceView extends VBox {
     private final List<Button> bankButtons = new ArrayList<>();
     private int currentBank = 1;
 
-    // Canvas Faderbank
+    // SplitPane mit 50/50 Aufteilung
+    private final SplitPane splitPane;
+    private final VBox topFaderDock;
+    private final StackPane bottomWorkspaceArea;
     private final CanvasDeskView canvasDeskView;
-
-    // Untere Leiste: Gepatchte Scheinwerfer
-    private final ScrollPane fixtureScrollPane;
-    private final HBox fixtureListContainer;
-    private final List<LightDeskFixtureCard> fixtureCards = new ArrayList<>();
 
     /**
      * Erstellt einen neuen LightDesk-Arbeitsbereich.
@@ -74,31 +72,35 @@ public class LightDeskWorkspaceView extends VBox {
         this.bankButtonContainer = new HBox(4);
         HBox headerBar = buildHeaderBar();
 
-        // 2. Performante Canvas-Faderbank initialisieren
+        // 2. Oberes Fader-Dock (50 % der Bildschirmhöhe)
         this.canvasDeskView = new CanvasDeskView();
         canvasDeskView.setOnScrollChanged(offset -> {
             int bank = (int) Math.floor(offset / CHANNELS_PER_BANK) + 1;
             updateBankHighlight(bank);
         });
 
-        // 3. Untere Leiste: Gepatchte Scheinwerfer
-        this.fixtureListContainer = new HBox(6);
-        this.fixtureListContainer.getStyleClass().add("desk-fixture-container");
-        this.fixtureListContainer.setAlignment(Pos.CENTER_LEFT);
-        this.fixtureListContainer.setPadding(new Insets(6, 12, 6, 12));
+        this.topFaderDock = new VBox(canvasDeskView);
+        topFaderDock.getStyleClass().add("desk-top-dock");
+        VBox.setVgrow(canvasDeskView, Priority.ALWAYS);
 
-        this.fixtureScrollPane = new ScrollPane(fixtureListContainer);
-        this.fixtureScrollPane.getStyleClass().addAll("desk-fixture-scrollpane", "edge-to-edge");
-        this.fixtureScrollPane.setFitToHeight(true);
-        this.fixtureScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        this.fixtureScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        this.fixtureScrollPane.setMinHeight(52);
-        this.fixtureScrollPane.setPrefHeight(52);
-        this.fixtureScrollPane.setMaxHeight(52);
+        // 3. Unterer Bereich (50 % der Bildschirmhöhe) - reserviert für Schritt 2
+        this.bottomWorkspaceArea = new StackPane();
+        bottomWorkspaceArea.getStyleClass().add("desk-bottom-workspace");
+        Label lblPlaceholder = new Label("LightDesk Arbeitsbereich (Schritt 2)");
+        lblPlaceholder.getStyleClass().add("desk-placeholder-label");
+        bottomWorkspaceArea.getChildren().add(lblPlaceholder);
 
-        HBox bottomBar = buildBottomBar();
+        // 4. Vertikaler SplitPane (50% / 50%)
+        this.splitPane = new SplitPane();
+        splitPane.setOrientation(Orientation.VERTICAL);
+        splitPane.getStyleClass().add("desk-vertical-split");
+        splitPane.getItems().addAll(topFaderDock, bottomWorkspaceArea);
+        splitPane.setDividerPositions(0.5);
+        SplitPane.setResizableWithParent(topFaderDock, true);
+        SplitPane.setResizableWithParent(bottomWorkspaceArea, true);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
 
-        getChildren().addAll(headerBar, canvasDeskView, bottomBar);
+        getChildren().addAll(headerBar, splitPane);
 
         // Gepatchte Geräte laden & Event-Listener verdrahten
         refreshPatchedFixtures();
@@ -151,20 +153,6 @@ public class LightDeskWorkspaceView extends VBox {
         return header;
     }
 
-    private HBox buildBottomBar() {
-        HBox bar = new HBox(8);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("desk-bottom-bar");
-
-        Label lblSection = new Label("Gepatchte Geräte:");
-        lblSection.getStyleClass().add("desk-bottom-label");
-        lblSection.setPadding(new Insets(0, 0, 0, 14));
-
-        HBox.setHgrow(fixtureScrollPane, Priority.ALWAYS);
-        bar.getChildren().addAll(lblSection, fixtureScrollPane);
-        return bar;
-    }
-
     /**
      * Wählt eine Faderbank (1 bis 16) aus und scrollt die Faderbank dorthin.
      *
@@ -214,8 +202,6 @@ public class LightDeskWorkspaceView extends VBox {
      * Aktualisiert die gepatchten Scheinwerfer und beschriftet die zugehörigen Kanalstreifen.
      */
     public void refreshPatchedFixtures() {
-        fixtureCards.clear();
-        fixtureListContainer.getChildren().clear();
         canvasDeskView.clearFixtureAssignments();
 
         if (explorerService == null) {
@@ -231,13 +217,8 @@ public class LightDeskWorkspaceView extends VBox {
                 continue;
             }
 
-            // Nur Scheinwerfer des aktuell gewählten Universums anzeigen
+            // Nur Scheinwerfer des aktuell gewählten Universums zuordnen
             if (instance.getUniverse() == selectedUniverse + 1) {
-                LightDeskFixtureCard card = new LightDeskFixtureCard(item, this::scrollToChannel);
-                fixtureCards.add(card);
-                fixtureListContainer.getChildren().add(card);
-
-                // Kanäle beschriften
                 int startAddr = instance.getStartAddress();
                 if (instance.getActiveMode() != null && instance.getActiveMode().getChannels() != null) {
                     List<ChannelDefinition> channels = instance.getActiveMode().getChannels();
@@ -272,12 +253,16 @@ public class LightDeskWorkspaceView extends VBox {
         return canvasDeskView;
     }
 
-    public HBox getFixtureListContainer() {
-        return fixtureListContainer;
+    public SplitPane getSplitPane() {
+        return splitPane;
     }
 
-    public List<LightDeskFixtureCard> getFixtureCards() {
-        return Collections.unmodifiableList(fixtureCards);
+    public VBox getTopFaderDock() {
+        return topFaderDock;
+    }
+
+    public StackPane getBottomWorkspaceArea() {
+        return bottomWorkspaceArea;
     }
 
     public int getCurrentBank() {
