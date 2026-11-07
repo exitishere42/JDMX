@@ -115,11 +115,7 @@ public class HeaderBar extends HBox {
         statusArea.setOpacity(0.0);
         statusArea.setVisible(false);
 
-        // Linke Trennlinie (gekürzt auf 18px wie im I/O-Patch)
-        Line leftSep = new Line(0, 0, 0, 18);
-        leftSep.getStyleClass().add("header-separator");
-
-        // Status-Pille mit 4px Rundung
+        // Status-Pille ohne Rahmen oder Trennstriche
         statusPill.setAlignment(Pos.CENTER);
         statusPill.getStyleClass().add("header-status-pill");
 
@@ -127,11 +123,7 @@ public class HeaderBar extends HBox {
 
         statusPill.getChildren().addAll(statusIconContainer, statusLabel);
 
-        // Rechte Trennlinie (gekürzt auf 18px wie im I/O-Patch)
-        Line rightSep = new Line(0, 0, 0, 18);
-        rightSep.getStyleClass().add("header-separator");
-
-        statusArea.getChildren().addAll(leftSep, statusPill, rightSep);
+        statusArea.getChildren().add(statusPill);
         return statusArea;
     }
 

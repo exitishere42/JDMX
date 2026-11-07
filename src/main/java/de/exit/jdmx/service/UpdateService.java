@@ -31,7 +31,7 @@ public class UpdateService {
     private static final Logger LOGGER = Logger.getLogger(UpdateService.class.getName());
 
     /** Aktuelle Anwendungsversion. */
-    public static final String CURRENT_VERSION = "1.6.1";
+    public static final String CURRENT_VERSION = "1.7.0";
 
     /** GitHub Repository-Bezeichnung. */
     public static final String GITHUB_REPO = "exitishere42/JDMX";

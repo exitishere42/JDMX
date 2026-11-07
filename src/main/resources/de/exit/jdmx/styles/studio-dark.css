@@ -734,6 +734,14 @@
     -fx-stroke-type: inside;
 }
 
+.stage-gizmo-x-arrow {
+    -fx-cursor: h-resize;
+}
+
+.stage-gizmo-y-arrow {
+    -fx-cursor: v-resize;
+}
+
 .fullscreen-hud-text {
     -fx-fill: #F3F4F6;
     -fx-font-size: 13px;

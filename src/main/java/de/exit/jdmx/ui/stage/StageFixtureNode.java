@@ -7,12 +7,17 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
 
 import java.util.Objects;
 
@@ -70,9 +75,20 @@ public class StageFixtureNode extends Pane {
     private final BooleanProperty selected = new SimpleBooleanProperty(false);
     private boolean hoveredState = false;
 
-    private double dragStartX;
-    private double dragStartY;
+    private final Group gizmoXArrow = new Group();
+    private final Group gizmoYArrow = new Group();
+    private MultiDragListener multiDragListener;
+
+    private Point2D dragStartMouse;
+    private double dragStartLayoutX;
+    private double dragStartLayoutY;
     private boolean hasDragged = false;
+
+    private Point2D gizmoDragStartMouse;
+    private double gizmoDragStartLayoutX;
+    private double gizmoDragStartLayoutY;
+    private boolean hasDraggedGizmo = false;
+
     private Runnable onDragFinished;
     private java.util.function.BiConsumer<StageFixtureNode, javafx.scene.input.MouseEvent> onFixtureClicked;
 
@@ -142,15 +158,18 @@ public class StageFixtureNode extends Pane {
             }
         });
 
-        getChildren().addAll(square, nameBadge);
+        // 6. Transformations-Gizmo (X- und Y-Pfeile zur achsenbasierten Bewegung)
+        setupGizmoArrows();
 
-        // 6. Selektions-Listener
+        getChildren().addAll(square, nameBadge, gizmoXArrow, gizmoYArrow);
+
+        // 7. Selektions-Listener
         selected.addListener((obs, oldVal, isSel) -> updateSelectionVisuals(isSel));
 
-        // 7. Maus-Interaktionen (Klick zur Selektion, Drag zum Verschieben)
+        // 8. Maus-Interaktionen (Klick zur Selektion, Drag zum Verschieben)
         setupInteractions();
 
-        // 8. Initiale Farben und Kontraste berechnen
+        // 9. Initiale Farben und Kontraste berechnen
         updateLensColor();
     }
 
@@ -196,6 +215,178 @@ public class StageFixtureNode extends Pane {
         }
     }
 
+    private void setupGizmoArrows() {
+        // --- X-Pfeil (Horizontal nach rechts, Signalrot #EF4444) ---
+        gizmoXArrow.setVisible(false);
+        gizmoXArrow.setCursor(Cursor.H_RESIZE);
+        gizmoXArrow.getStyleClass().add("stage-gizmo-x-arrow");
+
+        Line xHitLine = new Line(SQUARE_SIZE, SQUARE_SIZE / 2.0, SQUARE_SIZE + 32.0, SQUARE_SIZE / 2.0);
+        xHitLine.setStroke(Color.TRANSPARENT);
+        xHitLine.setStrokeWidth(14.0);
+
+        Line xVisibleLine = new Line(SQUARE_SIZE, SQUARE_SIZE / 2.0, SQUARE_SIZE + 32.0, SQUARE_SIZE / 2.0);
+        xVisibleLine.setStroke(Color.web("#EF4444"));
+        xVisibleLine.setStrokeWidth(2.0);
+        xVisibleLine.setMouseTransparent(true);
+
+        Polygon xArrowHead = new Polygon(
+                SQUARE_SIZE + 32.0, SQUARE_SIZE / 2.0,
+                SQUARE_SIZE + 24.0, (SQUARE_SIZE / 2.0) - 4.5,
+                SQUARE_SIZE + 24.0, (SQUARE_SIZE / 2.0) + 4.5
+        );
+        xArrowHead.setFill(Color.web("#EF4444"));
+        xArrowHead.setMouseTransparent(true);
+
+        gizmoXArrow.getChildren().addAll(xHitLine, xVisibleLine, xArrowHead);
+
+        gizmoXArrow.setOnMouseEntered(e -> {
+            xVisibleLine.setStroke(Color.web("#F87171"));
+            xArrowHead.setFill(Color.web("#F87171"));
+        });
+        gizmoXArrow.setOnMouseExited(e -> {
+            xVisibleLine.setStroke(Color.web("#EF4444"));
+            xArrowHead.setFill(Color.web("#EF4444"));
+        });
+
+        gizmoXArrow.setOnMousePressed(e -> {
+            if (e.getButton() == MouseButton.PRIMARY) {
+                Point2D parentPoint = getParent() != null
+                        ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
+                        : new Point2D(e.getSceneX(), e.getSceneY());
+                gizmoDragStartMouse = parentPoint;
+                gizmoDragStartLayoutX = getLayoutX();
+                hasDraggedGizmo = false;
+                toFront();
+
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDragStart(this);
+                }
+                e.consume();
+            }
+        });
+
+        gizmoXArrow.setOnMouseDragged(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && gizmoDragStartMouse != null) {
+                hasDraggedGizmo = true;
+                Point2D parentPoint = getParent() != null
+                        ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
+                        : new Point2D(e.getSceneX(), e.getSceneY());
+                double deltaX = parentPoint.getX() - gizmoDragStartMouse.getX();
+
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDrag(this, deltaX, 0.0);
+                } else {
+                    double newX = Math.max(0, gizmoDragStartLayoutX + deltaX);
+                    setLayoutX(newX);
+                    if (fixtureInstance != null) {
+                        fixtureInstance.setStageX(newX);
+                    }
+                }
+                e.consume();
+            }
+        });
+
+        gizmoXArrow.setOnMouseReleased(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && hasDraggedGizmo) {
+                hasDraggedGizmo = false;
+                gizmoDragStartMouse = null;
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDragEnd(this);
+                }
+                if (onDragFinished != null) {
+                    onDragFinished.run();
+                }
+                e.consume();
+            }
+        });
+
+        // --- Y-Pfeil (Vertikal nach oben, Signalgrün #22C55E) ---
+        gizmoYArrow.setVisible(false);
+        gizmoYArrow.setCursor(Cursor.V_RESIZE);
+        gizmoYArrow.getStyleClass().add("stage-gizmo-y-arrow");
+
+        Line yHitLine = new Line(SQUARE_SIZE / 2.0, 0, SQUARE_SIZE / 2.0, -32.0);
+        yHitLine.setStroke(Color.TRANSPARENT);
+        yHitLine.setStrokeWidth(14.0);
+
+        Line yVisibleLine = new Line(SQUARE_SIZE / 2.0, 0, SQUARE_SIZE / 2.0, -32.0);
+        yVisibleLine.setStroke(Color.web("#22C55E"));
+        yVisibleLine.setStrokeWidth(2.0);
+        yVisibleLine.setMouseTransparent(true);
+
+        Polygon yArrowHead = new Polygon(
+                SQUARE_SIZE / 2.0, -32.0,
+                (SQUARE_SIZE / 2.0) - 4.5, -24.0,
+                (SQUARE_SIZE / 2.0) + 4.5, -24.0
+        );
+        yArrowHead.setFill(Color.web("#22C55E"));
+        yArrowHead.setMouseTransparent(true);
+
+        gizmoYArrow.getChildren().addAll(yHitLine, yVisibleLine, yArrowHead);
+
+        gizmoYArrow.setOnMouseEntered(e -> {
+            yVisibleLine.setStroke(Color.web("#4ADE80"));
+            yArrowHead.setFill(Color.web("#4ADE80"));
+        });
+        gizmoYArrow.setOnMouseExited(e -> {
+            yVisibleLine.setStroke(Color.web("#22C55E"));
+            yArrowHead.setFill(Color.web("#22C55E"));
+        });
+
+        gizmoYArrow.setOnMousePressed(e -> {
+            if (e.getButton() == MouseButton.PRIMARY) {
+                Point2D parentPoint = getParent() != null
+                        ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
+                        : new Point2D(e.getSceneX(), e.getSceneY());
+                gizmoDragStartMouse = parentPoint;
+                gizmoDragStartLayoutY = getLayoutY();
+                hasDraggedGizmo = false;
+                toFront();
+
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDragStart(this);
+                }
+                e.consume();
+            }
+        });
+
+        gizmoYArrow.setOnMouseDragged(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && gizmoDragStartMouse != null) {
+                hasDraggedGizmo = true;
+                Point2D parentPoint = getParent() != null
+                        ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
+                        : new Point2D(e.getSceneX(), e.getSceneY());
+                double deltaY = parentPoint.getY() - gizmoDragStartMouse.getY();
+
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDrag(this, 0.0, deltaY);
+                } else {
+                    double newY = Math.max(0, gizmoDragStartLayoutY + deltaY);
+                    setLayoutY(newY);
+                    if (fixtureInstance != null) {
+                        fixtureInstance.setStageY(newY);
+                    }
+                }
+                e.consume();
+            }
+        });
+
+        gizmoYArrow.setOnMouseReleased(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && hasDraggedGizmo) {
+                hasDraggedGizmo = false;
+                gizmoDragStartMouse = null;
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDragEnd(this);
+                }
+                if (onDragFinished != null) {
+                    onDragFinished.run();
+                }
+                e.consume();
+            }
+        });
+    }
+
     private void setupInteractions() {
         // Drag- und Klick-Interaktionen direkt auf dem 36x36px Gehäuse
         square.setOnMousePressed(e -> {
@@ -203,28 +394,40 @@ public class StageFixtureNode extends Pane {
                 Point2D parentPoint = getParent() != null
                         ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
                         : new Point2D(e.getSceneX(), e.getSceneY());
-                dragStartX = parentPoint.getX() - getLayoutX();
-                dragStartY = parentPoint.getY() - getLayoutY();
+                dragStartMouse = parentPoint;
+                dragStartLayoutX = getLayoutX();
+                dragStartLayoutY = getLayoutY();
                 hasDragged = false;
                 toFront();
+
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDragStart(this);
+                }
                 e.consume();
             }
         });
 
         square.setOnMouseDragged(e -> {
-            if (e.getButton() == MouseButton.PRIMARY) {
+            if (e.getButton() == MouseButton.PRIMARY && dragStartMouse != null) {
                 hasDragged = true;
                 Point2D parentPoint = getParent() != null
                         ? getParent().sceneToLocal(e.getSceneX(), e.getSceneY())
                         : new Point2D(e.getSceneX(), e.getSceneY());
-                double newX = Math.max(0, parentPoint.getX() - dragStartX);
-                double newY = Math.max(0, parentPoint.getY() - dragStartY);
-                setLayoutX(newX);
-                setLayoutY(newY);
+                double deltaX = parentPoint.getX() - dragStartMouse.getX();
+                double deltaY = parentPoint.getY() - dragStartMouse.getY();
 
-                if (fixtureInstance != null) {
-                    fixtureInstance.setStageX(newX);
-                    fixtureInstance.setStageY(newY);
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDrag(this, deltaX, deltaY);
+                } else {
+                    double newX = Math.max(0, dragStartLayoutX + deltaX);
+                    double newY = Math.max(0, dragStartLayoutY + deltaY);
+                    setLayoutX(newX);
+                    setLayoutY(newY);
+
+                    if (fixtureInstance != null) {
+                        fixtureInstance.setStageX(newX);
+                        fixtureInstance.setStageY(newY);
+                    }
                 }
                 e.consume();
             }
@@ -233,6 +436,10 @@ public class StageFixtureNode extends Pane {
         square.setOnMouseReleased(e -> {
             if (e.getButton() == MouseButton.PRIMARY && hasDragged) {
                 hasDragged = false;
+                dragStartMouse = null;
+                if (multiDragListener != null) {
+                    multiDragListener.onMultiDragEnd(this);
+                }
                 if (onDragFinished != null) {
                     onDragFinished.run();
                 }
@@ -290,6 +497,8 @@ public class StageFixtureNode extends Pane {
         } else {
             square.getStyleClass().setAll("stage-fixture-square");
         }
+        gizmoXArrow.setVisible(isSel);
+        gizmoYArrow.setVisible(isSel);
         updateBadgeVisibility();
     }
 
@@ -458,5 +667,60 @@ public class StageFixtureNode extends Pane {
 
     public BooleanProperty selectedProperty() {
         return selected;
+    }
+
+    /**
+     * Liefert den X-Achsen-Pfeil (Signalrot) des Transformations-Gizmos.
+     *
+     * @return X-Gizmo Node
+     */
+    public Node getGizmoXArrow() {
+        return gizmoXArrow;
+    }
+
+    /**
+     * Liefert den Y-Achsen-Pfeil (Signalgrün) des Transformations-Gizmos.
+     *
+     * @return Y-Gizmo Node
+     */
+    public Node getGizmoYArrow() {
+        return gizmoYArrow;
+    }
+
+    public void setMultiDragListener(MultiDragListener listener) {
+        this.multiDragListener = listener;
+    }
+
+    public MultiDragListener getMultiDragListener() {
+        return multiDragListener;
+    }
+
+    /**
+     * Callback-Schnittstelle zur synchronen Verschiebung mehrerer selektierter Fixtures.
+     */
+    @FunctionalInterface
+    public interface MultiDragListener {
+        /**
+         * Wird während eines aktiven Drags kontinuierlich mit dem Gesamtoffset aufgerufen.
+         *
+         * @param initiator Der Knoten, an dem der Drag ausgeführt wird
+         * @param deltaX    Horizontale Verschiebung relativ zum Drag-Start
+         * @param deltaY    Vertikale Verschiebung relativ zum Drag-Start
+         */
+        void onMultiDrag(StageFixtureNode initiator, double deltaX, double deltaY);
+
+        /**
+         * Signalisiert den Beginn eines Drag-Vorgangs.
+         *
+         * @param initiator Der Knoten, an dem der Drag gestartet wurde
+         */
+        default void onMultiDragStart(StageFixtureNode initiator) {}
+
+        /**
+         * Signalisiert das Beenden eines Drag-Vorgangs.
+         *
+         * @param initiator Der Knoten, an dem der Drag beendet wurde
+         */
+        default void onMultiDragEnd(StageFixtureNode initiator) {}
     }
 }

@@ -18,7 +18,9 @@ import javafx.scene.transform.Scale;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
@@ -357,17 +359,16 @@ public class StageCanvasView extends StackPane {
         });
     }
 
+    private final Map<StageFixtureNode, Point2D> multiDragStartPositions = new HashMap<>();
+
     /**
-     * Platziert ein Fixture an den angegebenen Koordinaten auf der 2D-Bühne.
+     * Fügt einen bereits instanziierten Scheinwerferknoten zur Bühne hinzu und initialisiert
+     * dessen Selektions- und synchrone Multi-Drag-Handler (für Gehäuse und X/Y-Gizmo).
      *
-     * @param item Das zu platzierende ExplorerItem
-     * @param x    Horizontale Zielposition
-     * @param y    Vertikale Zielposition
-     * @return Der erzeugte Knoten auf der Bühne
+     * @param node Der hinzuzufügende Bühnenknoten
      */
-    public StageFixtureNode placeFixture(ExplorerItem item, double x, double y) {
-        Objects.requireNonNull(item, "item must not be null");
-        StageFixtureNode node = new StageFixtureNode(item, x, y);
+    public void addFixtureNode(StageFixtureNode node) {
+        Objects.requireNonNull(node, "node must not be null");
 
         // Exklusive Selektion bei manuellem Aufruf (außerhalb von Multiselect-Operationen)
         node.selectedProperty().addListener((obs, oldVal, newVal) -> {
@@ -394,15 +395,69 @@ public class StageCanvasView extends StackPane {
             }
         });
 
+        // Multi-Drag Listener für synchrone Bewegungen (Achsen-Pfeile & Gehäuse)
+        node.setMultiDragListener(new StageFixtureNode.MultiDragListener() {
+            @Override
+            public void onMultiDragStart(StageFixtureNode initiator) {
+                multiDragStartPositions.clear();
+                for (StageFixtureNode f : placedFixtures) {
+                    if (f.isSelected()) {
+                        multiDragStartPositions.put(f, new Point2D(f.getLayoutX(), f.getLayoutY()));
+                    }
+                }
+                multiDragStartPositions.putIfAbsent(initiator, new Point2D(initiator.getLayoutX(), initiator.getLayoutY()));
+            }
+
+            @Override
+            public void onMultiDrag(StageFixtureNode initiator, double deltaX, double deltaY) {
+                for (Map.Entry<StageFixtureNode, Point2D> entry : multiDragStartPositions.entrySet()) {
+                    StageFixtureNode f = entry.getKey();
+                    Point2D start = entry.getValue();
+                    double newX = Math.max(0, start.getX() + deltaX);
+                    double newY = Math.max(0, start.getY() + deltaY);
+                    f.setLayoutX(newX);
+                    f.setLayoutY(newY);
+                    if (f.getFixtureInstance() != null) {
+                        f.getFixtureInstance().setStageX(newX);
+                        f.getFixtureInstance().setStageY(newY);
+                    }
+                }
+            }
+
+            @Override
+            public void onMultiDragEnd(StageFixtureNode initiator) {
+                for (StageFixtureNode f : multiDragStartPositions.keySet()) {
+                    if (onFixtureMoved != null && f.getItem() != null) {
+                        onFixtureMoved.accept(f.getItem(), new Point2D(f.getLayoutX(), f.getLayoutY()));
+                    }
+                }
+                multiDragStartPositions.clear();
+            }
+        });
+
+        node.setOnDragFinished(() -> {
+            if (onFixtureMoved != null && node.getItem() != null) {
+                onFixtureMoved.accept(node.getItem(), new Point2D(node.getLayoutX(), node.getLayoutY()));
+            }
+        });
+
         placedFixtures.add(node);
         stageSurface.getChildren().add(node);
         selectionRect.toFront();
+    }
 
-        node.setOnDragFinished(() -> {
-            if (onFixtureMoved != null) {
-                onFixtureMoved.accept(item, new Point2D(node.getLayoutX(), node.getLayoutY()));
-            }
-        });
+    /**
+     * Platziert ein Fixture an den angegebenen Koordinaten auf der 2D-Bühne.
+     *
+     * @param item Das zu platzierende ExplorerItem
+     * @param x    Horizontale Zielposition
+     * @param y    Vertikale Zielposition
+     * @return Der erzeugte Knoten auf der Bühne
+     */
+    public StageFixtureNode placeFixture(ExplorerItem item, double x, double y) {
+        Objects.requireNonNull(item, "item must not be null");
+        StageFixtureNode node = new StageFixtureNode(item, x, y);
+        addFixtureNode(node);
 
         if (onFixturePlaced != null) {
             onFixturePlaced.accept(item, new Point2D(x, y));
