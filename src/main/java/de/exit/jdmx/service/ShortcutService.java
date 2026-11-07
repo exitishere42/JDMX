@@ -189,6 +189,11 @@ public class ShortcutService {
             return true;
         }
 
+        // Strg+Umschalt+Z als alternativer Redo-Shortcut
+        if (action == ShortcutAction.REDO && event.isControlDown() && event.isShiftDown() && event.getCode() == KeyCode.Z) {
+            return true;
+        }
+
         // Optionale Numpad-Unterstützung für Tab 1 bis 5 (wenn keine Modifier aktiv sind)
         if (!event.isControlDown() && !event.isAltDown() && !event.isShiftDown() && !event.isMetaDown()) {
             KeyCode code = event.getCode();

@@ -151,10 +151,12 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
        - Gehäuse erhält bei Selektion einen leuchtenden Cyan-Rahmen (`#38BDF8`).
    - Scheinwerfer frei per Drag & Drop aus dem Project Explorer auf der Bühne platzierbar und mit der Maus verschiebbar.
    - **Tastatur-Löschung (`Entf` / `Backspace`):** Markierte Scheinwerfer (Einzel- oder Mehrfachauswahl via Marquee) können direkt per `Entf` (Delete) oder `Backspace` von der Bühne und aus dem Explorer entfernt werden.
-   - **Bidirektionale Selektions-Synchronisation:**
+   - **Bidirektionale Selektions- & Deselektions-Synchronisation:**
      - Klick auf der Bühne selektiert das Element im Project Explorer und klappt geschlossene Ordner automatisch auf.
      - Klick im Project Explorer auf ein Gerät selektiert den Scheinwerfer auf der Bühne (inkl. Gizmo und Dock-Sync).
      - Klick im Project Explorer auf eine Gerätegruppe selektiert alle zur Gruppe gehörenden Scheinwerfer auf der Bühne gleichzeitig.
+     - Klick auf eine freie Fläche der 2D-Bühne hebt die Selektion auf der Bühne und im Project Explorer synchron auf.
+     - Klick auf eine freie Fläche des Project Explorers hebt die Selektion im Explorer und auf der Bühne synchron auf.
    - Vektor-Beams simulieren Abstrahlrichtung, Pan/Tilt-Winkel, Farbe und Helligkeit in Echtzeit an die Wand.
 3. **Rechte Leiste (Project Explorer):**
    - Durchgehende Seitenleiste über die volle Höhe rechts neben Bühne und Dock.

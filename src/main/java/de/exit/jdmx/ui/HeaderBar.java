@@ -49,6 +49,12 @@ public class HeaderBar extends HBox {
     /** Zustand des globalen Blackouts. */
     private final BooleanProperty blackoutActive = new SimpleBooleanProperty(false);
 
+    /** Zurück- und Vor-Knopf (Undo & Redo). */
+    private final Button btnUndo = new Button();
+    private final Button btnRedo = new Button();
+    private Runnable undoHandler;
+    private Runnable redoHandler;
+
     /** Callback-Empfänger bei Tab-Wechsel. */
     private Consumer<Integer> tabChangeHandler;
 
@@ -84,6 +90,9 @@ public class HeaderBar extends HBox {
         // 1. Brand Button (Logo links neben Text, ohne Border)
         Button brandButton = createBrandButton();
 
+        // 1b. Zurück- und Vor-Knopf (Undo & Redo)
+        HBox undoRedoBox = createUndoRedoButtons();
+
         // Trennlinie
         Line separator = new Line(0, 0, 0, 20);
         separator.getStyleClass().add("header-separator");
@@ -107,7 +116,7 @@ public class HeaderBar extends HBox {
         HBox rightBox = new HBox(8, blackoutBtn, trafficPill, stopBtn);
         rightBox.setAlignment(Pos.CENTER_RIGHT);
 
-        getChildren().addAll(brandButton, separator, tabsBox, spacer, headerStatusBox, rightBox);
+        getChildren().addAll(brandButton, undoRedoBox, separator, tabsBox, spacer, headerStatusBox, rightBox);
     }
 
     private HBox createStatusArea() {
@@ -406,5 +415,67 @@ public class HeaderBar extends HBox {
 
     public List<ToggleButton> getTabButtons() {
         return Collections.unmodifiableList(tabButtons);
+    }
+
+    private HBox createUndoRedoButtons() {
+        HBox box = new HBox(2);
+        box.setAlignment(Pos.CENTER);
+
+        btnUndo.getStyleClass().add("header-tool-btn");
+        btnUndo.setGraphic(new LucideIcon("undo-2", 14, Color.web("#D1D5DB")));
+        btnUndo.setTooltip(new javafx.scene.control.Tooltip("Rückgängig (Strg+Z)"));
+        btnUndo.setDisable(true);
+        btnUndo.setOnAction(e -> {
+            if (undoHandler != null) {
+                undoHandler.run();
+            }
+        });
+
+        btnRedo.getStyleClass().add("header-tool-btn");
+        btnRedo.setGraphic(new LucideIcon("redo-2", 14, Color.web("#D1D5DB")));
+        btnRedo.setTooltip(new javafx.scene.control.Tooltip("Wiederholen (Strg+Y)"));
+        btnRedo.setDisable(true);
+        btnRedo.setOnAction(e -> {
+            if (redoHandler != null) {
+                redoHandler.run();
+            }
+        });
+
+        box.getChildren().addAll(btnUndo, btnRedo);
+        return box;
+    }
+
+    public Button getUndoButton() {
+        return btnUndo;
+    }
+
+    public Button getRedoButton() {
+        return btnRedo;
+    }
+
+    public void setOnUndo(Runnable handler) {
+        this.undoHandler = handler;
+    }
+
+    public void setOnRedo(Runnable handler) {
+        this.redoHandler = handler;
+    }
+
+    /**
+     * Aktualisiert den Aktivierungszustand der Undo- und Redo-Schaltflächen
+     * sowohl in der Kopfzeile als auch im Brand-Aktionsmenü.
+     *
+     * @param canUndo true, wenn Rückgängig verfügbar ist
+     * @param canRedo true, wenn Wiederholen verfügbar ist
+     */
+    public void updateUndoRedoState(boolean canUndo, boolean canRedo) {
+        btnUndo.setDisable(!canUndo);
+        btnRedo.setDisable(!canRedo);
+        if (actionMenu.getItem("undo") != null) {
+            actionMenu.getItem("undo").setDisable(!canUndo);
+        }
+        if (actionMenu.getItem("redo") != null) {
+            actionMenu.getItem("redo").setDisable(!canRedo);
+        }
     }
 }

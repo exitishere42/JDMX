@@ -186,6 +186,9 @@ public class RenameItemDialog {
         }
 
         if (!newName.equals(item.getName())) {
+            if (mainWindow != null) {
+                mainWindow.recordUndoSnapshot();
+            }
             explorerService.renameItem(item.getId(), newName);
             if (stageCanvasView != null) {
                 stageCanvasView.updateFixtureName(item.getId(), newName);

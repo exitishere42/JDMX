@@ -17,6 +17,7 @@ import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.service.ShortcutService;
+import de.exit.jdmx.service.UndoRedoService;
 import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
@@ -88,6 +89,9 @@ public class MainWindow extends StackPane {
 
     /** Service zur Projekt-Persistierung (*.jdmx). */
     private final ProjectStorageService projectStorageService = new ProjectStorageService();
+
+    /** Dienst zur Verwaltung von Undo- und Redo-Schritten. */
+    private final UndoRedoService undoRedoService = new UndoRedoService();
 
     /** Aktuelle Projektdatei (default.jdmx oder geladene/gespeicherte Datei). */
     private File currentProjectFile;
@@ -214,6 +218,17 @@ public class MainWindow extends StackPane {
             AboutUpdateDialog.show(this);
         });
 
+        // Undo & Redo Verwaltung und Synchronisation mit Kopfzeile und Aktionsmenü
+        headerBar.setOnUndo(this::undo);
+        headerBar.setOnRedo(this::redo);
+        headerBar.getActionMenu().setOnAction("undo", this::undo);
+        headerBar.getActionMenu().setOnAction("redo", this::redo);
+        undoRedoService.addChangeListener(() -> {
+            javafx.application.Platform.runLater(() -> {
+                headerBar.updateUndoRedoState(undoRedoService.canUndo(), undoRedoService.canRedo());
+            });
+        });
+
         // 7. Globale Tastenkürzel und Overlay-Steuerung
         addEventFilter(KeyEvent.KEY_PRESSED, this::handleGlobalKeyEvent);
 
@@ -273,9 +288,13 @@ public class MainWindow extends StackPane {
         stageWorkspaceView.getProjectExplorerView().getAddMenu().setOnAction("fixture", () -> {
             FixturePatchDialog.show(this, fixtureLibraryService, stageWorkspaceView.getExplorerService(), stageWorkspaceView.getStageCanvasView());
         });
+        stageWorkspaceView.getStageCanvasView().setOnFixtureMoveStarted(this::recordUndoSnapshot);
         stageWorkspaceView.getStageCanvasView().setOnFixtureMoved((item, pt) -> autoSave());
         stageWorkspaceView.getStageCanvasView().setOnFixturePlaced((item, pt) -> autoSave());
-        stageWorkspaceView.getStageCanvasView().setOnFixturesDeleted(this::autoSave);
+        stageWorkspaceView.getStageCanvasView().setOnFixturesDeleted(() -> {
+            recordUndoSnapshot();
+            autoSave();
+        });
         tabViews[0] = stageWorkspaceView;
 
         tabViews[1] = createTabPlaceholder("LightDesk", "sliders", StudioTheme.COLOR_ICON_FADER);
@@ -289,6 +308,10 @@ public class MainWindow extends StackPane {
 
     public DmxService getDmxService() {
         return dmxService;
+    }
+
+    public StageWorkspaceView getStageWorkspaceView() {
+        return stageWorkspaceView;
     }
 
     public FixtureLibraryService getFixtureLibraryService() {
@@ -467,6 +490,7 @@ public class MainWindow extends StackPane {
      * Setzt die Universen und die Bühne auf ein leeres Neu-Projekt zurück.
      */
     public void newProject() {
+        recordUndoSnapshot();
         if (stageWorkspaceView != null) {
             stageWorkspaceView.getStageCanvasView().clearFixtures();
             stageWorkspaceView.getExplorerService().clearItems();
@@ -808,15 +832,63 @@ public class MainWindow extends StackPane {
             return;
         }
         if (shortcutService.matches(ShortcutAction.UNDO, event)) {
-            headerBar.getActionMenu().triggerAction("undo");
+            undo();
             event.consume();
             return;
         }
         if (shortcutService.matches(ShortcutAction.REDO, event)) {
-            headerBar.getActionMenu().triggerAction("redo");
+            redo();
             event.consume();
             return;
         }
+    }
+
+    /**
+     * Zeichnet den aktuellen Projektzustand auf dem Undo-Stack auf.
+     */
+    public void recordUndoSnapshot() {
+        if (undoRedoService != null) {
+            undoRedoService.pushUndoState(buildCurrentProjectData());
+        }
+    }
+
+    /**
+     * Macht den letzten Bearbeitungsschritt rückgängig.
+     */
+    public void undo() {
+        if (!undoRedoService.canUndo()) {
+            return;
+        }
+        ProjectData current = buildCurrentProjectData();
+        ProjectData prev = undoRedoService.undo(current);
+        if (prev != null) {
+            applyProjectData(prev);
+            saveProjectSilently(currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile());
+            showHudNotification("Rückgängig ausgeführt");
+        }
+    }
+
+    /**
+     * Stellt den zuletzt rückgängig gemachten Bearbeitungsschritt wieder her.
+     */
+    public void redo() {
+        if (!undoRedoService.canRedo()) {
+            return;
+        }
+        ProjectData current = buildCurrentProjectData();
+        ProjectData next = undoRedoService.redo(current);
+        if (next != null) {
+            applyProjectData(next);
+            saveProjectSilently(currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile());
+            showHudNotification("Wiederholen ausgeführt");
+        }
+    }
+
+    /**
+     * Liefert den zentralen UndoRedoService des Hauptfensters.
+     */
+    public UndoRedoService getUndoRedoService() {
+        return undoRedoService;
     }
 
     /**

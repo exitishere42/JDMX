@@ -211,6 +211,17 @@ public class StageWorkspaceView extends SplitPane {
             }
         });
 
+        // Deselektion auf der Bühne leert die Selektion im Explorer
+        stageCanvasView.setOnSelectionCleared(() -> {
+            if (isSelectionSyncing) return;
+            isSelectionSyncing = true;
+            try {
+                projectExplorerView.getTreeView().getSelectionModel().clearSelection();
+            } finally {
+                isSelectionSyncing = false;
+            }
+        });
+
         setupBidirectionalSelection();
     }
 
@@ -218,7 +229,16 @@ public class StageWorkspaceView extends SplitPane {
 
     private void setupBidirectionalSelection() {
         projectExplorerView.getTreeView().getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (isSelectionSyncing || newVal == null || newVal.getValue() == null) {
+            if (isSelectionSyncing) {
+                return;
+            }
+            if (newVal == null || newVal.getValue() == null) {
+                isSelectionSyncing = true;
+                try {
+                    stageCanvasView.deselectAll();
+                } finally {
+                    isSelectionSyncing = false;
+                }
                 return;
             }
             ExplorerItem item = newVal.getValue();

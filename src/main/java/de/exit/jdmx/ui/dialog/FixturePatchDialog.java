@@ -308,6 +308,10 @@ public class FixturePatchDialog {
         int startAddr = spinnerAddress.getValue();
         int quantity = spinnerQuantity.getValue();
 
+        if (mainWindow != null) {
+            mainWindow.recordUndoSnapshot();
+        }
+
         for (int i = 0; i < quantity; i++) {
             int currentAddr = startAddr + (i * mode.getChannelCount());
             if (currentAddr > 512) {

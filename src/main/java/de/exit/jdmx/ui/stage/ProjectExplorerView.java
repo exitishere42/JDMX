@@ -23,6 +23,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -132,6 +133,23 @@ public class ProjectExplorerView extends VBox {
         // Saubere Zellen-Konfiguration mit Drag & Drop und Rechtsklick-Kontextmenü
         treeView.setCellFactory(tv -> new ProjectExplorerTreeCell(service, this));
 
+        // Klick auf leere Fläche des Baums deselektiert das aktive Element
+        treeView.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+            if (event.getTarget() instanceof Node target) {
+                TreeCell<?> cell = null;
+                while (target != null && target != treeView) {
+                    if (target instanceof TreeCell<?> tc) {
+                        cell = tc;
+                        break;
+                    }
+                    target = target.getParent();
+                }
+                if (cell == null || cell.isEmpty() || cell.getItem() == null) {
+                    treeView.getSelectionModel().clearSelection();
+                }
+            }
+        });
+
         // Drag & Drop auf freie Fläche der TreeView (zieht Item zurück auf Root-Ebene)
         setupTreeViewDropTarget();
         setupKeyboardInteractions();
@@ -178,6 +196,11 @@ public class ProjectExplorerView extends VBox {
         for (TreeItem<ExplorerItem> child : rootItem.getChildren()) {
             if (child.getValue() != null && child.getValue().getType() == ExplorerItemType.FOLDER) {
                 expandedStates.put(child.getValue().getId(), child.isExpanded());
+                for (TreeItem<ExplorerItem> subChild : child.getChildren()) {
+                    if (subChild.getValue() != null && subChild.getValue().getType() == ExplorerItemType.GROUP) {
+                        expandedStates.put(subChild.getValue().getId(), subChild.isExpanded());
+                    }
+                }
             }
         }
 
@@ -196,6 +219,22 @@ public class ProjectExplorerView extends VBox {
             for (ExplorerItem item : service.getItemsInFolder(folder.getId())) {
                 LucideIcon itemIcon = new LucideIcon(item.getIconName(), ITEM_ICON_SIZE, item.getColor());
                 TreeItem<ExplorerItem> itemNode = new TreeItem<>(item, itemIcon);
+
+                // Wenn es sich um eine Gerätegruppe handelt: Enthaltene Fixtures als Kinder darstellen
+                if (item.getType() == ExplorerItemType.GROUP) {
+                    boolean groupExpanded = expandedStates.getOrDefault(item.getId(), true);
+                    itemNode.setExpanded(groupExpanded);
+                    List<TreeItem<ExplorerItem>> memberNodes = new ArrayList<>();
+                    for (String memberId : item.getMemberFixtureIds()) {
+                        ExplorerItem memberItem = service.findItemById(memberId);
+                        if (memberItem != null) {
+                            LucideIcon memberIcon = new LucideIcon(memberItem.getIconName(), ITEM_ICON_SIZE, memberItem.getColor());
+                            memberNodes.add(new TreeItem<>(memberItem, memberIcon));
+                        }
+                    }
+                    itemNode.getChildren().setAll(memberNodes);
+                }
+
                 folderChildren.add(itemNode);
             }
             folderNode.getChildren().setAll(folderChildren);
@@ -213,8 +252,18 @@ public class ProjectExplorerView extends VBox {
         rootItem.getChildren().setAll(newChildren);
     }
 
+    /**
+     * Liefert den unsichtbaren Root-Knoten des TreeViews.
+     */
+    public TreeItem<ExplorerItem> getRootItem() {
+        return rootItem;
+    }
+
     private void initDefaultAddActions() {
         addMenu.setOnAction("group", () -> {
+            if (mainWindow != null) {
+                mainWindow.recordUndoSnapshot();
+            }
             List<String> memberIds = new ArrayList<>();
             if (stageCanvasView != null) {
                 for (StageFixtureNode node : stageCanvasView.getSelectedFixtures()) {
@@ -364,6 +413,24 @@ public class ProjectExplorerView extends VBox {
                 if (selectedTreeItem != null && selectedTreeItem.getValue() != null) {
                     ExplorerItem item = selectedTreeItem.getValue();
                     if (!item.isStandardFolder()) {
+                        // Wenn das Element innerhalb einer Gruppe ausgewählt ist: Aus Gruppe entfernen
+                        if (selectedTreeItem.getParent() != null && selectedTreeItem.getParent().getValue() != null
+                                && selectedTreeItem.getParent().getValue().getType() == ExplorerItemType.GROUP) {
+                            if (mainWindow != null) {
+                                mainWindow.recordUndoSnapshot();
+                            }
+                            selectedTreeItem.getParent().getValue().removeMemberFixtureId(item.getId());
+                            service.notifyChange();
+                            if (mainWindow != null) {
+                                mainWindow.autoSave();
+                            }
+                            event.consume();
+                            return;
+                        }
+
+                        if (mainWindow != null) {
+                            mainWindow.recordUndoSnapshot();
+                        }
                         service.removeItem(item.getId());
                         if (stageCanvasView != null) {
                             stageCanvasView.removeFixture(item.getId());
@@ -473,6 +540,23 @@ public class ProjectExplorerView extends VBox {
                     if (parentView != null && parentView.onItemDeleteRequested != null) {
                         parentView.onItemDeleteRequested.accept(item);
                     } else {
+                        TreeItem<ExplorerItem> ti = getTreeItem();
+                        if (ti != null && ti.getParent() != null && ti.getParent().getValue() != null
+                                && ti.getParent().getValue().getType() == ExplorerItemType.GROUP) {
+                            if (parentView != null && parentView.mainWindow != null) {
+                                parentView.mainWindow.recordUndoSnapshot();
+                            }
+                            ti.getParent().getValue().removeMemberFixtureId(item.getId());
+                            service.notifyChange();
+                            if (parentView != null && parentView.mainWindow != null) {
+                                parentView.mainWindow.autoSave();
+                            }
+                            return;
+                        }
+
+                        if (parentView != null && parentView.mainWindow != null) {
+                            parentView.mainWindow.recordUndoSnapshot();
+                        }
                         if (service != null) {
                             service.removeItem(item.getId());
                         }
@@ -563,11 +647,32 @@ public class ProjectExplorerView extends VBox {
                         service.moveItemToFolder(draggedId, target.getId());
                     } else if (target.getType() == ExplorerItemType.GROUP) {
                         // Zur Gerätegruppe hinzufügen
+                        if (parentView != null && parentView.mainWindow != null) {
+                            parentView.mainWindow.recordUndoSnapshot();
+                        }
                         target.addMemberFixtureId(draggedId);
+                        service.notifyChange();
                         if (parentView != null && parentView.mainWindow != null) {
                             parentView.mainWindow.autoSave();
                         }
                     } else {
+                        // Prüfen, ob target ein Element innerhalb einer Gruppe ist
+                        TreeItem<ExplorerItem> cellTi = getTreeItem();
+                        if (cellTi != null && cellTi.getParent() != null && cellTi.getParent().getValue() != null
+                                && cellTi.getParent().getValue().getType() == ExplorerItemType.GROUP) {
+                            if (parentView != null && parentView.mainWindow != null) {
+                                parentView.mainWindow.recordUndoSnapshot();
+                            }
+                            cellTi.getParent().getValue().addMemberFixtureId(draggedId);
+                            service.notifyChange();
+                            if (parentView != null && parentView.mainWindow != null) {
+                                parentView.mainWindow.autoSave();
+                            }
+                            event.setDropCompleted(true);
+                            event.consume();
+                            return;
+                        }
+
                         // Neben anderes Item verschieben (gleicher Ordner oder freie Liste)
                         String parentFolderId = service.findParentFolderId(target.getId());
                         if (parentFolderId != null) {

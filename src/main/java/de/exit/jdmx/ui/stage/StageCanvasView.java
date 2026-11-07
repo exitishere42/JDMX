@@ -66,8 +66,10 @@ public class StageCanvasView extends StackPane {
     private ProjectExplorerService explorerService;
     private BiConsumer<ExplorerItem, Point2D> onFixturePlaced;
     private BiConsumer<ExplorerItem, Point2D> onFixtureMoved;
+    private Runnable onFixtureMoveStarted;
     private Runnable onFixturesDeleted;
     private Consumer<StageFixtureNode> onFixtureSelected;
+    private Runnable onSelectionCleared;
 
     // Zustand für Kamera-Verschiebung (Pan) mit mittlerer Maustaste
     private double panStartMouseX;
@@ -357,6 +359,9 @@ public class StageCanvasView extends StackPane {
                     Point2D localPoint = stageSurface.sceneToLocal(event.getSceneX(), event.getSceneY());
                     double targetX = Math.max(10, localPoint.getX() - (StageFixtureNode.SQUARE_SIZE / 2.0));
                     double targetY = Math.max(10, localPoint.getY() - (StageFixtureNode.SQUARE_SIZE / 2.0));
+                    if (onFixtureMoveStarted != null) {
+                        onFixtureMoveStarted.run();
+                    }
                     placeFixture(item, targetX, targetY);
                     event.setDropCompleted(true);
                 }
@@ -413,6 +418,9 @@ public class StageCanvasView extends StackPane {
         node.setMultiDragListener(new StageFixtureNode.MultiDragListener() {
             @Override
             public void onMultiDragStart(StageFixtureNode initiator) {
+                if (onFixtureMoveStarted != null) {
+                    onFixtureMoveStarted.run();
+                }
                 multiDragStartPositions.clear();
                 for (StageFixtureNode f : placedFixtures) {
                     if (f.isSelected()) {
@@ -541,6 +549,17 @@ public class StageCanvasView extends StackPane {
         for (StageFixtureNode node : placedFixtures) {
             node.setSelected(false);
         }
+        if (onSelectionCleared != null) {
+            onSelectionCleared.run();
+        }
+    }
+
+    public void setOnSelectionCleared(Runnable onSelectionCleared) {
+        this.onSelectionCleared = onSelectionCleared;
+    }
+
+    public void setOnFixtureMoveStarted(Runnable onFixtureMoveStarted) {
+        this.onFixtureMoveStarted = onFixtureMoveStarted;
     }
 
     public List<StageFixtureNode> getPlacedFixtures() {

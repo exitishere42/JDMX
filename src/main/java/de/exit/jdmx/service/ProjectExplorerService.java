@@ -202,6 +202,9 @@ public class ProjectExplorerService {
 
         ExplorerItem removed = extractItem(itemId);
         if (removed != null) {
+            for (ExplorerItem group : getItemsInFolder(FOLDER_GROUPS_ID)) {
+                group.removeMemberFixtureId(itemId);
+            }
             fireChange();
             return true;
         }
@@ -361,6 +364,13 @@ public class ProjectExplorerService {
 
     public void removeChangeListener(Runnable listener) {
         changeListeners.remove(listener);
+    }
+
+    /**
+     * Löst eine Aktualisierung aller registrierten Change-Listener aus.
+     */
+    public void notifyChange() {
+        fireChange();
     }
 
     private void fireChange() {

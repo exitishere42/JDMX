@@ -1311,3 +1311,28 @@
     -fx-text-fill: #52525B;
     -fx-font-family: monospace;
 }
+
+
+/* Header Tool Buttons (Undo, Redo) */
+.header-tool-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 6 4 6;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+
+.header-tool-btn:hover {
+    -fx-background-color: #27272A;
+}
+
+.header-tool-btn:pressed {
+    -fx-background-color: #3F3F46;
+}
+
+.header-tool-btn:disabled {
+    -fx-opacity: 0.30;
+    -fx-cursor: default;
+}
