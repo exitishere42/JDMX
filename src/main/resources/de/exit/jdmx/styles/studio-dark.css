@@ -1370,23 +1370,23 @@
 }
 
 .desk-header-bar {
-    -fx-background-color: #18181B;
-    -fx-border-color: #27272A;
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #282828;
     -fx-border-width: 0 0 1 0;
 }
 
 .desk-universe-combo {
-    -fx-background-color: #27272A;
-    -fx-border-color: #3F3F46;
+    -fx-background-color: #282828;
+    -fx-border-color: #383838;
     -fx-border-radius: 4px;
     -fx-background-radius: 4px;
     -fx-font-size: 11px;
 }
 
 .desk-action-btn {
-    -fx-background-color: #27272A;
+    -fx-background-color: #282828;
     -fx-text-fill: #E4E4E7;
-    -fx-border-color: #3F3F46;
+    -fx-border-color: #383838;
     -fx-border-radius: 4px;
     -fx-background-radius: 4px;
     -fx-padding: 4 10 4 10;
@@ -1395,11 +1395,11 @@
 }
 
 .desk-action-btn:hover {
-    -fx-background-color: #3F3F46;
+    -fx-background-color: #383838;
 }
 
 .desk-action-btn:pressed {
-    -fx-background-color: #52525B;
+    -fx-background-color: #484848;
 }
 
 .desk-bank-btn {
@@ -1487,8 +1487,8 @@
 }
 
 .desk-top-dock {
-    -fx-background-color: #141417;
-    -fx-border-color: #27272A;
+    -fx-background-color: #121212;
+    -fx-border-color: #282828;
     -fx-border-width: 0 0 1 0;
 }
 

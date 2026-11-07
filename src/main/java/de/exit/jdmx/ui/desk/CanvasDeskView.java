@@ -274,8 +274,8 @@ public class CanvasDeskView extends VBox {
             return;
         }
 
-        // 1. Hintergrund füllen (Studio Dark Surface)
-        gc.setFill(Color.web("#141417"));
+        // 1. Hintergrund füllen (Studio Dark Surface - neutrales Grau)
+        gc.setFill(Color.web("#121212"));
         gc.fillRect(0, 0, w, h);
 
         double trackTop = TRACK_TOP;
@@ -298,12 +298,12 @@ public class CanvasDeskView extends VBox {
             double colCenterX = screenX + (channelWidth / 2.0);
             double barX = screenX + (channelWidth - barWidth) / 2.0;
 
-            // Spalten-Hintergrund leicht abgesetzt
-            gc.setFill(Color.web("#19191D"));
+            // Spalten-Hintergrund leicht abgesetzt (Neutrales Studio-Grau)
+            gc.setFill(Color.web("#181818"));
             gc.fillRect(screenX + 1, 2, channelWidth - 2, h - 4);
 
-            // 1. Track-Hintergrund (Leerzustand, füllt fast die gesamte Höhe)
-            gc.setFill(Color.web("#222226"));
+            // 1. Track-Hintergrund (Leerzustand, neutrales Grau)
+            gc.setFill(Color.web("#262626"));
             gc.fillRoundRect(barX, trackTop, barWidth, trackH, 3, 3);
 
             // 2. Ausgefüllter Pegelbalken von unten nach oben

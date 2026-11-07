@@ -14,8 +14,8 @@ import java.util.Objects;
  */
 public class DeskChannelData {
 
-    /** Standard-Balkenfarbe für ungepatchte Kanäle (Helles Cyan / Neon-Blau). */
-    public static final Color DEFAULT_BAR_COLOR = Color.web("#00E5FF");
+    /** Standard-Balkenfarbe für ungepatchte Kanäle (Unser Primär-Hellgrau). */
+    public static final Color DEFAULT_BAR_COLOR = Color.web("#D1D5DB");
 
     private final int channelNumber;
     private int value;
