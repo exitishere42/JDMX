@@ -53,6 +53,8 @@ public class CanvasDeskView extends VBox {
     private double channelWidth = 25.0;
     private double barWidth = 19.0;
     private double scrollOffsetChannels = 0.0;
+    private int activeDragChannel = -1;
+    private boolean renderPending = false;
 
     private BiConsumer<Integer, Integer> onChannelValueChanged;
     private Consumer<Double> onScrollChanged;
@@ -94,15 +96,28 @@ public class CanvasDeskView extends VBox {
             }
         });
 
-        // 4. Interaktives Ziehen der Pegelbalken (Click & Drag)
+        // 4. Interaktives Ziehen der Pegelbalken (Click & Drag - strikt an geklickten Kanal gebunden)
         canvasPane.setOnMousePressed(e -> {
             canvasPane.setCursor(Cursor.V_RESIZE);
-            handleMouseInteraction(e.getX(), e.getY());
+            int ch = getChannelAtX(e.getX());
+            if (ch >= 1 && ch <= TOTAL_CHANNELS) {
+                this.activeDragChannel = ch;
+                int val = getValueAtY(e.getY());
+                setChannelValue(ch, val);
+            }
         });
 
-        canvasPane.setOnMouseDragged(e -> handleMouseInteraction(e.getX(), e.getY()));
+        canvasPane.setOnMouseDragged(e -> {
+            if (activeDragChannel >= 1 && activeDragChannel <= TOTAL_CHANNELS) {
+                int val = getValueAtY(e.getY());
+                setChannelValue(activeDragChannel, val);
+            }
+        });
 
-        canvasPane.setOnMouseReleased(e -> canvasPane.setCursor(Cursor.DEFAULT));
+        canvasPane.setOnMouseReleased(e -> {
+            canvasPane.setCursor(Cursor.DEFAULT);
+            this.activeDragChannel = -1;
+        });
 
         // 5. Doppelklick oder Rechtsklick für Null-Stellung
         canvasPane.setOnMouseClicked(e -> {
@@ -115,14 +130,6 @@ public class CanvasDeskView extends VBox {
         });
 
         getChildren().addAll(canvasPane, scrollBar);
-    }
-
-    private void handleMouseInteraction(double x, double y) {
-        int ch = getChannelAtX(x);
-        if (ch >= 1 && ch <= TOTAL_CHANNELS) {
-            int val = getValueAtY(y);
-            setChannelValue(ch, val);
-        }
     }
 
     void handleResize(double w, double h) {

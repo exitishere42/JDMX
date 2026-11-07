@@ -51,6 +51,7 @@ public class LightDeskWorkspaceView extends VBox {
     private final DeskFixtureListView deskFixtureListView;
 
     private final DmxService.ChannelChangeListener dmxChannelListener;
+    private boolean updatingFromDmx = false;
 
     /**
      * Erstellt einen neuen LightDesk-Arbeitsbereich mit voller DMX- und Projekt-Synchronisation.
@@ -98,8 +99,11 @@ public class LightDeskWorkspaceView extends VBox {
         // 5. Bidirektionale DMX- & UI-Logik verdrahten
         // ==========================================
 
-        // A. Fader-Änderung im Canvas -> DMX-Ausgabe über DmxService
+        // A. Fader-Änderung im Canvas -> DMX-Ausgabe über DmxService (nur wenn durch Benutzer ausgelöst)
         this.canvasDeskView.setOnChannelValueChanged((channel, value) -> {
+            if (updatingFromDmx) {
+                return;
+            }
             int uniIdx = getSelectedUniverseIndex();
             dmxService.setChannel(uniIdx, channel, value);
             deskFixtureListView.updateChannelValue(uniIdx, channel, value);
@@ -110,7 +114,12 @@ public class LightDeskWorkspaceView extends VBox {
             if (uniIdx == getSelectedUniverseIndex()) {
                 Platform.runLater(() -> {
                     if (canvasDeskView.getChannelValue(channel) != value) {
-                        canvasDeskView.setChannelValue(channel, value);
+                        updatingFromDmx = true;
+                        try {
+                            canvasDeskView.setChannelValue(channel, value);
+                        } finally {
+                            updatingFromDmx = false;
+                        }
                     }
                     deskFixtureListView.updateChannelValue(uniIdx, channel, value);
                 });
@@ -204,8 +213,11 @@ public class LightDeskWorkspaceView extends VBox {
 
         for (ChannelDefinition ch : fixture.getActiveMode().getChannels()) {
             int absAddr = start + ch.index() - 1;
+            boolean isStrobe = ch.name().toLowerCase(java.util.Locale.ROOT).contains("strobe")
+                    || ch.name().toLowerCase(java.util.Locale.ROOT).contains("strobo");
             int val = switch (ch.type()) {
-                case DIMMER, SHUTTER -> 255;
+                case DIMMER -> 255;
+                case SHUTTER -> isStrobe ? 0 : 255;
                 case PAN, TILT -> 128;
                 case RED, GREEN, BLUE, WHITE, AMBER, UV -> 255;
                 default -> 0;
