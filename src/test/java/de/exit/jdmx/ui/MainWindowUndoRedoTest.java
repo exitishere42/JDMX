@@ -78,6 +78,18 @@ class MainWindowUndoRedoTest {
                 // 3. Redo ausführen -> Scheinwerfer muss wieder da sein
                 window.redo();
                 assertThat(window.getStageWorkspaceView().getStageCanvasView().getPlacedFixtures()).hasSize(initialCount + 1);
+
+                // 4. HUD Notifications prüfen
+                window.showHudNotification("Rückgängig ausgeführt");
+                assertThat(window.getHeaderBar().getStatusLabel().getText()).isEqualTo("Rückgängig ausgeführt");
+                assertThat(window.getHeaderBar().getStatusIconContainer().getChildren()).hasSize(1);
+                de.exit.jdmx.ui.icon.LucideIcon undoIcon = (de.exit.jdmx.ui.icon.LucideIcon) window.getHeaderBar().getStatusIconContainer().getChildren().get(0);
+                assertThat(undoIcon.getName()).isEqualTo("undo-2");
+
+                window.showHudNotification("Wiederholen ausgeführt");
+                assertThat(window.getHeaderBar().getStatusLabel().getText()).isEqualTo("Wiederholen ausgeführt");
+                de.exit.jdmx.ui.icon.LucideIcon redoIcon = (de.exit.jdmx.ui.icon.LucideIcon) window.getHeaderBar().getStatusIconContainer().getChildren().get(0);
+                assertThat(redoIcon.getName()).isEqualTo("redo-2");
             } catch (Throwable t) {
                 error.set(t);
             } finally {

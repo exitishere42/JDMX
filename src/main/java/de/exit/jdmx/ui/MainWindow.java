@@ -403,6 +403,12 @@ public class MainWindow extends StackPane {
         } else if (lower.contains("fehler")) {
             iconName = "alert-triangle";
             iconColor = Color.web("#F87171"); // Rot
+        } else if (lower.contains("rückgängig")) {
+            iconName = "undo-2";
+            iconColor = Color.web("#A855F7"); // Violett / Purple
+        } else if (lower.contains("wiederholen")) {
+            iconName = "redo-2";
+            iconColor = Color.web("#EC4899"); // Pink
         }
 
         headerBar.showStatus(message, iconName, iconColor, Duration.millis(2500));

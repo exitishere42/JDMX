@@ -271,6 +271,33 @@ public class LucideIcon extends StackPane {
             case "crosshair", "move", "position" ->
                 // Lucide crosshair
                 "M12 2v4 M12 18v4 M2 12h4 M18 12h4 M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z";
+            case "pencil", "edit" ->
+                // Lucide pencil
+                "M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z M15 5l4 4";
+            case "trash-2" ->
+                // Lucide trash-2
+                "M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2 M10 11v6 M14 11v6";
+            case "trash", "delete" ->
+                // Lucide trash
+                "M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2";
+            case "info" ->
+                // Lucide info
+                "M12 16v-4 M12 8h.01 M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";
+            case "alert-triangle", "alert", "warning" ->
+                // Lucide alert-triangle
+                "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z M12 9v4 M12 17h.01";
+            case "external-link" ->
+                // Lucide external-link
+                "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3";
+            case "user-minus" ->
+                // Lucide user-minus
+                "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 11h-6";
+            case "user-plus" ->
+                // Lucide user-plus
+                "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M19 11v6 M22 14h-6";
+            case "users" ->
+                // Lucide users
+                "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75";
             default ->
                 // Lucide circle
                 "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";

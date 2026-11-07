@@ -77,4 +77,17 @@ class LucideIconTest {
         assertThat(LucideIcon.getSvgPathData("settings")).contains("M9.671");
         assertThat(LucideIcon.getSvgPathData("maximize")).contains("M8 3H5");
     }
+
+    @Test
+    @DisplayName("Sollte Icons für Kontextmenü und HUD bereitstellen (pencil, trash-2, info, alert-triangle, external-link)")
+    void shouldProvidePencilTrashInfoAlertAndExternalLinkIcons() {
+        String circleFallback = LucideIcon.getSvgPathData("unknown-dummy-name");
+
+        assertThat(LucideIcon.getSvgPathData("pencil")).isNotEqualTo(circleFallback).contains("M17 3");
+        assertThat(LucideIcon.getSvgPathData("trash-2")).isNotEqualTo(circleFallback).contains("M3 6h18");
+        assertThat(LucideIcon.getSvgPathData("trash")).isNotEqualTo(circleFallback).contains("M3 6h18");
+        assertThat(LucideIcon.getSvgPathData("info")).isNotEqualTo(circleFallback).contains("M12 16v-4");
+        assertThat(LucideIcon.getSvgPathData("alert-triangle")).isNotEqualTo(circleFallback).contains("M12 9v4");
+        assertThat(LucideIcon.getSvgPathData("external-link")).isNotEqualTo(circleFallback).contains("M18 13v6");
+    }
 }

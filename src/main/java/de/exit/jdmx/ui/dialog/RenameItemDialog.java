@@ -4,6 +4,7 @@ import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.theme.StudioTheme;
 import de.exit.jdmx.ui.stage.StageCanvasView;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -125,8 +126,8 @@ public class RenameItemDialog {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button btnClose = new Button();
-        btnClose.getStyleClass().add("dialog-close-btn");
-        btnClose.setGraphic(new LucideIcon("x", 16, Color.web("#9CA3AF")));
+        btnClose.getStyleClass().add("dialog-close-button");
+        btnClose.setGraphic(new LucideIcon("x", 14, StudioTheme.COLOR_ICON_RED));
         btnClose.setOnAction(e -> close());
 
         header.getChildren().addAll(icon, title, spacer, btnClose);
@@ -140,7 +141,7 @@ public class RenameItemDialog {
         lbl.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 12px; -fx-font-weight: bold;");
 
         txtName = new TextField(item.getName());
-        txtName.getStyleClass().add("txt-field-dark");
+        txtName.getStyleClass().add("settings-textfield");
         txtName.setPrefHeight(32);
 
         txtName.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -165,12 +166,13 @@ public class RenameItemDialog {
         footer.setPadding(new Insets(6, 0, 0, 0));
 
         btnCancel = new Button("Abbrechen");
-        btnCancel.getStyleClass().add("dialog-secondary-btn");
+        btnCancel.getStyleClass().add("settings-btn-secondary");
         btnCancel.setPrefHeight(32);
         btnCancel.setOnAction(e -> close());
 
         btnSave = new Button("Speichern");
-        btnSave.getStyleClass().add("dialog-primary-btn");
+        btnSave.getStyleClass().add("settings-btn-primary");
+        btnSave.setGraphic(new LucideIcon("check", 14, StudioTheme.COLOR_ICON_GREEN));
         btnSave.setPrefHeight(32);
         btnSave.setOnAction(e -> executeSave());
 

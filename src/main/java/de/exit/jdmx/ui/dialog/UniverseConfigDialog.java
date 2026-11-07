@@ -111,8 +111,8 @@ public class UniverseConfigDialog {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         btnClose = new Button();
-        btnClose.getStyleClass().add("modal-close-btn");
-        LucideIcon closeIcon = new LucideIcon("x", 14, Color.web("#EF4444"));
+        btnClose.getStyleClass().add("dialog-close-button");
+        LucideIcon closeIcon = new LucideIcon("x", 14, StudioTheme.COLOR_ICON_RED);
         btnClose.setGraphic(closeIcon);
         btnClose.setOnAction(e -> close());
 
@@ -123,7 +123,8 @@ public class UniverseConfigDialog {
     private VBox buildArtNetSection() {
         VBox box = new VBox(8);
         box.setPadding(new Insets(12, 16, 12, 16));
-        box.setStyle("-fx-background-color: #18181B; -fx-border-color: #27272A; -fx-border-width: 1px; " +
+        box.getStyleClass().add("universe-config-section");
+        box.setStyle("-fx-background-color: #242424; -fx-border-color: #383838; -fx-border-width: 1px; " +
                 "-fx-background-radius: 4px; -fx-border-radius: 4px;");
 
         Label sectionTitle = new Label("ART-NET 4 NETZWERK EINSTELLUNGEN");
@@ -136,28 +137,28 @@ public class UniverseConfigDialog {
         // Ziel-IP
         Label lblIp = createFieldLabel("Ziel-IP-Adresse:");
         txtIp = new TextField(initialConfig.artNetIp());
-        txtIp.getStyleClass().add("settings-text-field");
+        txtIp.getStyleClass().add("settings-textfield");
         grid.add(lblIp, 0, 0);
         grid.add(txtIp, 1, 0);
 
         // Port
         Label lblPort = createFieldLabel("UDP-Port:");
         txtPort = new TextField(String.valueOf(initialConfig.artNetPort()));
-        txtPort.getStyleClass().add("settings-text-field");
+        txtPort.getStyleClass().add("settings-textfield");
         grid.add(lblPort, 2, 0);
         grid.add(txtPort, 3, 0);
 
         // Subnet
         Label lblSubnet = createFieldLabel("Subnet (0-15):");
         txtSubnet = new TextField(String.valueOf(initialConfig.artNetSubnet()));
-        txtSubnet.getStyleClass().add("settings-text-field");
+        txtSubnet.getStyleClass().add("settings-textfield");
         grid.add(lblSubnet, 0, 1);
         grid.add(txtSubnet, 1, 1);
 
         // Universe
         Label lblUniverse = createFieldLabel("Universe (0-15):");
         txtUniverse = new TextField(String.valueOf(initialConfig.artNetUniverse()));
-        txtUniverse.getStyleClass().add("settings-text-field");
+        txtUniverse.getStyleClass().add("settings-textfield");
         grid.add(lblUniverse, 2, 1);
         grid.add(txtUniverse, 3, 1);
 
@@ -173,7 +174,8 @@ public class UniverseConfigDialog {
     private VBox buildTimingSection() {
         VBox box = new VBox(8);
         box.setPadding(new Insets(12, 16, 12, 16));
-        box.setStyle("-fx-background-color: #18181B; -fx-border-color: #27272A; -fx-border-width: 1px; " +
+        box.getStyleClass().add("universe-config-section");
+        box.setStyle("-fx-background-color: #242424; -fx-border-color: #383838; -fx-border-width: 1px; " +
                 "-fx-background-radius: 4px; -fx-border-radius: 4px;");
 
         Label sectionTitle = new Label("HARDWARE TIMING & ROUTING");
@@ -186,7 +188,7 @@ public class UniverseConfigDialog {
         // DMX Rate
         Label lblRate = createFieldLabel("Ausgaberate (Hz):");
         txtRefreshRate = new TextField(String.valueOf(initialConfig.refreshRateHz()));
-        txtRefreshRate.getStyleClass().add("settings-text-field");
+        txtRefreshRate.getStyleClass().add("settings-textfield");
         grid.add(lblRate, 0, 0);
         grid.add(txtRefreshRate, 1, 0);
 
@@ -213,12 +215,12 @@ public class UniverseConfigDialog {
         footer.setPadding(new Insets(4, 0, 0, 0));
 
         btnCancel = new Button("Abbrechen");
-        btnCancel.getStyleClass().add("patch-cancel-btn");
+        btnCancel.getStyleClass().add("settings-btn-secondary");
         btnCancel.setOnAction(e -> close());
 
         btnSave = new Button("Speichern");
-        btnSave.getStyleClass().add("patch-create-btn");
-        btnSave.setGraphic(new LucideIcon("check", 14, Color.web("#0F172A")));
+        btnSave.getStyleClass().add("settings-btn-primary");
+        btnSave.setGraphic(new LucideIcon("check", 14, StudioTheme.COLOR_ICON_GREEN));
         btnSave.setOnAction(e -> handleSave());
 
         footer.getChildren().addAll(btnCancel, btnSave);

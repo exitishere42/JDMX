@@ -106,4 +106,28 @@ class RenameItemDialogTest {
 
         assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
     }
+
+    @Test
+    @DisplayName("Sollte grünen Haken für Speichern besitzen")
+    void shouldHaveGreenSaveIcon() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                ProjectExplorerService service = new ProjectExplorerService();
+                ExplorerItem item = new ExplorerItem("item-1", "Spot 1", ExplorerItemType.FIXTURE, false, "lamp", Color.BLUE);
+                service.addItemToFolder("folder-devices", item);
+
+                RenameItemDialog dialog = new RenameItemDialog(null, item, service, null);
+
+                assertThat(dialog.getBtnSave().getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+                de.exit.jdmx.ui.icon.LucideIcon saveIcon = (de.exit.jdmx.ui.icon.LucideIcon) dialog.getBtnSave().getGraphic();
+                assertThat(saveIcon.getName()).isEqualTo("check");
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
 }

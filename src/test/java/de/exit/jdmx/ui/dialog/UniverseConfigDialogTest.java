@@ -86,4 +86,19 @@ class UniverseConfigDialogTest {
         assertThat(savedConfig.get()).isNull();
         assertThat(mainWindow.isOverlayShowing()).isFalse();
     }
+
+    @Test
+    @DisplayName("Sollte grünen Haken für Speichern und rotes X für Schließen besitzen")
+    void shouldHaveGreenSaveCheckmarkAndRedCloseButton() {
+        UniverseConfig config = UniverseConfig.defaultFor(0);
+        UniverseConfigDialog dialog = new UniverseConfigDialog(null, config, updated -> {});
+
+        assertThat(dialog.getBtnSave().getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+        de.exit.jdmx.ui.icon.LucideIcon saveIcon = (de.exit.jdmx.ui.icon.LucideIcon) dialog.getBtnSave().getGraphic();
+        assertThat(saveIcon.getName()).isEqualTo("check");
+
+        assertThat(dialog.getBtnClose().getGraphic()).isInstanceOf(de.exit.jdmx.ui.icon.LucideIcon.class);
+        de.exit.jdmx.ui.icon.LucideIcon closeIcon = (de.exit.jdmx.ui.icon.LucideIcon) dialog.getBtnClose().getGraphic();
+        assertThat(closeIcon.getName()).isEqualTo("x");
+    }
 }

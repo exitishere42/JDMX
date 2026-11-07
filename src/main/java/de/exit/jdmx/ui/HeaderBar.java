@@ -478,4 +478,13 @@ public class HeaderBar extends HBox {
             actionMenu.getItem("redo").setDisable(!canRedo);
         }
     }
+
+    /**
+     * Liefert den Container des Status-Icons zur Inspektion oder zu Testzwecken.
+     *
+     * @return StackPane des Status-Icons
+     */
+    public StackPane getStatusIconContainer() {
+        return statusIconContainer;
+    }
 }
