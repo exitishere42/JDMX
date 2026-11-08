@@ -1,7 +1,11 @@
 package de.exit.jdmx.service;
 
+import de.exit.jdmx.core.project.model.ChaserDataDto;
+import de.exit.jdmx.core.project.model.ChaserStepDto;
 import de.exit.jdmx.core.project.model.FixtureDataDto;
+import de.exit.jdmx.core.project.model.GroupDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
+import de.exit.jdmx.core.project.model.SceneDataDto;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,6 +82,42 @@ class ProjectStorageServiceTest {
 
         assertThatThrownBy(() -> service.loadProject(brokenFile))
                 .isInstanceOf(IOException.class);
+    }
+
+    @Test
+    @DisplayName("Soll Projekt mit Szenen und Chasern korrekt serialisieren und deserialisieren")
+    void shouldSaveAndLoadProjectWithScenesAndChasers(@TempDir Path tempDir) throws IOException {
+        ProjectStorageService service = new ProjectStorageService();
+        File targetFile = tempDir.resolve("scenes_chasers_project.jdmx").toFile();
+
+        SceneDataDto scene1 = new SceneDataDto("scene-1", "Intro Warm", 1500, java.util.Map.of(0, java.util.Map.of(1, 255, 2, 128)));
+        ChaserStepDto step1 = new ChaserStepDto("step-1", "scene-1", 500, 200);
+        ChaserDataDto chaser1 = new ChaserDataDto("chaser-1", "Color Wave", 130.0, "FORWARD", List.of(step1));
+
+        ProjectData project = new ProjectData(
+                ProjectData.CURRENT_VERSION,
+                "Show 2026",
+                "2026-11-08T12:00:00Z",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(scene1),
+                List.of(chaser1)
+        );
+
+        service.saveProject(project, targetFile);
+        assertThat(targetFile).exists().isNotEmpty();
+
+        ProjectData loaded = service.loadProject(targetFile);
+        assertThat(loaded.scenes()).hasSize(1);
+        assertThat(loaded.scenes().get(0).name()).isEqualTo("Intro Warm");
+        assertThat(loaded.scenes().get(0).channelValues().get(0).get(1)).isEqualTo(255);
+
+        assertThat(loaded.chasers()).hasSize(1);
+        assertThat(loaded.chasers().get(0).name()).isEqualTo("Color Wave");
+        assertThat(loaded.chasers().get(0).bpm()).isEqualTo(130.0);
+        assertThat(loaded.chasers().get(0).steps()).hasSize(1);
+        assertThat(loaded.chasers().get(0).steps().get(0).sceneId()).isEqualTo("scene-1");
     }
 
     @Test

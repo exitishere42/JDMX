@@ -71,12 +71,13 @@ class ProjectExplorerViewTest {
     void shouldHaveCollapseButtonNextToTitleWithoutLeadingIcon() {
         ProjectExplorerView explorer = new ProjectExplorerView();
 
-        // Header enthält Titel, grünen Add-Button, Spacer und Einklapp-Button
-        assertThat(explorer.getHeaderBox().getChildren()).hasSize(4);
+        // Header enthält Titel, grünen Add-Button, Scene-Dump-Button, Spacer und Einklapp-Button
+        assertThat(explorer.getHeaderBox().getChildren()).hasSize(5);
         assertThat(explorer.getHeaderBox().getChildren().get(0)).isInstanceOf(Label.class);
         assertThat(((Label) explorer.getHeaderBox().getChildren().get(0)).getText())
                 .isEqualTo(de.exit.jdmx.core.i18n.I18n.get("explorer.title"));
         assertThat(explorer.getHeaderBox().getChildren().get(1)).isEqualTo(explorer.getBtnAdd());
+        assertThat(explorer.getHeaderBox().getChildren().get(2)).isEqualTo(explorer.getBtnSceneDump());
         assertThat(explorer.getBtnAdd().getGraphic()).isInstanceOf(LucideIcon.class);
         assertThat(((LucideIcon) explorer.getBtnAdd().getGraphic()).getName()).isEqualTo("plus");
 

@@ -2,8 +2,10 @@ package de.exit.jdmx.ui.stage;
 
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
+import de.exit.jdmx.service.ChaserService;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.service.SceneService;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -53,26 +55,34 @@ public class StageWorkspaceView extends SplitPane {
     private final ProjectExplorerView projectExplorerView;
     private final Button btnExpandProjectExplorer;
     private final ProjectExplorerService explorerService;
+    private final SceneService sceneService;
+    private final ChaserService chaserService;
     private DmxService dmxService;
 
     private double lastExpandedRatio = DEFAULT_HORIZONTAL_RATIO;
     private boolean isCollapsed = false;
 
     public StageWorkspaceView() {
-        this(new ProjectExplorerService(), null);
+        this(new ProjectExplorerService(), null, null, null);
     }
 
     public StageWorkspaceView(ProjectExplorerService explorerService) {
-        this(explorerService, null);
+        this(explorerService, null, null, null);
     }
 
     public StageWorkspaceView(DmxService dmxService) {
-        this(new ProjectExplorerService(), dmxService);
+        this(new ProjectExplorerService(), dmxService, null, null);
     }
 
     public StageWorkspaceView(ProjectExplorerService explorerService, DmxService dmxService) {
+        this(explorerService, dmxService, null, null);
+    }
+
+    public StageWorkspaceView(ProjectExplorerService explorerService, DmxService dmxService, SceneService sceneService, ChaserService chaserService) {
         this.explorerService = Objects.requireNonNull(explorerService, "explorerService must not be null");
         this.dmxService = dmxService;
+        this.sceneService = sceneService != null ? sceneService : new SceneService(dmxService != null ? dmxService : new DmxService());
+        this.chaserService = chaserService != null ? chaserService : new ChaserService(this.sceneService);
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("stage-workspace-view");
 
@@ -115,7 +125,7 @@ public class StageWorkspaceView extends SplitPane {
         }
 
         // 2. Rechter Bereich: Project Explorer über die volle Höhe
-        this.projectExplorerView = new ProjectExplorerView(explorerService);
+        this.projectExplorerView = new ProjectExplorerView(explorerService, this.sceneService, this.chaserService);
         projectExplorerView.setStageCanvasView(stageCanvasView);
         projectExplorerView.setOnToggleCollapse(this::toggleProjectExplorer);
 
@@ -365,5 +375,13 @@ public class StageWorkspaceView extends SplitPane {
 
     public void setDmxService(DmxService dmxService) {
         this.dmxService = dmxService;
+    }
+
+    public SceneService getSceneService() {
+        return sceneService;
+    }
+
+    public ChaserService getChaserService() {
+        return chaserService;
     }
 }

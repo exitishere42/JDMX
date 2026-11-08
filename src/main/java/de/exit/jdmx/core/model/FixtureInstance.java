@@ -80,7 +80,14 @@ public class FixtureInstance {
     }
 
     public int getEndAddress() {
-        return startAddress + activeMode.getChannelCount() - 1;
+        return startAddress + (activeMode != null ? activeMode.getChannelCount() : 1) - 1;
+    }
+
+    /**
+     * Liefert die Anzahl der DMX-Kanäle im aktiven Modus.
+     */
+    public int getChannelCount() {
+        return activeMode != null ? activeMode.getChannelCount() : 0;
     }
 
     public double getStageX() {

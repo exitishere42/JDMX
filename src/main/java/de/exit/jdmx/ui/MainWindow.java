@@ -1,14 +1,21 @@
 package de.exit.jdmx.ui;
 
+import de.exit.jdmx.core.model.ChaserDefinition;
+import de.exit.jdmx.core.model.ChaserDirection;
+import de.exit.jdmx.core.model.ChaserStep;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.core.model.FixtureDefinition;
 import de.exit.jdmx.core.model.DmxMode;
 import de.exit.jdmx.core.model.FixtureInstance;
+import de.exit.jdmx.core.model.SceneDefinition;
 import de.exit.jdmx.core.model.UniverseConfig;
+import de.exit.jdmx.core.project.model.ChaserDataDto;
+import de.exit.jdmx.core.project.model.ChaserStepDto;
 import de.exit.jdmx.core.project.model.FixtureDataDto;
 import de.exit.jdmx.core.project.model.GroupDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
+import de.exit.jdmx.core.project.model.SceneDataDto;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectStorageService;
@@ -625,6 +632,37 @@ public class MainWindow extends StackPane {
             }
         }
 
+        List<SceneDataDto> sceneDtos = new ArrayList<>();
+        if (stageWorkspaceView != null && stageWorkspaceView.getSceneService() != null) {
+            for (SceneDefinition scene : stageWorkspaceView.getSceneService().getAllScenes()) {
+                sceneDtos.add(new SceneDataDto(
+                        scene.getId(),
+                        scene.getName(),
+                        scene.getDefaultFadeTimeMs(),
+                        scene.getChannelValues()
+                ));
+            }
+        }
+
+        List<ChaserDataDto> chaserDtos = new ArrayList<>();
+        if (stageWorkspaceView != null && stageWorkspaceView.getChaserService() != null) {
+            for (ChaserDefinition chaser : stageWorkspaceView.getChaserService().getAllChasers()) {
+                List<ChaserStepDto> stepDtos = new ArrayList<>();
+                if (chaser.getSteps() != null) {
+                    for (ChaserStep step : chaser.getSteps()) {
+                        stepDtos.add(new ChaserStepDto(step.getStepId(), step.getSceneId(), step.getHoldTimeMs(), step.getFadeTimeMs()));
+                    }
+                }
+                chaserDtos.add(new ChaserDataDto(
+                        chaser.getId(),
+                        chaser.getName(),
+                        chaser.getBpm(),
+                        chaser.getDirection() != null ? chaser.getDirection().name() : ChaserDirection.FORWARD.name(),
+                        stepDtos
+                ));
+            }
+        }
+
         String name = currentProjectFile != null ? currentProjectFile.getName().replace(".jdmx", "") : "Default Project";
         return new ProjectData(
                 ProjectData.CURRENT_VERSION,
@@ -632,7 +670,9 @@ public class MainWindow extends StackPane {
                 java.time.Instant.now().toString(),
                 universes,
                 fixtures,
-                groupDtos
+                groupDtos,
+                sceneDtos,
+                chaserDtos
         );
     }
 
@@ -724,6 +764,59 @@ public class MainWindow extends StackPane {
                     group.setMemberFixtureIds(gDto.fixtureIds());
                 }
                 explorer.addItemToFolder(ProjectExplorerService.FOLDER_GROUPS_ID, group);
+            }
+        }
+
+        // 4. Szenen wiederherstellen
+        if (data.scenes() != null && stageWorkspaceView != null && stageWorkspaceView.getSceneService() != null) {
+            ProjectExplorerService explorer = stageWorkspaceView.getExplorerService();
+            for (SceneDataDto sDto : data.scenes()) {
+                SceneDefinition sceneDef = new SceneDefinition(
+                        sDto.id(),
+                        sDto.name(),
+                        (int) sDto.fadeTimeMs(),
+                        sDto.channelValues()
+                );
+                stageWorkspaceView.getSceneService().registerScene(sceneDef);
+                ExplorerItem item = new ExplorerItem(
+                        sDto.id(),
+                        sDto.name(),
+                        ExplorerItemType.CUELIST,
+                        false,
+                        "bookmark",
+                        StudioTheme.COLOR_PRIMARY_ORANGE
+                );
+                explorer.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, item);
+            }
+        }
+
+        // 5. Chaser wiederherstellen
+        if (data.chasers() != null && stageWorkspaceView != null && stageWorkspaceView.getChaserService() != null) {
+            ProjectExplorerService explorer = stageWorkspaceView.getExplorerService();
+            for (ChaserDataDto cDto : data.chasers()) {
+                ChaserDirection dir = ChaserDirection.FORWARD;
+                if (cDto.direction() != null) {
+                    try {
+                        dir = ChaserDirection.valueOf(cDto.direction());
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+                ChaserDefinition chaserDef = new ChaserDefinition(cDto.id(), cDto.name(), cDto.bpm(), dir);
+                if (cDto.steps() != null) {
+                    for (ChaserStepDto stepDto : cDto.steps()) {
+                        chaserDef.addStep(new ChaserStep(stepDto.stepId(), stepDto.sceneId(), (int) stepDto.holdTimeMs(), (int) stepDto.fadeTimeMs()));
+                    }
+                }
+                stageWorkspaceView.getChaserService().registerChaser(chaserDef);
+                ExplorerItem item = new ExplorerItem(
+                        cDto.id(),
+                        cDto.name(),
+                        ExplorerItemType.CUELIST,
+                        false,
+                        "list-music",
+                        Color.web("#A78BFA")
+                );
+                explorer.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, item);
             }
         }
     }

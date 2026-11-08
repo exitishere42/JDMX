@@ -1,9 +1,15 @@
 package de.exit.jdmx.ui.stage;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.ChaserDefinition;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
+import de.exit.jdmx.core.model.FixtureInstance;
+import de.exit.jdmx.core.model.SceneDefinition;
+import de.exit.jdmx.service.ChaserService;
+import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.service.SceneService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.dialog.RenameItemDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
@@ -62,13 +68,18 @@ public class ProjectExplorerView extends VBox {
     public static final DataFormat EXPLORER_ITEM_FORMAT = new DataFormat("application/x-jdmx-explorer-item");
 
     private final ProjectExplorerService service;
+    private final SceneService sceneService;
+    private final ChaserService chaserService;
     private final HBox headerBox;
     private Label lblTitle;
     private final Button btnAdd;
+    private final Button btnSceneDump;
     private final Button btnCollapse;
     private final ExplorerAddMenu addMenu;
     private final TreeView<ExplorerItem> treeView;
     private final TreeItem<ExplorerItem> rootItem;
+    private final StackPane dockContentPane;
+    private final ChaserDockEditorView chaserDockEditorView;
 
     private Runnable onToggleCollapse;
     private MainWindow mainWindow;
@@ -78,18 +89,24 @@ public class ProjectExplorerView extends VBox {
     private Consumer<ExplorerItem> onItemDeleteRequested;
 
     public ProjectExplorerView() {
-        this(new ProjectExplorerService());
+        this(new ProjectExplorerService(), null, null);
     }
 
     public ProjectExplorerView(ProjectExplorerService service) {
+        this(service, null, null);
+    }
+
+    public ProjectExplorerView(ProjectExplorerService service, SceneService sceneService, ChaserService chaserService) {
         super(4);
         this.service = Objects.requireNonNull(service, "service must not be null");
+        this.sceneService = sceneService != null ? sceneService : new SceneService(new DmxService());
+        this.chaserService = chaserService != null ? chaserService : new ChaserService(this.sceneService);
 
         getStyleClass().add("project-explorer-view");
         setMinWidth(140.0);
         setPrefWidth(260.0);
 
-        // 1. Header (Titel + grünes Plus-Zeichen mit Add-Dropdown + Einklapp-Button)
+        // 1. Header (Titel + grünes Plus-Zeichen + Bookmark Scene-Dump + Einklapp-Button)
         this.addMenu = new ExplorerAddMenu();
         initDefaultAddActions();
 
@@ -107,6 +124,12 @@ public class ProjectExplorerView extends VBox {
                 }
             }
         });
+
+        this.btnSceneDump = new Button();
+        btnSceneDump.getStyleClass().add("project-explorer-dump-btn");
+        btnSceneDump.setGraphic(new LucideIcon("bookmark", 13, StudioTheme.COLOR_PRIMARY_ORANGE));
+        btnSceneDump.setTooltip(new Tooltip(I18n.get("explorer.scene_dump")));
+        btnSceneDump.setOnAction(e -> dumpCurrentScene());
 
         this.btnCollapse = new Button();
         btnCollapse.getStyleClass().add("project-explorer-toggle-btn");
@@ -132,6 +155,16 @@ public class ProjectExplorerView extends VBox {
 
         // Saubere Zellen-Konfiguration mit Drag & Drop und Rechtsklick-Kontextmenü
         treeView.setCellFactory(tv -> new ProjectExplorerTreeCell(service, this));
+
+        // 3. Chaser-Editor im Explorer-Dock (integrierte Leiste)
+        this.chaserDockEditorView = new ChaserDockEditorView(this.sceneService, this.chaserService);
+        chaserDockEditorView.getBtnBack().setOnAction(e -> showTreeView());
+        chaserDockEditorView.setVisible(false);
+        chaserDockEditorView.managedProperty().bind(chaserDockEditorView.visibleProperty());
+        treeView.managedProperty().bind(treeView.visibleProperty());
+
+        this.dockContentPane = new StackPane(treeView, chaserDockEditorView);
+        VBox.setVgrow(dockContentPane, Priority.ALWAYS);
 
         // Klick auf leere Fläche des Baums deselektiert das aktive Element
         treeView.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
@@ -173,7 +206,7 @@ public class ProjectExplorerView extends VBox {
             }
         });
 
-        getChildren().addAll(headerBox, treeView);
+        getChildren().addAll(headerBox, dockContentPane);
     }
 
     private void setupTreeViewDropTarget() {
@@ -298,17 +331,22 @@ public class ProjectExplorerView extends VBox {
         });
         addMenu.setOnAction("chaser", () -> {
             String name = service.generateUniqueFixtureName("Chaser");
+            String id = "chaser-" + java.util.UUID.randomUUID().toString().substring(0, 8);
             service.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, new ExplorerItem(
-                    "chaser-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+                    id,
                     name,
                     ExplorerItemType.CUELIST,
                     false,
                     "list-music",
                     StudioTheme.COLOR_ICON_FADER
             ));
+            if (chaserService != null) {
+                chaserService.registerChaser(new ChaserDefinition(id, name));
+            }
             if (mainWindow != null) {
                 mainWindow.autoSave();
             }
+            openChaserInDock(id, name);
         });
         addMenu.setOnAction("effect", () -> {
             String name = service.generateUniqueFixtureName("Effekt");
@@ -351,8 +389,91 @@ public class ProjectExplorerView extends VBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        header.getChildren().addAll(lblTitle, btnAdd, spacer, btnCollapse);
+        header.getChildren().addAll(lblTitle, btnAdd, btnSceneDump, spacer, btnCollapse);
         return header;
+    }
+
+    public Button getBtnSceneDump() {
+        return btnSceneDump;
+    }
+
+    public ChaserDockEditorView getChaserDockEditorView() {
+        return chaserDockEditorView;
+    }
+
+    public boolean isChaserEditorOpen() {
+        return chaserDockEditorView != null && chaserDockEditorView.isVisible();
+    }
+
+    public void openChaserInDock(String chaserId, String chaserName) {
+        if (chaserDockEditorView == null) return;
+        ChaserDefinition chaser = null;
+        if (chaserService != null) {
+            chaser = chaserService.getChaser(chaserId);
+            if (chaser == null) {
+                chaser = new ChaserDefinition(chaserId, chaserName);
+                chaserService.registerChaser(chaser);
+            }
+        } else {
+            chaser = new ChaserDefinition(chaserId, chaserName);
+        }
+        chaserDockEditorView.setChaser(chaser);
+        headerBox.setVisible(false);
+        headerBox.setManaged(false);
+        treeView.setVisible(false);
+        chaserDockEditorView.setVisible(true);
+    }
+
+    public void showTreeView() {
+        if (chaserDockEditorView != null) {
+            chaserDockEditorView.setVisible(false);
+        }
+        headerBox.setVisible(true);
+        headerBox.setManaged(true);
+        treeView.setVisible(true);
+    }
+
+    public void dumpCurrentScene() {
+        String name = service.generateUniqueFixtureName(I18n.get("explorer.default_scene_name"));
+        String sceneId = "scene-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+
+        List<FixtureInstance> activeFixtures = new ArrayList<>();
+        if (stageCanvasView != null) {
+            for (StageFixtureNode node : stageCanvasView.getPlacedFixtures()) {
+                if (node.getFixtureInstance() != null) {
+                    activeFixtures.add(node.getFixtureInstance());
+                }
+            }
+        }
+
+        if (sceneService != null) {
+            sceneService.captureScene(name, 500, activeFixtures);
+        }
+
+        service.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, new ExplorerItem(
+                sceneId,
+                name,
+                ExplorerItemType.CUELIST,
+                false,
+                "bookmark",
+                StudioTheme.COLOR_PRIMARY_ORANGE
+        ));
+
+        if (mainWindow != null) {
+            mainWindow.autoSave();
+            mainWindow.showHudNotification(I18n.get("explorer.scene_saved", name));
+        }
+    }
+
+    public void activateScene(String sceneId) {
+        if (sceneService != null) {
+            sceneService.applyScene(sceneId, -1);
+            if (mainWindow != null) {
+                ExplorerItem item = service.findItemById(sceneId);
+                String name = item != null ? item.getName() : sceneId;
+                mainWindow.showHudNotification(I18n.get("explorer.scene_activated", name));
+            }
+        }
     }
 
     public String getTitle() {
@@ -368,6 +489,9 @@ public class ProjectExplorerView extends VBox {
         }
         if (btnAdd != null) {
             btnAdd.setTooltip(new Tooltip(I18n.get("explorer.add")));
+        }
+        if (btnSceneDump != null) {
+            btnSceneDump.setTooltip(new Tooltip(I18n.get("explorer.scene_dump")));
         }
         if (btnCollapse != null) {
             btnCollapse.setTooltip(new Tooltip(I18n.get("explorer.collapse")));
@@ -605,6 +729,22 @@ public class ProjectExplorerView extends VBox {
             setOnMouseClicked(event -> {
                 if (isEmpty() || getItem() == null) {
                     return;
+                }
+                ExplorerItem item = getItem();
+                if (event.getClickCount() == 2 && parentView != null && item != null) {
+                    if (item.getType() == ExplorerItemType.CUELIST) {
+                        if ("bookmark".equals(item.getIconName())) {
+                            parentView.activateScene(item.getId());
+                        } else {
+                            parentView.openChaserInDock(item.getId(), item.getName());
+                        }
+                        event.consume();
+                        return;
+                    } else if (item.getType() == ExplorerItemType.EFFECT) {
+                        parentView.openChaserInDock(item.getId(), item.getName());
+                        event.consume();
+                        return;
+                    }
                 }
                 TreeItem<ExplorerItem> ti = getTreeItem();
                 if (ti != null && !ti.getChildren().isEmpty() && event.getClickCount() == 1) {

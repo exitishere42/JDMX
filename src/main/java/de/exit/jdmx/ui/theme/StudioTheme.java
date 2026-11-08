@@ -28,6 +28,10 @@ public final class StudioTheme {
     public static final String HEX_TEXT_MED = "#9CA3AF";
     public static final String HEX_TEXT_LOW = "#6B7280";
 
+    // --- Primäre Akzentfarbe Orange ---
+    public static final String HEX_PRIMARY_ORANGE = "#FB923C";  // Warm Orange
+    public static final Color COLOR_PRIMARY_ORANGE = Color.web(HEX_PRIMARY_ORANGE);
+
     // --- Brand Logo Farbe (Warmes Amber-Gold) ---
     public static final String HEX_BRAND_LOGO = "#FEDC94";
     public static final Color COLOR_BRAND_LOGO = Color.web(HEX_BRAND_LOGO);
