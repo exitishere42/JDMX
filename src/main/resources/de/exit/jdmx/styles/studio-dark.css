@@ -1072,6 +1072,96 @@
     -fx-border-color: #4B5563;
 }
 
+/* Chaser Dock Editor (Integrierte Leiste im Project Explorer Dock) */
+.chaser-dock-editor {
+    -fx-background-color: #171717;
+}
+
+.chaser-dock-back-btn,
+.chaser-control-btn,
+.chaser-step-action-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3 5;
+    -fx-cursor: hand;
+}
+
+.chaser-dock-back-btn:hover,
+.chaser-control-btn:hover,
+.chaser-step-action-btn:hover {
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
+}
+
+.chaser-dock-back-btn:pressed,
+.chaser-control-btn:pressed,
+.chaser-step-action-btn:pressed {
+    -fx-background-color: #2E2E2E;
+}
+
+.chaser-dock-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #E4E4E7;
+}
+
+.chaser-tap-btn {
+    -fx-background-color: #27272A;
+    -fx-text-fill: #E4E4E7;
+    -fx-border-color: #3F3F46;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3 8;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+
+.chaser-tap-btn:hover {
+    -fx-background-color: #3F3F46;
+    -fx-border-color: #52525B;
+}
+
+.chaser-tap-btn:pressed {
+    -fx-background-color: #18181B;
+}
+
+.chaser-add-step-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4ADE80;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 3 6;
+    -fx-font-size: 11px;
+    -fx-cursor: hand;
+}
+
+.chaser-add-step-btn:hover {
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
+}
+
+.chaser-step-card {
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #2A2A2A;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 6;
+}
+
+.chaser-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.chaser-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
 .project-explorer-tree {
     -fx-background-color: transparent;
     -fx-border-color: transparent;

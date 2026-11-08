@@ -66,6 +66,8 @@ public class ProjectExplorerView extends VBox {
 
     /** Universelles Drag & Drop Datenformat für Elemente des Project Explorers. */
     public static final DataFormat EXPLORER_ITEM_FORMAT = new DataFormat("application/x-jdmx-explorer-item");
+    public static final double DEFAULT_MIN_WIDTH = 300.0;
+    public static final double DEFAULT_PREF_WIDTH = 300.0;
 
     private final ProjectExplorerService service;
     private final SceneService sceneService;
@@ -103,8 +105,8 @@ public class ProjectExplorerView extends VBox {
         this.chaserService = chaserService != null ? chaserService : new ChaserService(this.sceneService);
 
         getStyleClass().add("project-explorer-view");
-        setMinWidth(140.0);
-        setPrefWidth(260.0);
+        setMinWidth(DEFAULT_MIN_WIDTH);
+        setPrefWidth(DEFAULT_PREF_WIDTH);
 
         // 1. Header (Titel + grünes Plus-Zeichen + Bookmark Scene-Dump + Einklapp-Button)
         this.addMenu = new ExplorerAddMenu();

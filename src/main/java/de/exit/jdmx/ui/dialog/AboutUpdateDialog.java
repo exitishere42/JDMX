@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.dialog;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.service.UpdateService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.component.MarkdownView;
@@ -39,6 +40,9 @@ public class AboutUpdateDialog {
     private final MainWindow mainWindow;
     private final VBox card;
 
+    private Label lblTitle;
+    private Label lblCurTitle;
+    private Label lblLatTitle;
     private Label lblCurrentVersion;
     private Label lblLatestVersion;
     private Label lblStatus;
@@ -48,6 +52,12 @@ public class AboutUpdateDialog {
     private Label lblProgressDetail;
     private HBox actionButtonBox;
     private Button btnClose;
+    private Button btnCloseFooter;
+    private Button btnUpdate;
+    private Button btnRetry;
+    private UpdateService.ReleaseInfo lastRelease;
+    private boolean isChecking = true;
+    private boolean isError = false;
 
     /**
      * Öffnet den Update-Dialog als modales In-App Overlay.
@@ -72,6 +82,7 @@ public class AboutUpdateDialog {
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
+        I18n.addLanguageChangeListener(lang -> updateTexts());
         checkForUpdates();
     }
 
@@ -89,6 +100,7 @@ public class AboutUpdateDialog {
         HBox footer = buildFooter();
 
         card.getChildren().addAll(header, versionCard, statusCard, footer);
+        updateTexts();
     }
 
     private HBox buildHeader() {
@@ -97,7 +109,7 @@ public class AboutUpdateDialog {
         header.getStyleClass().add("settings-dialog-header");
 
         LucideIcon iconLogo = new LucideIcon("arrow-up-circle", 20, Color.web("#38BDF8"));
-        Label lblTitle = new Label("JDMX Updates");
+        this.lblTitle = new Label(I18n.get("update.title"));
         lblTitle.getStyleClass().add("settings-dialog-title");
 
         Region spacer = new Region();
@@ -121,7 +133,7 @@ public class AboutUpdateDialog {
 
         // Installierte Version
         VBox curBox = new VBox(2);
-        Label lblCurTitle = new Label("Installierte Version");
+        this.lblCurTitle = new Label(I18n.get("update.installed_version"));
         lblCurTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
         this.lblCurrentVersion = new Label("v" + UpdateService.CURRENT_VERSION);
         lblCurrentVersion.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 14px; -fx-font-weight: bold;");
@@ -133,9 +145,9 @@ public class AboutUpdateDialog {
         // Neueste Version auf GitHub
         VBox latBox = new VBox(2);
         latBox.setAlignment(Pos.CENTER_RIGHT);
-        Label lblLatTitle = new Label("Neueste Version");
+        this.lblLatTitle = new Label(I18n.get("update.latest_version"));
         lblLatTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
-        this.lblLatestVersion = new Label("Prüfen...");
+        this.lblLatestVersion = new Label(I18n.get("update.checking"));
         lblLatestVersion.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 14px; -fx-font-weight: bold;");
         latBox.getChildren().addAll(lblLatTitle, lblLatestVersion);
 
@@ -158,7 +170,7 @@ public class AboutUpdateDialog {
         spinner.setPrefSize(16, 16);
         spinner.setStyle("-fx-progress-color: #38BDF8;");
 
-        this.lblStatus = new Label("Prüfe auf Updates...");
+        this.lblStatus = new Label(I18n.get("update.checking_status"));
         lblStatus.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px;");
         statusRow.getChildren().addAll(spinner, lblStatus);
 
@@ -201,7 +213,7 @@ public class AboutUpdateDialog {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnCloseFooter = new Button(I18n.get("action.close"));
+        this.btnCloseFooter = new Button(I18n.get("action.close"));
         btnCloseFooter.getStyleClass().add("patch-cancel-btn");
         btnCloseFooter.setOnAction(e -> close());
 
@@ -209,15 +221,40 @@ public class AboutUpdateDialog {
         return footer;
     }
 
+    private void updateTexts() {
+        if (lblTitle != null) lblTitle.setText(I18n.get("update.title"));
+        if (lblCurTitle != null) lblCurTitle.setText(I18n.get("update.installed_version"));
+        if (lblLatTitle != null) lblLatTitle.setText(I18n.get("update.latest_version"));
+        if (btnCloseFooter != null) btnCloseFooter.setText(I18n.get("action.close"));
+
+        if (isChecking) {
+            if (lblStatus != null) lblStatus.setText(I18n.get("update.checking_status"));
+            if (lblLatestVersion != null) lblLatestVersion.setText(I18n.get("update.checking"));
+        } else if (isError) {
+            if (lblLatestVersion != null) lblLatestVersion.setText(I18n.get("universe.config.error_title"));
+            if (lblStatus != null) lblStatus.setText(I18n.get("update.error"));
+        } else if (lastRelease != null) {
+            if (lastRelease.isNewer()) {
+                if (lblStatus != null) lblStatus.setText(I18n.get("update.available", lastRelease.tagName()));
+            } else {
+                if (lblStatus != null) lblStatus.setText(I18n.get("update.up_to_date"));
+            }
+        }
+        if (btnUpdate != null) btnUpdate.setText(I18n.get("update.btn_update"));
+        if (btnRetry != null) btnRetry.setText(I18n.get("update.btn_retry"));
+    }
+
     /**
      * Startet die asynchrone Prüfung gegen die GitHub Releases API.
      */
     public void checkForUpdates() {
+        this.isChecking = true;
+        this.isError = false;
         spinner.setVisible(true);
         spinner.setManaged(true);
-        lblStatus.setText("Prüfe auf Updates...");
+        lblStatus.setText(I18n.get("update.checking_status"));
         lblStatus.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px;");
-        lblLatestVersion.setText("Prüfen...");
+        lblLatestVersion.setText(I18n.get("update.checking"));
         markdownChangelog.setVisible(false);
         markdownChangelog.setManaged(false);
         progressBar.setVisible(false);
@@ -235,12 +272,15 @@ public class AboutUpdateDialog {
     }
 
     private void applyReleaseResult(UpdateService.ReleaseInfo release) {
+        this.isChecking = false;
+        this.isError = false;
+        this.lastRelease = release;
         spinner.setVisible(false);
         spinner.setManaged(false);
         lblLatestVersion.setText(release.tagName());
 
         if (release.isNewer()) {
-            lblStatus.setText("Neue Version verfügbar: " + release.tagName());
+            lblStatus.setText(I18n.get("update.available", release.tagName()));
             lblStatus.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 12px; -fx-font-weight: bold;");
 
             if (release.body() != null && !release.body().isBlank()) {
@@ -249,7 +289,7 @@ public class AboutUpdateDialog {
                 markdownChangelog.setManaged(true);
             }
 
-            Button btnUpdate = new Button("Jetzt aktualisieren");
+            this.btnUpdate = new Button(I18n.get("update.btn_update"));
             btnUpdate.setStyle("-fx-background-color: #38BDF8; -fx-text-fill: #0F172A; -fx-font-weight: bold; -fx-background-radius: 4px; -fx-padding: 6 12;");
             btnUpdate.setGraphic(new LucideIcon("download", 14, Color.web("#0F172A")));
 
@@ -273,7 +313,7 @@ public class AboutUpdateDialog {
                 ).exceptionally(ex -> {
                     Platform.runLater(() -> {
                         btnUpdate.setDisable(false);
-                        lblProgressDetail.setText("Update fehlgeschlagen: " + ex.getMessage());
+                        lblProgressDetail.setText(I18n.get("update.failed", ex.getMessage()));
                         lblProgressDetail.setStyle("-fx-text-fill: #EF4444;");
                     });
                     return null;
@@ -282,10 +322,10 @@ public class AboutUpdateDialog {
 
             actionButtonBox.getChildren().setAll(btnUpdate);
         } else {
-            lblStatus.setText("JDMX ist auf dem neuesten Stand!");
+            lblStatus.setText(I18n.get("update.up_to_date"));
             lblStatus.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: bold;");
 
-            Button btnRetry = new Button("Erneut prüfen");
+            this.btnRetry = new Button(I18n.get("update.btn_retry"));
             btnRetry.getStyleClass().add("patch-cancel-btn");
             btnRetry.setGraphic(new LucideIcon("refresh-cw", 13, Color.web("#9CA3AF")));
             btnRetry.setOnAction(e -> checkForUpdates());
@@ -295,13 +335,15 @@ public class AboutUpdateDialog {
     }
 
     private void applyErrorResult(String errorMessage) {
+        this.isChecking = false;
+        this.isError = true;
         spinner.setVisible(false);
         spinner.setManaged(false);
-        lblLatestVersion.setText("Fehler");
-        lblStatus.setText("Konnte GitHub Releases nicht abrufen.");
+        lblLatestVersion.setText(I18n.get("universe.config.error_title"));
+        lblStatus.setText(I18n.get("update.error"));
         lblStatus.setStyle("-fx-text-fill: #EF4444; -fx-font-size: 12px;");
 
-        Button btnRetry = new Button("Erneut prüfen");
+        this.btnRetry = new Button(I18n.get("update.btn_retry"));
         btnRetry.getStyleClass().add("patch-cancel-btn");
         btnRetry.setGraphic(new LucideIcon("refresh-cw", 13, Color.web("#9CA3AF")));
         btnRetry.setOnAction(e -> checkForUpdates());
@@ -335,8 +377,16 @@ public class AboutUpdateDialog {
         return lblCurrentVersion;
     }
 
+    public Label getLblCurTitle() {
+        return lblCurTitle;
+    }
+
     public Label getLblLatestVersion() {
         return lblLatestVersion;
+    }
+
+    public Label getLblLatTitle() {
+        return lblLatTitle;
     }
 
     public Label getLblStatus() {

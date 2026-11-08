@@ -62,8 +62,8 @@ class ProjectExplorerViewTest {
     void shouldHaveFlexibleWidths() {
         ProjectExplorerView explorer = new ProjectExplorerView();
 
-        assertThat(explorer.getMinWidth()).isLessThanOrEqualTo(150.0);
-        assertThat(explorer.getPrefWidth()).isGreaterThanOrEqualTo(220.0);
+        assertThat(explorer.getMinWidth()).isEqualTo(ProjectExplorerView.DEFAULT_MIN_WIDTH);
+        assertThat(explorer.getPrefWidth()).isEqualTo(ProjectExplorerView.DEFAULT_PREF_WIDTH);
     }
 
     @Test

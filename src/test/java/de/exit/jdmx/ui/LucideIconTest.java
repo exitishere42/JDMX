@@ -91,5 +91,16 @@ class LucideIconTest {
         assertThat(LucideIcon.getSvgPathData("external-link")).isNotEqualTo(circleFallback).contains("M18 13v6");
         assertThat(LucideIcon.getSvgPathData("bookmark")).isNotEqualTo(circleFallback).contains("M19 21");
         assertThat(LucideIcon.getSvgPathData("bookmark-check")).isNotEqualTo(circleFallback).contains("M19 21");
+        assertThat(LucideIcon.getSvgPathData("arrow-left")).isNotEqualTo(circleFallback).contains("M19 12H5");
+        assertThat(LucideIcon.getSvgPathData("pause")).isNotEqualTo(circleFallback).contains("M6 4h4");
+        assertThat(LucideIcon.getSvgPathData("arrow-up")).isNotEqualTo(circleFallback).contains("M12 19V5");
+        assertThat(LucideIcon.getSvgPathData("arrow-down")).isNotEqualTo(circleFallback).contains("M12 5v14");
+    }
+
+    @Test
+    @DisplayName("Sollte pause Icon als solides Vektor-Icon füllen")
+    void shouldFillPauseIcon() {
+        LucideIcon pauseIcon = new LucideIcon("pause", 14, Color.web("#F59E0B"));
+        assertThat(pauseIcon.getSvgPath().getFill()).isEqualTo(Color.web("#F59E0B"));
     }
 }

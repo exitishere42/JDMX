@@ -333,7 +333,7 @@ public class StageWorkspaceView extends SplitPane {
                 btnExpandProjectExplorer.setManaged(false);
                 projectExplorerView.setVisible(true);
                 projectExplorerView.setManaged(true);
-                projectExplorerView.setMinWidth(140.0);
+                projectExplorerView.setMinWidth(ProjectExplorerView.DEFAULT_MIN_WIDTH);
                 projectExplorerView.setMaxWidth(Double.MAX_VALUE);
                 setDividerPositions(lastExpandedRatio > 0 && lastExpandedRatio < 0.98 ? lastExpandedRatio : DEFAULT_HORIZONTAL_RATIO);
                 isCollapsed = false;

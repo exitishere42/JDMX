@@ -94,6 +94,15 @@ public class LucideIcon extends StackPane {
     }
 
     /**
+     * Liefert den internen {@link SVGPath} des Icons.
+     *
+     * @return SVGPath Instanz
+     */
+    public SVGPath getSvgPath() {
+        return svgPath;
+    }
+
+    /**
      * Aktualisiert den SVG-Pfad und die Skalierung entsprechend des Icon-Namens.
      */
     private void updateSvg(Color color) {
@@ -118,7 +127,7 @@ public class LucideIcon extends StackPane {
      * Prüft, ob ein Icon standardmäßig solide gefüllt sein soll.
      */
     private boolean isFilledIcon(String iconName) {
-        return "square".equals(iconName) || "stop".equals(iconName) || "play".equals(iconName);
+        return "square".equals(iconName) || "stop".equals(iconName) || "play".equals(iconName) || "pause".equals(iconName);
     }
 
     /**
@@ -138,6 +147,9 @@ public class LucideIcon extends StackPane {
             case "play" ->
                 // Lucide play
                 "M6 4l15 8-15 8z";
+            case "pause" ->
+                // Lucide pause: two solid vertical bars
+                "M6 4h4v16H6z M14 4h4v16h-4z";
             case "box", "stage" ->
                 // Lucide box / isometric stage
                 "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z " +
@@ -154,6 +166,15 @@ public class LucideIcon extends StackPane {
             case "arrow-right-left", "arrows-horizontal", "io" ->
                 // Lucide arrow-right-left
                 "M16 3l4 4-4 4 M20 7H4 M8 21l-4-4 4-4 M4 17h16";
+            case "arrow-left" ->
+                // Lucide arrow-left
+                "M19 12H5 M12 19l-7-7 7-7";
+            case "arrow-up" ->
+                // Lucide arrow-up
+                "M12 19V5 M5 12l7-7 7 7";
+            case "arrow-down" ->
+                // Lucide arrow-down
+                "M12 5v14 M19 12l-7 7-7-7";
             case "arrow-right" ->
                 // Lucide arrow-right
                 "M5 12h14 M12 5l7 7-7 7";

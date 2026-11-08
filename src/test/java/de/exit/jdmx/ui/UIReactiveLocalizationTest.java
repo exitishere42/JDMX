@@ -1,6 +1,9 @@
 package de.exit.jdmx.ui;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.UniverseConfig;
+import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
+import de.exit.jdmx.ui.dialog.UniverseConfigDialog;
 import de.exit.jdmx.ui.io.InputDockView;
 import de.exit.jdmx.ui.io.OutputDockView;
 import de.exit.jdmx.ui.io.UniversePatchTable;
@@ -165,6 +168,40 @@ class UIReactiveLocalizationTest {
 
             // Wechsel zu Englisch
             I18n.setLanguage("en");
+        });
+    }
+
+    @Test
+    @DisplayName("Update-Dialog und Universe-Config-Dialog schalten Sprache reaktiv um")
+    void shouldReactivelyUpdateUpdateAndUniverseConfigDialogs() throws Exception {
+        runOnFxThread(() -> {
+            I18n.setLanguage("de");
+
+            AboutUpdateDialog updateDialog = new AboutUpdateDialog(null);
+            assertThat(updateDialog.getLblCurTitle().getText()).isEqualTo("Installierte Version");
+            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo("Neueste Version");
+
+            UniverseConfig config = UniverseConfig.defaultFor(0);
+            UniverseConfigDialog uniDialog = new UniverseConfigDialog(null, config, updated -> {});
+            assertThat(uniDialog.getTitleLabel().getText()).isEqualTo("Universum 1 Konfiguration");
+            assertThat(uniDialog.getLblTargetIp().getText()).isEqualTo("Ziel-IP-Adresse:");
+            assertThat(uniDialog.getChkBroadcast().getText()).isEqualTo("Broadcast an gesamtes Subnetz senden");
+
+            // Wechsel zu Englisch
+            I18n.setLanguage("en");
+            assertThat(updateDialog.getLblCurTitle().getText()).isEqualTo("Installed Version");
+            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo("Latest Version");
+
+            assertThat(uniDialog.getTitleLabel().getText()).isEqualTo("Universe 1 Configuration");
+            assertThat(uniDialog.getLblTargetIp().getText()).isEqualTo("Target IP Address:");
+            assertThat(uniDialog.getChkBroadcast().getText()).isEqualTo("Send broadcast to entire subnet");
+
+            // Wechsel zu Russisch
+            I18n.setLanguage("ru");
+            assertThat(updateDialog.getLblCurTitle().getText()).isEqualTo("Установленная версия");
+            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo("Последняя версия");
+
+            assertThat(uniDialog.getTitleLabel().getText()).isEqualTo("Конфигурация Вселенной 1");
         });
     }
 }

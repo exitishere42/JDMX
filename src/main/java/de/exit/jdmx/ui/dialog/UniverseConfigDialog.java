@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.dialog;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.UniverseConfig;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.icon.LucideIcon;
@@ -41,6 +42,11 @@ public class UniverseConfigDialog {
     private Button btnClose;
 
     // Art-Net Formularfelder
+    private Label sectionArtNetTitle;
+    private Label lblIp;
+    private Label lblPort;
+    private Label lblSubnet;
+    private Label lblUniverse;
     private TextField txtIp;
     private TextField txtPort;
     private TextField txtSubnet;
@@ -48,6 +54,10 @@ public class UniverseConfigDialog {
     private CheckBox chkBroadcast;
 
     // Timing
+    private Label sectionTimingTitle;
+    private Label lblRate;
+    private Label lblIn;
+    private Label lblOut;
     private TextField txtRefreshRate;
 
     // Footer Buttons
@@ -81,6 +91,7 @@ public class UniverseConfigDialog {
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
+        I18n.addLanguageChangeListener(lang -> updateTexts());
     }
 
     private void buildUi() {
@@ -97,6 +108,7 @@ public class UniverseConfigDialog {
         HBox footer = buildFooter();
 
         card.getChildren().addAll(header, artNetSection, timingSection, footer);
+        updateTexts();
     }
 
     private HBox buildHeader() {
@@ -105,7 +117,7 @@ public class UniverseConfigDialog {
         header.getStyleClass().add("settings-dialog-header");
 
         LucideIcon icon = new LucideIcon("settings", 20, Color.web("#38BDF8"));
-        titleLabel = new Label("Universum " + initialConfig.universeNumber() + " Konfiguration");
+        titleLabel = new Label(I18n.get("universe.config.title", initialConfig.universeNumber()));
         titleLabel.getStyleClass().add("settings-dialog-title");
 
         Region spacer = new Region();
@@ -128,47 +140,47 @@ public class UniverseConfigDialog {
         box.setStyle("-fx-background-color: #242424; -fx-border-color: #383838; -fx-border-width: 1px; " +
                 "-fx-background-radius: 4px; -fx-border-radius: 4px;");
 
-        Label sectionTitle = new Label("ART-NET 4 NETZWERK EINSTELLUNGEN");
-        sectionTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
+        this.sectionArtNetTitle = new Label(I18n.get("universe.config.artnet_section"));
+        sectionArtNetTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
 
         GridPane grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(8);
 
         // Ziel-IP
-        Label lblIp = createFieldLabel("Ziel-IP-Adresse:");
+        this.lblIp = createFieldLabel(I18n.get("universe.config.target_ip"));
         txtIp = new TextField(initialConfig.artNetIp());
         txtIp.getStyleClass().add("settings-textfield");
         grid.add(lblIp, 0, 0);
         grid.add(txtIp, 1, 0);
 
         // Port
-        Label lblPort = createFieldLabel("UDP-Port:");
+        this.lblPort = createFieldLabel(I18n.get("universe.config.udp_port"));
         txtPort = new TextField(String.valueOf(initialConfig.artNetPort()));
         txtPort.getStyleClass().add("settings-textfield");
         grid.add(lblPort, 2, 0);
         grid.add(txtPort, 3, 0);
 
         // Subnet
-        Label lblSubnet = createFieldLabel("Subnet (0-15):");
+        this.lblSubnet = createFieldLabel(I18n.get("universe.config.subnet"));
         txtSubnet = new TextField(String.valueOf(initialConfig.artNetSubnet()));
         txtSubnet.getStyleClass().add("settings-textfield");
         grid.add(lblSubnet, 0, 1);
         grid.add(txtSubnet, 1, 1);
 
         // Universe
-        Label lblUniverse = createFieldLabel("Universe (0-15):");
+        this.lblUniverse = createFieldLabel(I18n.get("universe.config.universe"));
         txtUniverse = new TextField(String.valueOf(initialConfig.artNetUniverse()));
         txtUniverse.getStyleClass().add("settings-textfield");
         grid.add(lblUniverse, 2, 1);
         grid.add(txtUniverse, 3, 1);
 
         // Broadcast Checkbox
-        chkBroadcast = new CheckBox("Broadcast an gesamtes Subnetz senden");
+        chkBroadcast = new CheckBox(I18n.get("universe.config.broadcast"));
         chkBroadcast.setSelected(initialConfig.isBroadcast());
         chkBroadcast.setStyle("-fx-text-fill: #D1D5DB; -fx-font-size: 11.5px; -fx-padding: 4 0 0 0;");
 
-        box.getChildren().addAll(sectionTitle, grid, chkBroadcast);
+        box.getChildren().addAll(sectionArtNetTitle, grid, chkBroadcast);
         return box;
     }
 
@@ -179,34 +191,34 @@ public class UniverseConfigDialog {
         box.setStyle("-fx-background-color: #242424; -fx-border-color: #383838; -fx-border-width: 1px; " +
                 "-fx-background-radius: 4px; -fx-border-radius: 4px;");
 
-        Label sectionTitle = new Label("HARDWARE TIMING & ROUTING");
-        sectionTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
+        this.sectionTimingTitle = new Label(I18n.get("universe.config.timing_section"));
+        sectionTimingTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
 
         GridPane grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(8);
 
         // DMX Rate
-        Label lblRate = createFieldLabel("Ausgaberate (Hz):");
+        this.lblRate = createFieldLabel(I18n.get("universe.config.refresh_rate"));
         txtRefreshRate = new TextField(String.valueOf(initialConfig.refreshRateHz()));
         txtRefreshRate.getStyleClass().add("settings-textfield");
         grid.add(lblRate, 0, 0);
         grid.add(txtRefreshRate, 1, 0);
 
         // Routing Info
-        Label lblIn = createFieldLabel("Gewählter Input:");
+        this.lblIn = createFieldLabel(I18n.get("universe.config.selected_input"));
         Label lblInVal = new Label(initialConfig.inputSource());
         lblInVal.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px;");
         grid.add(lblIn, 0, 1);
         grid.add(lblInVal, 1, 1);
 
-        Label lblOut = createFieldLabel("Gewählter Output:");
+        this.lblOut = createFieldLabel(I18n.get("universe.config.selected_output"));
         Label lblOutVal = new Label(initialConfig.outputTarget());
         lblOutVal.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 12px; -fx-font-weight: 600;");
         grid.add(lblOut, 0, 2);
         grid.add(lblOutVal, 1, 2);
 
-        box.getChildren().addAll(sectionTitle, grid);
+        box.getChildren().addAll(sectionTimingTitle, grid);
         return box;
     }
 
@@ -226,6 +238,22 @@ public class UniverseConfigDialog {
 
         footer.getChildren().addAll(btnCancel, btnSave);
         return footer;
+    }
+
+    private void updateTexts() {
+        if (titleLabel != null) titleLabel.setText(I18n.get("universe.config.title", initialConfig.universeNumber()));
+        if (sectionArtNetTitle != null) sectionArtNetTitle.setText(I18n.get("universe.config.artnet_section"));
+        if (lblIp != null) lblIp.setText(I18n.get("universe.config.target_ip"));
+        if (lblPort != null) lblPort.setText(I18n.get("universe.config.udp_port"));
+        if (lblSubnet != null) lblSubnet.setText(I18n.get("universe.config.subnet"));
+        if (lblUniverse != null) lblUniverse.setText(I18n.get("universe.config.universe"));
+        if (chkBroadcast != null) chkBroadcast.setText(I18n.get("universe.config.broadcast"));
+        if (sectionTimingTitle != null) sectionTimingTitle.setText(I18n.get("universe.config.timing_section"));
+        if (lblRate != null) lblRate.setText(I18n.get("universe.config.refresh_rate"));
+        if (lblIn != null) lblIn.setText(I18n.get("universe.config.selected_input"));
+        if (lblOut != null) lblOut.setText(I18n.get("universe.config.selected_output"));
+        if (btnCancel != null) btnCancel.setText(I18n.get("action.cancel"));
+        if (btnSave != null) btnSave.setText(I18n.get("action.save"));
     }
 
     private void handleSave() {
@@ -271,6 +299,10 @@ public class UniverseConfigDialog {
 
     public Label getTitleLabel() {
         return titleLabel;
+    }
+
+    public Label getLblTargetIp() {
+        return lblIp;
     }
 
     public TextField getTxtIp() {
