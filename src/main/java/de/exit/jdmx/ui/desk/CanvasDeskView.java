@@ -1,10 +1,12 @@
 package de.exit.jdmx.ui.desk;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.ChannelType;
 import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -56,6 +58,10 @@ public class CanvasDeskView extends VBox {
     private int activeDragChannel = -1;
     private boolean renderPending = false;
 
+    private final Tooltip iconTooltip = new Tooltip();
+    private int lastHoveredChannel = -1;
+    private boolean iconTooltipShowingForTesting = false;
+
     private BiConsumer<Integer, Integer> onChannelValueChanged;
     private Consumer<Double> onScrollChanged;
 
@@ -98,6 +104,7 @@ public class CanvasDeskView extends VBox {
 
         // 4. Interaktives Ziehen der Pegelbalken (Click & Drag - strikt an geklickten Kanal gebunden)
         canvasPane.setOnMousePressed(e -> {
+            hideIconTooltip();
             canvasPane.setCursor(Cursor.V_RESIZE);
             int ch = getChannelAtX(e.getX());
             if (ch >= 1 && ch <= TOTAL_CHANNELS) {
@@ -108,6 +115,7 @@ public class CanvasDeskView extends VBox {
         });
 
         canvasPane.setOnMouseDragged(e -> {
+            hideIconTooltip();
             if (activeDragChannel >= 1 && activeDragChannel <= TOTAL_CHANNELS) {
                 int val = getValueAtY(e.getY());
                 setChannelValue(activeDragChannel, val);
@@ -128,6 +136,11 @@ public class CanvasDeskView extends VBox {
                 }
             }
         });
+
+        // 6. Hover-Tooltips für Funktions-Icons
+        iconTooltip.getStyleClass().add("desk-icon-tooltip");
+        canvasPane.setOnMouseMoved(e -> handleMouseMoved(e.getX(), e.getY(), e.getScreenX(), e.getScreenY()));
+        canvasPane.setOnMouseExited(e -> hideIconTooltip());
 
         getChildren().addAll(canvasPane, scrollBar);
     }
@@ -247,10 +260,180 @@ public class CanvasDeskView extends VBox {
      * @param fixtureColor Akzentfarbe
      */
     public void assignFixtureChannel(int channel, String fixtureName, ChannelType type, Color fixtureColor) {
+        assignFixtureChannel(channel, fixtureName, type, fixtureColor, 1, null);
+    }
+
+    /**
+     * Weist einem Kanal Scheinwerfer-Attribute inklusive relativem Kanalindex und Bezeichnung zu.
+     *
+     * @param channel             1-basierte Kanalnummer (1–512)
+     * @param fixtureName         Name des Scheinwerfers
+     * @param type                Kanaltyp (z. B. DIMMER, PAN, RED)
+     * @param fixtureColor        Akzentfarbe
+     * @param fixtureChannelIndex 1-basierter relativer Kanalindex im Scheinwerfer
+     * @param channelName         Individuelle Kanalbezeichnung
+     */
+    public void assignFixtureChannel(int channel, String fixtureName, ChannelType type, Color fixtureColor, int fixtureChannelIndex, String channelName) {
         if (channel >= 1 && channel <= TOTAL_CHANNELS) {
-            channels[channel - 1].assignFixture(fixtureName, type, fixtureColor);
+            channels[channel - 1].assignFixture(fixtureName, type, fixtureColor, fixtureChannelIndex, channelName);
             render();
         }
+    }
+
+    /**
+     * Prüft, ob sich die angegebene Koordinate in der Icon-Headerzone (Y 4..33px)
+     * eines gepatchten Kanals befindet.
+     *
+     * @param x X-Koordinate im Canvas
+     * @param y Y-Koordinate im Canvas
+     * @return true wenn die Maus über einem Kanal-Icon schwebt
+     */
+    public boolean isOverIcon(double x, double y) {
+        if (y < 4.0 || y > TRACK_TOP) {
+            return false;
+        }
+        int ch = getChannelAtX(x);
+        if (ch < 1 || ch > TOTAL_CHANNELS) {
+            return false;
+        }
+        DeskChannelData data = channels[ch - 1];
+        return data != null && data.getChannelType() != null;
+    }
+
+    /**
+     * Liefert die lokalisierte Bezeichnung für den angegebenen DMX-Kanaltyp.
+     *
+     * @param type Kanaltyp
+     * @return Lokalisierter Name (z. B. "Pan (Schwenken X)" oder "Dimmer (Helligkeit)")
+     */
+    public String getLocalizedChannelTypeName(ChannelType type) {
+        if (type == null) {
+            return I18n.get("channel.type.generic");
+        }
+        String key = "channel.type." + type.name().toLowerCase();
+        String val = I18n.get(key);
+        return val != null && !val.equals(key) ? val : type.name();
+    }
+
+    /**
+     * Baut den vollständigen mehrzeiligen Tooltip-Text für das Kanal-Icon auf.
+     *
+     * @param data Kanalzustandsdaten
+     * @return Formatierter mehrzeiliger Tooltip-Text
+     */
+    public String buildIconTooltipText(DeskChannelData data) {
+        if (data == null) {
+            return "";
+        }
+        String funcTitle = getLocalizedChannelTypeName(data.getChannelType());
+        int chNum = data.getChannelNumber();
+        String fixtureName = data.getFixtureName() != null ? data.getFixtureName() : "";
+        int fixChIdx = data.getFixtureChannelIndex();
+
+        int val = data.getValue();
+        int pct = (int) Math.round((val / 255.0) * 100.0);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(funcTitle);
+
+        if (!fixtureName.isBlank()) {
+            sb.append("\n").append(I18n.get("desk.tooltip.fixture_info", fixtureName, fixChIdx));
+            sb.append(" (").append(I18n.get("desk.tooltip.dmx_channel", chNum)).append(")");
+        } else {
+            sb.append("\n").append(I18n.get("desk.tooltip.dmx_channel", chNum));
+        }
+
+        sb.append("\n").append(I18n.get("desk.tooltip.value", val, pct));
+        return sb.toString();
+    }
+
+    /**
+     * Behandelt die Mausbewegung über dem Fader-Desk und aktualisiert den Icon-Tooltip.
+     *
+     * @param x       Lokale X-Koordinate im Canvas
+     * @param y       Lokale Y-Koordinate im Canvas
+     * @param screenX Bildschirm-X-Koordinate für Tooltip-Positionierung
+     * @param screenY Bildschirm-Y-Koordinate für Tooltip-Positionierung
+     */
+    public void handleMouseMoved(double x, double y, double screenX, double screenY) {
+        if (activeDragChannel != -1) {
+            hideIconTooltip();
+            return;
+        }
+
+        if (isOverIcon(x, y)) {
+            int ch = getChannelAtX(x);
+            if (ch != lastHoveredChannel || !iconTooltip.isShowing()) {
+                DeskChannelData data = channels[ch - 1];
+                iconTooltip.setText(buildIconTooltipText(data));
+                this.lastHoveredChannel = ch;
+            }
+            if (canvasPane.getScene() != null && canvasPane.getScene().getWindow() != null) {
+                if (!iconTooltip.isShowing()) {
+                    iconTooltip.show(canvasPane.getScene().getWindow(), screenX + 12, screenY + 16);
+                } else {
+                    iconTooltip.setAnchorX(screenX + 12);
+                    iconTooltip.setAnchorY(screenY + 16);
+                }
+            }
+        } else {
+            hideIconTooltip();
+        }
+    }
+
+    /**
+     * Blendet den Tooltip an einer relativen Position ein (z. B. für Tests oder Tastatur-Fokus).
+     *
+     * @param x Lokale X-Koordinate
+     * @param y Lokale Y-Koordinate
+     */
+    public void showIconTooltipAt(double x, double y) {
+        if (!isOverIcon(x, y)) {
+            hideIconTooltip();
+            return;
+        }
+        int ch = getChannelAtX(x);
+        DeskChannelData data = channels[ch - 1];
+        iconTooltip.setText(buildIconTooltipText(data));
+        this.lastHoveredChannel = ch;
+
+        if (canvasPane.getScene() != null && canvasPane.getScene().getWindow() != null) {
+            javafx.geometry.Point2D p = canvasPane.localToScreen(x, y);
+            double sx = p != null ? p.getX() + 12 : x + 12;
+            double sy = p != null ? p.getY() + 16 : y + 16;
+            iconTooltip.show(canvasPane.getScene().getWindow(), sx, sy);
+        } else {
+            this.iconTooltipShowingForTesting = true;
+        }
+    }
+
+    /**
+     * Blendet den Icon-Tooltip aus.
+     */
+    public void hideIconTooltip() {
+        if (iconTooltip.isShowing()) {
+            iconTooltip.hide();
+        }
+        this.iconTooltipShowingForTesting = false;
+        this.lastHoveredChannel = -1;
+    }
+
+    /**
+     * Prüft, ob der Icon-Tooltip aktuell sichtbar ist.
+     *
+     * @return true wenn sichtbar
+     */
+    public boolean isIconTooltipShowing() {
+        return iconTooltip.isShowing() || iconTooltipShowingForTesting;
+    }
+
+    /**
+     * Liefert die Tooltip-Instanz.
+     *
+     * @return Tooltip
+     */
+    public Tooltip getIconTooltip() {
+        return iconTooltip;
     }
 
     /**

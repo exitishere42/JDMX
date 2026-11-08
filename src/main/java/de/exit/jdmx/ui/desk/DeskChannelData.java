@@ -24,6 +24,8 @@ public class DeskChannelData {
     private Color barColor = DEFAULT_BAR_COLOR;
     private String fixtureName;
     private Color fixtureColor;
+    private int fixtureChannelIndex = 1;
+    private String customChannelName;
 
     /**
      * Erstellt einen neuen Kanalzustand für die angegebene 1-basierte Kanalnummer.
@@ -118,9 +120,24 @@ public class DeskChannelData {
      * @param fixtureColor Akzentfarbe des Scheinwerfers
      */
     public void assignFixture(String fixtureName, ChannelType type, Color fixtureColor) {
+        assignFixture(fixtureName, type, fixtureColor, 1, null);
+    }
+
+    /**
+     * Weist dem Kanal ein gepatchtes Scheinwerfer-Attribut mit relativem Kanalindex und Bezeichnung zu.
+     *
+     * @param fixtureName         Name des Scheinwerfers
+     * @param type                Attributtyp
+     * @param fixtureColor        Akzentfarbe des Scheinwerfers
+     * @param fixtureChannelIndex 1-basierter Kanalindex innerhalb des Geräts
+     * @param customChannelName   Spezifischer Kanalname laut Fixture-Definition (oder null)
+     */
+    public void assignFixture(String fixtureName, ChannelType type, Color fixtureColor, int fixtureChannelIndex, String customChannelName) {
         this.fixtureName = fixtureName;
         this.channelType = type;
         this.fixtureColor = fixtureColor;
+        this.fixtureChannelIndex = Math.max(1, fixtureChannelIndex);
+        this.customChannelName = customChannelName;
 
         if (type != null) {
             this.functionName = formatChannelTypeName(type);
@@ -131,12 +148,32 @@ public class DeskChannelData {
     }
 
     /**
+     * Liefert den 1-basierten relativen Kanalindex innerhalb des zugewiesenen Scheinwerfers.
+     *
+     * @return 1-basierter Fixture-Kanalindex
+     */
+    public int getFixtureChannelIndex() {
+        return fixtureChannelIndex;
+    }
+
+    /**
+     * Liefert die individuelle Kanalbezeichnung aus der Geräte-Definition oder null.
+     *
+     * @return Kanalname oder null
+     */
+    public String getCustomChannelName() {
+        return customChannelName;
+    }
+
+    /**
      * Hebt die Scheinwerfer-Zuweisung auf und setzt den Kanal auf den Standardzustand zurück.
      */
     public void clearAssignment() {
         this.fixtureName = null;
         this.channelType = null;
         this.fixtureColor = null;
+        this.fixtureChannelIndex = 1;
+        this.customChannelName = null;
         this.functionName = "-";
         this.barColor = DEFAULT_BAR_COLOR;
     }

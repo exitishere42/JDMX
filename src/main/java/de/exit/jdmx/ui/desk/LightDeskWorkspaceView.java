@@ -290,7 +290,7 @@ public class LightDeskWorkspaceView extends VBox {
                         int ch = startAddr + i;
                         if (ch >= 1 && ch <= TOTAL_CHANNELS) {
                             ChannelDefinition chDef = channels.get(i);
-                            canvasDeskView.assignFixtureChannel(ch, instance.getName(), chDef.type(), item.getColor());
+                            canvasDeskView.assignFixtureChannel(ch, instance.getName(), chDef.type(), item.getColor(), i + 1, chDef.name());
                         }
                     }
                 }
