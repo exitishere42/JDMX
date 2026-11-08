@@ -89,5 +89,7 @@ class LucideIconTest {
         assertThat(LucideIcon.getSvgPathData("info")).isNotEqualTo(circleFallback).contains("M12 16v-4");
         assertThat(LucideIcon.getSvgPathData("alert-triangle")).isNotEqualTo(circleFallback).contains("M12 9v4");
         assertThat(LucideIcon.getSvgPathData("external-link")).isNotEqualTo(circleFallback).contains("M18 13v6");
+        assertThat(LucideIcon.getSvgPathData("bookmark")).isNotEqualTo(circleFallback).contains("M19 21");
+        assertThat(LucideIcon.getSvgPathData("bookmark-check")).isNotEqualTo(circleFallback).contains("M19 21");
     }
 }

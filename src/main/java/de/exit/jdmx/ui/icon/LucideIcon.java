@@ -220,6 +220,12 @@ public class LucideIcon extends StackPane {
             case "check" ->
                 // Lucide check
                 "M20 6 9 17l-5-5";
+            case "bookmark" ->
+                // Lucide bookmark
+                "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z";
+            case "bookmark-check" ->
+                // Lucide bookmark-check
+                "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z M9 10l2 2 4-4";
             case "copy" ->
                 // Lucide copy
                 "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2 M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z";

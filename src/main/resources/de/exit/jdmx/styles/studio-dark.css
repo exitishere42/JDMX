@@ -1023,7 +1023,8 @@
     -fx-letter-spacing: 0.5px;
 }
 
-.project-explorer-add-btn {
+.project-explorer-add-btn,
+.project-explorer-dump-btn {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-border-radius: 4px;
@@ -1032,12 +1033,14 @@
     -fx-cursor: hand;
 }
 
-.project-explorer-add-btn:hover {
+.project-explorer-add-btn:hover,
+.project-explorer-dump-btn:hover {
     -fx-background-color: #242424;
     -fx-border-color: #383838;
 }
 
-.project-explorer-add-btn:pressed {
+.project-explorer-add-btn:pressed,
+.project-explorer-dump-btn:pressed {
     -fx-background-color: #2E2E2E;
 }
 

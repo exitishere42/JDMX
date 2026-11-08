@@ -69,6 +69,8 @@ class ProjectExplorerSceneDumpAndChaserDockTest {
     void shouldHaveSceneDumpButtonInHeader() {
         assertThat(explorerView.getBtnSceneDump()).isNotNull();
         assertThat(explorerView.getBtnSceneDump().getGraphic()).isNotNull();
+        assertThat(explorerView.getBtnSceneDump().getStyleClass()).contains("project-explorer-dump-btn");
+        assertThat(((de.exit.jdmx.ui.icon.LucideIcon) explorerView.getBtnSceneDump().getGraphic()).getName()).isEqualTo("bookmark");
         assertThat(explorerView.getHeaderBox().getChildren()).contains(explorerView.getBtnSceneDump());
         // Neben btnAdd
         int idxAdd = explorerView.getHeaderBox().getChildren().indexOf(explorerView.getBtnAdd());
