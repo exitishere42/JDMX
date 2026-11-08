@@ -48,15 +48,28 @@ public class CustomDropdownButton extends HBox {
      * @param availableItems   Liste aller zur Auswahl stehenden Optionen
      */
     public CustomDropdownButton(String initialSelection, List<String> availableItems) {
-        super(8);
+        this(initialSelection, availableItems, 190, 210, 230);
+    }
+
+    /**
+     * Erstellt einen neuen {@link CustomDropdownButton} mit benutzerdefinierten Breitenbeschränkungen.
+     *
+     * @param initialSelection Initial ausgewählter Text
+     * @param availableItems   Liste aller zur Auswahl stehenden Optionen
+     * @param minWidth         Minimale Breite in Pixeln
+     * @param prefWidth        Bevorzugte Breite in Pixeln
+     * @param maxWidth         Maximale Breite in Pixeln
+     */
+    public CustomDropdownButton(String initialSelection, List<String> availableItems, double minWidth, double prefWidth, double maxWidth) {
+        super(6);
         setAlignment(Pos.CENTER_LEFT);
         setCursor(Cursor.HAND);
         getStyleClass().add("custom-dropdown-btn");
 
         // Feste maßvolle Breite (verhindert unnatürliches Aufblähen)
-        setMinWidth(190);
-        setPrefWidth(210);
-        setMaxWidth(230);
+        setMinWidth(minWidth);
+        setPrefWidth(prefWidth);
+        setMaxWidth(maxWidth);
 
         // Text-Anzeige
         textLabel = new Label();
@@ -66,7 +79,7 @@ public class CustomDropdownButton extends HBox {
         HBox.setHgrow(textLabel, Priority.ALWAYS);
 
         // Chevron-Down Icon
-        chevronIcon = new LucideIcon("chevron-down", 14, StudioTheme.COLOR_TEXT_MED);
+        chevronIcon = new LucideIcon("chevron-down", 12, StudioTheme.COLOR_TEXT_MED);
 
         getChildren().addAll(textLabel, chevronIcon);
 
@@ -77,8 +90,8 @@ public class CustomDropdownButton extends HBox {
 
         menuContainer = new VBox(2);
         menuContainer.getStyleClass().add("action-menu-popup");
-        menuContainer.setMinWidth(200);
-        menuContainer.setPrefWidth(210);
+        menuContainer.setMinWidth(minWidth);
+        menuContainer.setPrefWidth(prefWidth);
         menuPopup.getContent().add(menuContainer);
 
         // Event-Handler für Klick

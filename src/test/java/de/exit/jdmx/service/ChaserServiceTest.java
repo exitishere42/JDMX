@@ -82,6 +82,10 @@ class ChaserServiceTest {
         // Entfernen
         chaserService.removeStep("chaser-1", 1);
         assertThat(chaser.getSteps()).hasSize(2);
+
+        // Umbenennen
+        chaserService.renameChaser("chaser-1", "Neuer Chaser Name");
+        assertThat(chaser.getName()).isEqualTo("Neuer Chaser Name");
     }
 
     @Test

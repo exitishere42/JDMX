@@ -85,6 +85,22 @@ public class ChaserService implements AutoCloseable {
         }
     }
 
+    /**
+     * Benennt einen vorhandenen Chaser um.
+     *
+     * @param chaserId Chaser-ID
+     * @param newName  Neuer Name
+     */
+    public void renameChaser(String chaserId, String newName) {
+        if (chaserId == null || newName == null || newName.isBlank()) return;
+        synchronized (chasers) {
+            ChaserDefinition ch = chasers.get(chaserId);
+            if (ch != null) {
+                ch.setName(newName);
+            }
+        }
+    }
+
     public void addStep(String chaserId, String sceneId, int holdMs, int fadeMs) {
         ChaserDefinition chaser = getChaser(chaserId);
         if (chaser != null) {

@@ -52,6 +52,20 @@ public class SceneService implements AutoCloseable {
      */
     public SceneDefinition captureScene(String name, int defaultFadeMs, List<FixtureInstance> fixtures) {
         String id = "scene-" + UUID.randomUUID().toString().substring(0, 8);
+        return captureScene(id, name, defaultFadeMs, fixtures);
+    }
+
+    /**
+     * Erfasst den aktuellen DMX-Zustand als neue Szene (Snapshot) mit expliziter ID.
+     *
+     * @param id            Explizite Szenen-ID
+     * @param name          Szenenname
+     * @param defaultFadeMs Standard-Fade-Zeit in Millisekunden
+     * @param fixtures      Liste der einzubeziehenden Scheinwerfer (oder leer/null für alle aktiven Kanäle)
+     * @return Neu erstellte SceneDefinition
+     */
+    public SceneDefinition captureScene(String id, String name, int defaultFadeMs, List<FixtureInstance> fixtures) {
+        String sceneId = id != null && !id.isBlank() ? id : "scene-" + UUID.randomUUID().toString().substring(0, 8);
         Map<Integer, Map<Integer, Integer>> channelMap = new HashMap<>();
 
         if (fixtures != null && !fixtures.isEmpty()) {
@@ -81,10 +95,26 @@ public class SceneService implements AutoCloseable {
             }
         }
 
-        SceneDefinition scene = new SceneDefinition(id, name, defaultFadeMs, channelMap);
+        SceneDefinition scene = new SceneDefinition(sceneId, name, defaultFadeMs, channelMap);
         registerScene(scene);
-        log.info("Szene erfasst: '{}' (ID: {}, Kanäle: {})", name, id, channelMap.size());
+        log.info("Szene erfasst: '{}' (ID: {}, Kanäle: {})", name, sceneId, channelMap.size());
         return scene;
+    }
+
+    /**
+     * Benennt eine vorhandene Szene um.
+     *
+     * @param sceneId Szenen-ID
+     * @param newName Neuer Name
+     */
+    public void renameScene(String sceneId, String newName) {
+        if (sceneId == null || newName == null || newName.isBlank()) return;
+        synchronized (scenes) {
+            SceneDefinition sc = scenes.get(sceneId);
+            if (sc != null) {
+                sc.setName(newName);
+            }
+        }
     }
 
     /**

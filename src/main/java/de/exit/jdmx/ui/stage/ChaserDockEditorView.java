@@ -7,16 +7,17 @@ import de.exit.jdmx.core.model.ChaserStep;
 import de.exit.jdmx.core.model.SceneDefinition;
 import de.exit.jdmx.service.ChaserService;
 import de.exit.jdmx.service.SceneService;
+import de.exit.jdmx.ui.component.CustomDropdownButton;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.Tooltip;
@@ -25,6 +26,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.stage.Popup;
 
 import java.util.List;
 import java.util.Objects;
@@ -49,7 +51,7 @@ public class ChaserDockEditorView extends VBox {
 
     private final Spinner<Integer> spinnerBpm;
     private final Button btnTap;
-    private final ComboBox<ChaserDirection> comboDirection;
+    private final CustomDropdownButton directionDropdown;
 
     private final VBox stepListContainer;
     private final Button btnAddStep;
@@ -146,16 +148,18 @@ public class ChaserDockEditorView extends VBox {
         btnTap.getStyleClass().add("chaser-tap-btn");
         btnTap.setOnAction(e -> handleTapTempo());
 
-        this.comboDirection = new ComboBox<>();
-        comboDirection.getItems().addAll(ChaserDirection.values());
-        comboDirection.setValue(ChaserDirection.FORWARD);
-        comboDirection.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (currentChaser != null && newVal != null) {
-                currentChaser.setDirection(newVal);
+        this.directionDropdown = new CustomDropdownButton(
+                directionToText(ChaserDirection.FORWARD),
+                List.of("Vorwärts", "Rückwärts", "Ping-Pong", "Zufall"),
+                80, 95, 110
+        );
+        directionDropdown.setOnItemSelected(selected -> {
+            if (currentChaser != null && selected != null) {
+                currentChaser.setDirection(textToDirection(selected));
             }
         });
 
-        HBox controlsBar = new HBox(4, lblBpm, spinnerBpm, btnTap, comboDirection);
+        HBox controlsBar = new HBox(4, lblBpm, spinnerBpm, btnTap, directionDropdown);
         controlsBar.setAlignment(Pos.CENTER_LEFT);
 
         // 3. Schritte-Header & Liste
@@ -195,7 +199,9 @@ public class ChaserDockEditorView extends VBox {
 
         lblTitle.setText(chaser.getName());
         spinnerBpm.getValueFactory().setValue((int) Math.round(chaser.getBpm()));
-        comboDirection.setValue(chaser.getDirection());
+        if (chaser.getDirection() != null) {
+            directionDropdown.selectItem(directionToText(chaser.getDirection()));
+        }
 
         refreshStepsList();
         updatePlayState(chaserService.isPlaying(chaser.getId()));
@@ -229,8 +235,10 @@ public class ChaserDockEditorView extends VBox {
 
             LucideIcon iconBm = new LucideIcon("bookmark", 11, Color.web("#F59E0B"));
             Label lblScene = new Label(sceneName);
-            lblScene.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 11px; -fx-font-weight: 500;");
-            lblScene.setMaxWidth(90);
+            lblScene.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 11px; -fx-font-weight: 500; -fx-cursor: hand;");
+            lblScene.setMaxWidth(100);
+            lblScene.setTooltip(new Tooltip(I18n.get("chaser.step.change_scene_tip")));
+            lblScene.setOnMouseClicked(e -> showChangeStepScenePopup(step, lblScene));
 
             Region spacerCard = new Region();
             HBox.setHgrow(spacerCard, Priority.ALWAYS);
@@ -298,20 +306,105 @@ public class ChaserDockEditorView extends VBox {
     private void showAddSceneMenu() {
         if (currentChaser == null) return;
         List<SceneDefinition> allScenes = sceneService.getAllScenes();
+
+        Popup popup = new Popup();
+        popup.setAutoHide(true);
+        popup.setHideOnEscape(true);
+
+        VBox menuContainer = new VBox(2);
+        menuContainer.getStyleClass().add("action-menu-popup");
+        menuContainer.setMinWidth(160);
+
         if (allScenes.isEmpty()) {
-            return;
+            Label emptyLbl = new Label(I18n.get("chaser.editor.no_scenes"));
+            emptyLbl.setStyle("-fx-text-fill: #71717A; -fx-padding: 6 10; -fx-font-size: 11px;");
+            menuContainer.getChildren().add(emptyLbl);
+        } else {
+            for (SceneDefinition sc : allScenes) {
+                Button itemBtn = new Button(sc.getName());
+                itemBtn.setGraphic(new LucideIcon("bookmark", 12, Color.web("#F59E0B")));
+                itemBtn.getStyleClass().add("action-menu-item");
+                itemBtn.setMaxWidth(Double.MAX_VALUE);
+                itemBtn.setAlignment(Pos.CENTER_LEFT);
+                itemBtn.setCursor(Cursor.HAND);
+                itemBtn.setOnAction(e -> {
+                    chaserService.addStep(currentChaser.getId(), sc.getId(), 500, sc.getDefaultFadeTimeMs());
+                    refreshStepsList();
+                    popup.hide();
+                });
+                menuContainer.getChildren().add(itemBtn);
+            }
         }
 
-        ContextMenu menu = new ContextMenu();
-        for (SceneDefinition sc : allScenes) {
-            MenuItem mi = new MenuItem(sc.getName(), new LucideIcon("bookmark", 12, Color.web("#F59E0B")));
-            mi.setOnAction(e -> {
-                chaserService.addStep(currentChaser.getId(), sc.getId(), 500, sc.getDefaultFadeTimeMs());
-                refreshStepsList();
-            });
-            menu.getItems().add(mi);
+        popup.getContent().add(menuContainer);
+        Bounds bounds = btnAddStep.localToScreen(btnAddStep.getBoundsInLocal());
+        if (bounds != null && getScene() != null && getScene().getWindow() != null) {
+            popup.show(getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
         }
-        menu.show(btnAddStep, javafx.geometry.Side.BOTTOM, 0, 2);
+    }
+
+    private void showChangeStepScenePopup(ChaserStep step, Node anchor) {
+        if (currentChaser == null || step == null) return;
+        List<SceneDefinition> allScenes = sceneService.getAllScenes();
+
+        Popup popup = new Popup();
+        popup.setAutoHide(true);
+        popup.setHideOnEscape(true);
+
+        VBox menuContainer = new VBox(2);
+        menuContainer.getStyleClass().add("action-menu-popup");
+        menuContainer.setMinWidth(160);
+
+        if (allScenes.isEmpty()) {
+            Label emptyLbl = new Label(I18n.get("chaser.editor.no_scenes"));
+            emptyLbl.setStyle("-fx-text-fill: #71717A; -fx-padding: 6 10; -fx-font-size: 11px;");
+            menuContainer.getChildren().add(emptyLbl);
+        } else {
+            for (SceneDefinition sc : allScenes) {
+                Button itemBtn = new Button(sc.getName());
+                itemBtn.setGraphic(new LucideIcon("bookmark", 12, Color.web("#F59E0B")));
+                itemBtn.getStyleClass().add("action-menu-item");
+                itemBtn.setMaxWidth(Double.MAX_VALUE);
+                itemBtn.setAlignment(Pos.CENTER_LEFT);
+                itemBtn.setCursor(Cursor.HAND);
+                itemBtn.setOnAction(e -> {
+                    step.setSceneId(sc.getId());
+                    refreshStepsList();
+                    popup.hide();
+                });
+                menuContainer.getChildren().add(itemBtn);
+            }
+        }
+
+        popup.getContent().add(menuContainer);
+        Bounds bounds = anchor.localToScreen(anchor.getBoundsInLocal());
+        if (bounds != null && getScene() != null && getScene().getWindow() != null) {
+            popup.show(getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
+        }
+    }
+
+    private String directionToText(ChaserDirection dir) {
+        if (dir == null) return "Vorwärts";
+        return switch (dir) {
+            case FORWARD -> "Vorwärts";
+            case BACKWARD -> "Rückwärts";
+            case PING_PONG -> "Ping-Pong";
+            case RANDOM -> "Zufall";
+        };
+    }
+
+    private ChaserDirection textToDirection(String text) {
+        if (text == null) return ChaserDirection.FORWARD;
+        return switch (text) {
+            case "Rückwärts" -> ChaserDirection.BACKWARD;
+            case "Ping-Pong" -> ChaserDirection.PING_PONG;
+            case "Zufall" -> ChaserDirection.RANDOM;
+            default -> ChaserDirection.FORWARD;
+        };
+    }
+
+    public CustomDropdownButton getDirectionDropdown() {
+        return directionDropdown;
     }
 
     private void handleTapTempo() {

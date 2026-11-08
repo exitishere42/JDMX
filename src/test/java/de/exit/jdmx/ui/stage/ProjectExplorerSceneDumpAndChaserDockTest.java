@@ -1,12 +1,15 @@
 package de.exit.jdmx.ui.stage;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.ChaserDirection;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
+import de.exit.jdmx.core.model.SceneDefinition;
 import de.exit.jdmx.service.ChaserService;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.service.SceneService;
+import de.exit.jdmx.ui.component.CustomDropdownButton;
 import javafx.application.Platform;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -96,6 +99,42 @@ class ProjectExplorerSceneDumpAndChaserDockTest {
         ExplorerItem latestScene = scenes.getLast();
         assertThat(latestScene.getType()).isEqualTo(ExplorerItemType.CUELIST);
         assertThat(latestScene.getIconName()).isEqualTo("bookmark");
+
+        // Identische ID im SceneService sicherstellen (Synchronisation)
+        SceneDefinition registeredScene = sceneService.getScene(latestScene.getId());
+        assertThat(registeredScene).isNotNull();
+        assertThat(registeredScene.getName()).isEqualTo(latestScene.getName());
+    }
+
+    @Test
+    @DisplayName("Sollte Chaser-Editor mit CustomDropdownButton für Richtung und synchronisierter Szenenauswahl bereitstellen")
+    void shouldProvideCustomDropdownForDirectionAndSyncScenes() throws Exception {
+        dmxService.setChannel(0, 1, 255);
+        sceneService.captureScene("scene-sync-1", "Strophe Rot", 100, List.of());
+        sceneService.captureScene("scene-sync-2", "Refrain Blau", 200, List.of());
+
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            explorerView.openChaserInDock("chaser-sync", "Test Chaser");
+            ChaserDockEditorView dockEditor = explorerView.getChaserDockEditorView();
+
+            // Richtungs-Dropdown muss ein CustomDropdownButton sein
+            assertThat(dockEditor.getDirectionDropdown()).isNotNull();
+            assertThat(dockEditor.getDirectionDropdown()).isInstanceOf(CustomDropdownButton.class);
+
+            // Richtung per Dropdown ändern
+            dockEditor.getDirectionDropdown().selectItem("Ping-Pong");
+            assertThat(dockEditor.getCurrentChaser().getDirection()).isEqualTo(ChaserDirection.PING_PONG);
+
+            // Schritt hinzufügen
+            chaserService.addStep("chaser-sync", "scene-sync-1", 400, 50);
+            dockEditor.refreshStepsList();
+            assertThat(dockEditor.getCurrentChaser().getSteps()).hasSize(1);
+            assertThat(dockEditor.getCurrentChaser().getSteps().getFirst().getSceneId()).isEqualTo("scene-sync-1");
+
+            latch.countDown();
+        });
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
     }
 
     @Test

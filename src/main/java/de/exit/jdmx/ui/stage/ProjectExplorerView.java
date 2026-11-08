@@ -449,7 +449,7 @@ public class ProjectExplorerView extends VBox {
         }
 
         if (sceneService != null) {
-            sceneService.captureScene(name, 500, activeFixtures);
+            sceneService.captureScene(sceneId, name, 500, activeFixtures);
         }
 
         service.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, new ExplorerItem(
@@ -710,6 +710,12 @@ public class ProjectExplorerView extends VBox {
                         }
                         if (service != null) {
                             service.removeItem(item.getId());
+                        }
+                        if (parentView != null && parentView.sceneService != null) {
+                            parentView.sceneService.deleteScene(item.getId());
+                        }
+                        if (parentView != null && parentView.chaserService != null) {
+                            parentView.chaserService.deleteChaser(item.getId());
                         }
                         if (parentView != null && parentView.stageCanvasView != null) {
                             parentView.stageCanvasView.removeFixture(item.getId());

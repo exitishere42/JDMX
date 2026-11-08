@@ -196,6 +196,14 @@ public class RenameItemDialog {
             if (stageCanvasView != null) {
                 stageCanvasView.updateFixtureName(item.getId(), newName);
             }
+            if (mainWindow != null && mainWindow.getStageWorkspaceView() != null) {
+                if (mainWindow.getStageWorkspaceView().getSceneService() != null) {
+                    mainWindow.getStageWorkspaceView().getSceneService().renameScene(item.getId(), newName);
+                }
+                if (mainWindow.getStageWorkspaceView().getChaserService() != null) {
+                    mainWindow.getStageWorkspaceView().getChaserService().renameChaser(item.getId(), newName);
+                }
+            }
             if (mainWindow != null) {
                 mainWindow.autoSave();
             }

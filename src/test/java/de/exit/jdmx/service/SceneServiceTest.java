@@ -104,4 +104,18 @@ class SceneServiceTest {
         assertThat(sceneService.getScene("s1")).isNull();
         assertThat(sceneService.getAllScenes()).doesNotContain(scene);
     }
+
+    @Test
+    @DisplayName("Sollte Szene mit vorgegebener ID erfassen und umbenennen können")
+    void shouldCaptureWithExplicitIdAndRename() {
+        dmxService.setChannel(0, 1, 200);
+        SceneDefinition scene = sceneService.captureScene("custom-scene-id", "Mein Preset", 100, List.of(fixture1));
+
+        assertThat(scene.getId()).isEqualTo("custom-scene-id");
+        assertThat(scene.getName()).isEqualTo("Mein Preset");
+        assertThat(sceneService.getScene("custom-scene-id")).isNotNull();
+
+        sceneService.renameScene("custom-scene-id", "Neuer Preset Name");
+        assertThat(sceneService.getScene("custom-scene-id").getName()).isEqualTo("Neuer Preset Name");
+    }
 }
