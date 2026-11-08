@@ -9,6 +9,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -28,12 +29,17 @@ class ProjectExplorerViewTest {
         }
     }
 
+    @BeforeEach
+    void setUp() {
+        de.exit.jdmx.core.i18n.I18n.setLanguage("de");
+    }
+
     @Test
-    @DisplayName("Sollte Titel 'Project Explorer' und 5 aufklappbare Standard-Ordner besitzen")
+    @DisplayName("Sollte Titel 'Projekt-Explorer' und 5 aufklappbare Standard-Ordner besitzen")
     void shouldInitializeWithStandardFolders() {
         ProjectExplorerView explorer = new ProjectExplorerView();
 
-        assertThat(explorer.getTitle()).isEqualTo("Project Explorer");
+        assertThat(explorer.getTitle()).isEqualTo(de.exit.jdmx.core.i18n.I18n.get("explorer.title"));
         assertThat(explorer.getTreeView()).isNotNull();
 
         TreeItem<ExplorerItem> root = explorer.getTreeView().getRoot();
@@ -69,7 +75,7 @@ class ProjectExplorerViewTest {
         assertThat(explorer.getHeaderBox().getChildren()).hasSize(4);
         assertThat(explorer.getHeaderBox().getChildren().get(0)).isInstanceOf(Label.class);
         assertThat(((Label) explorer.getHeaderBox().getChildren().get(0)).getText())
-                .isEqualTo("Project Explorer");
+                .isEqualTo(de.exit.jdmx.core.i18n.I18n.get("explorer.title"));
         assertThat(explorer.getHeaderBox().getChildren().get(1)).isEqualTo(explorer.getBtnAdd());
         assertThat(explorer.getBtnAdd().getGraphic()).isInstanceOf(LucideIcon.class);
         assertThat(((LucideIcon) explorer.getBtnAdd().getGraphic()).getName()).isEqualTo("plus");

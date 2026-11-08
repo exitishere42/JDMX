@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.menu;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
@@ -46,18 +47,18 @@ public class BrandActionMenu extends Popup {
         root.setPrefWidth(178);
 
         // 1. Projekt-Operationen
-        Button btnNew = createMenuItem("new_project", "New Project", "file-plus", StudioTheme.COLOR_MENU_NEW);
-        Button btnOpen = createMenuItem("open_file", "Open File", "folder-open", StudioTheme.COLOR_MENU_OPEN);
-        Button btnSave = createMenuItem("save", "Save", "save", StudioTheme.COLOR_MENU_SAVE);
-        Button btnSaveAs = createMenuItem("save_as", "Save as...", "file-pen", StudioTheme.COLOR_MENU_SAVE_AS);
+        Button btnNew = createMenuItem("new_project", I18n.get("menu.new_project"), "file-plus", StudioTheme.COLOR_MENU_NEW);
+        Button btnOpen = createMenuItem("open_file", I18n.get("menu.open_file"), "folder-open", StudioTheme.COLOR_MENU_OPEN);
+        Button btnSave = createMenuItem("save", I18n.get("menu.save"), "save", StudioTheme.COLOR_MENU_SAVE);
+        Button btnSaveAs = createMenuItem("save_as", I18n.get("menu.save_as"), "file-pen", StudioTheme.COLOR_MENU_SAVE_AS);
 
         // 2. Undo / Redo in kompakter Zweispalten-Zeile
         HBox undoRedoRow = createUndoRedoRow();
 
         // 3. System & Ansicht
-        Button btnSettings = createMenuItem("settings", "Settings", "settings", StudioTheme.COLOR_MENU_SETTINGS);
-        Button btnUpdates = createMenuItem("check_updates", "Updates", "arrow-up-circle", Color.web("#38BDF8"));
-        Button btnFullscreen = createMenuItem("fullscreen", "Fullscreen", "maximize", StudioTheme.COLOR_MENU_FULLSCREEN);
+        Button btnSettings = createMenuItem("settings", I18n.get("menu.settings"), "settings", StudioTheme.COLOR_MENU_SETTINGS);
+        Button btnUpdates = createMenuItem("check_updates", I18n.get("menu.updates"), "arrow-up-circle", Color.web("#38BDF8"));
+        Button btnFullscreen = createMenuItem("fullscreen", I18n.get("menu.fullscreen"), "maximize", StudioTheme.COLOR_MENU_FULLSCREEN);
 
         root.getChildren().addAll(
                 btnNew,
@@ -73,6 +74,15 @@ public class BrandActionMenu extends Popup {
         );
 
         getContent().add(root);
+
+        // Dynamischer Sprachwechsel-Listener
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread() || !isShowing()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     /**
@@ -109,14 +119,36 @@ public class BrandActionMenu extends Popup {
         HBox row = new HBox(4);
         row.setAlignment(Pos.CENTER);
 
-        Button btnUndo = createHalfMenuItem("undo", "Undo", "undo-2", StudioTheme.COLOR_MENU_UNDO);
-        Button btnRedo = createHalfMenuItem("redo", "Redo", "redo-2", StudioTheme.COLOR_MENU_REDO);
+        Button btnUndo = createHalfMenuItem("undo", I18n.get("menu.undo"), "undo-2", StudioTheme.COLOR_MENU_UNDO);
+        Button btnRedo = createHalfMenuItem("redo", I18n.get("menu.redo"), "redo-2", StudioTheme.COLOR_MENU_REDO);
 
         HBox.setHgrow(btnUndo, Priority.ALWAYS);
         HBox.setHgrow(btnRedo, Priority.ALWAYS);
 
         row.getChildren().addAll(btnUndo, btnRedo);
         return row;
+    }
+
+    /**
+     * Aktualisiert alle Menüeinträge reaktiv bei Sprachwechsel.
+     */
+    public void updateLocalization() {
+        updateButtonText("new_project", "menu.new_project");
+        updateButtonText("open_file", "menu.open_file");
+        updateButtonText("save", "menu.save");
+        updateButtonText("save_as", "menu.save_as");
+        updateButtonText("undo", "menu.undo");
+        updateButtonText("redo", "menu.redo");
+        updateButtonText("settings", "menu.settings");
+        updateButtonText("check_updates", "menu.updates");
+        updateButtonText("fullscreen", "menu.fullscreen");
+    }
+
+    private void updateButtonText(String key, String i18nKey) {
+        Button btn = items.get(key);
+        if (btn != null) {
+            btn.setText(I18n.get(i18nKey));
+        }
     }
 
     /**

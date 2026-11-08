@@ -1,5 +1,7 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.core.i18n.I18n;
+import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -27,7 +29,10 @@ public class IntensityModuleView extends VBox {
     /** Feste, unveränderliche Breite des Intensitätsmoduls (300px für perfekten Randabstand). */
     public static final double FIXED_WIDTH = 300.0;
 
-    private final String title = "Intensität";
+    private Label lblTitle;
+    private Label lblDimmer;
+    private Label lblStrobe;
+    private Label lblIntensitaet;
 
     private final Slider dimmerSlider;
     private final Slider strobeSlider;
@@ -50,7 +55,7 @@ public class IntensityModuleView extends VBox {
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("module-card-header");
-        Label lblTitle = new Label(title);
+        this.lblTitle = new Label(I18n.get("control.intensity"));
         lblTitle.getStyleClass().add("module-card-title");
         header.getChildren().add(lblTitle);
 
@@ -60,14 +65,16 @@ public class IntensityModuleView extends VBox {
         dimmerSlider.getStyleClass().add("fader-slider");
         dimmerSlider.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(dimmerSlider, Priority.ALWAYS);
-        VBox dimmerCol = createFaderCol("Dimmer", dimmerSlider);
+        this.lblDimmer = new Label(I18n.get("control.dimmer"));
+        VBox dimmerCol = createFaderCol(lblDimmer, dimmerSlider);
 
         this.strobeSlider = new Slider(0, 25, 0);
         strobeSlider.setOrientation(Orientation.VERTICAL);
         strobeSlider.getStyleClass().add("fader-slider");
         strobeSlider.setMaxHeight(Double.MAX_VALUE);
         VBox.setVgrow(strobeSlider, Priority.ALWAYS);
-        VBox strobeCol = createFaderCol("Strobo", strobeSlider);
+        this.lblStrobe = new Label(I18n.get("control.strobe"));
+        VBox strobeCol = createFaderCol(lblStrobe, strobeSlider);
 
         // 3. Links: 5er Tastenleiste (VL, 70, 50, 30, 0) - 44px breit, eckig mit Umrandung
         VBox quickBox = new VBox(1);
@@ -100,7 +107,7 @@ public class IntensityModuleView extends VBox {
 
         // 4. Rechts: 2x2 Tastenblock (Auf, Zu, Lumos, Nox)
         // Spalte 1: Auf & Zu (52px breit)
-        this.btnAuf = new Button("Auf");
+        this.btnAuf = new Button(I18n.get("control.open"));
         btnAuf.getStyleClass().add("module-small-btn");
         btnAuf.setPrefWidth(52);
         btnAuf.setMinWidth(46);
@@ -109,7 +116,7 @@ public class IntensityModuleView extends VBox {
         VBox.setVgrow(btnAuf, Priority.ALWAYS);
         btnAuf.setOnAction(e -> applyDimmer(100.0));
 
-        this.btnZu = new Button("Zu");
+        this.btnZu = new Button(I18n.get("control.close_shutter"));
         btnZu.getStyleClass().add("module-small-btn");
         btnZu.setPrefWidth(52);
         btnZu.setMinWidth(46);
@@ -149,7 +156,7 @@ public class IntensityModuleView extends VBox {
         btnGridRow.setAlignment(Pos.CENTER);
         VBox.setVgrow(btnGridRow, Priority.ALWAYS);
 
-        Label lblIntensitaet = new Label("Intensität");
+        this.lblIntensitaet = new Label(I18n.get("control.intensity"));
         lblIntensitaet.getStyleClass().add("fader-title-label");
         lblIntensitaet.setMinWidth(Region.USE_PREF_SIZE);
 
@@ -163,9 +170,18 @@ public class IntensityModuleView extends VBox {
         VBox.setVgrow(body, Priority.ALWAYS);
 
         getChildren().addAll(header, body);
+
+        // Dynamischer Sprachwechsel-Listener
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
-    private VBox createFaderCol(String labelText, Slider slider) {
+    private VBox createFaderCol(Label label, Slider slider) {
         VBox col = new VBox(2);
         col.setAlignment(Pos.CENTER);
         col.setPrefWidth(50);
@@ -174,16 +190,27 @@ public class IntensityModuleView extends VBox {
         VBox.setVgrow(slider, Priority.ALWAYS);
         VBox.setVgrow(col, Priority.ALWAYS);
 
-        Label lbl = new Label(labelText);
-        lbl.getStyleClass().add("fader-title-label");
-        lbl.setMinWidth(Region.USE_PREF_SIZE);
+        label.getStyleClass().add("fader-title-label");
+        label.setMinWidth(Region.USE_PREF_SIZE);
 
-        col.getChildren().addAll(slider, lbl);
+        col.getChildren().addAll(slider, label);
         return col;
     }
 
     public String getTitle() {
-        return title;
+        return I18n.get("control.intensity");
+    }
+
+    /**
+     * Aktualisiert alle Beschriftungen reaktiv bei Sprachwechsel.
+     */
+    public void updateLocalization() {
+        if (lblTitle != null) lblTitle.setText(I18n.get("control.intensity"));
+        if (lblDimmer != null) lblDimmer.setText(I18n.get("control.dimmer"));
+        if (lblStrobe != null) lblStrobe.setText(I18n.get("control.strobe"));
+        if (btnAuf != null) btnAuf.setText(I18n.get("control.open"));
+        if (btnZu != null) btnZu.setText(I18n.get("control.close_shutter"));
+        if (lblIntensitaet != null) lblIntensitaet.setText(I18n.get("control.intensity"));
     }
 
     public Slider getDimmerSlider() {

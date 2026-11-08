@@ -1,5 +1,7 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.core.i18n.I18n;
+import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
@@ -21,8 +23,7 @@ import javafx.scene.paint.Color;
  */
 public class PositionModuleView extends VBox {
 
-    private final String title = "Position";
-
+    private final Label lblTitle;
     private final Canvas xyPadCanvas;
     private final Slider panSlider;
     private final Slider tiltSlider;
@@ -62,13 +63,13 @@ public class PositionModuleView extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("module-card-header");
 
-        Label lblTitle = new Label(title);
+        this.lblTitle = new Label(I18n.get("control.position"));
         lblTitle.getStyleClass().add("module-card-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        this.btnHome = new Button("Home");
+        this.btnHome = new Button(I18n.get("control.home"));
         btnHome.getStyleClass().addAll("module-small-btn", "position-home-btn");
         btnHome.setOnAction(e -> {
             panSlider.setValue(50.0);
@@ -111,6 +112,15 @@ public class PositionModuleView extends VBox {
         VBox.setVgrow(body, Priority.ALWAYS);
 
         getChildren().addAll(header, body);
+
+        // Dynamische Mehrsprachigkeit
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     private void handlePadDrag(MouseEvent event) {
@@ -172,7 +182,15 @@ public class PositionModuleView extends VBox {
     }
 
     public String getTitle() {
-        return title;
+        return I18n.get("control.position");
+    }
+
+    /**
+     * Aktualisiert alle Beschriftungen bei einem Sprachwechsel.
+     */
+    public void updateLocalization() {
+        lblTitle.setText(I18n.get("control.position"));
+        btnHome.setText(I18n.get("control.home"));
     }
 
     public Canvas getXyPad() {

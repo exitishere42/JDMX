@@ -3,6 +3,7 @@ package de.exit.jdmx.ui.stage;
 import javafx.application.Platform;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +22,11 @@ class ColorModuleViewTest {
         } catch (IllegalStateException ignored) {
             // Toolkit aktiv
         }
+    }
+
+    @BeforeEach
+    void setUp() {
+        de.exit.jdmx.core.i18n.I18n.setLanguage("de");
     }
 
     @Test

@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.desk;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.ChannelDefinition;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.FixtureInstance;
@@ -43,6 +44,7 @@ public class LightDeskWorkspaceView extends VBox {
 
     // Header Controls
     private final ComboBox<String> comboUniverse;
+    private Label lblUniverse;
 
     // Layout
     private final SplitPane splitPane;
@@ -136,6 +138,15 @@ public class LightDeskWorkspaceView extends VBox {
         if (explorerService != null) {
             explorerService.addChangeListener(() -> Platform.runLater(this::refreshPatchedFixtures));
         }
+
+        // Dynamischer Sprachwechsel
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     private HBox buildHeaderBar() {
@@ -145,15 +156,21 @@ public class LightDeskWorkspaceView extends VBox {
         header.getStyleClass().add("desk-header-bar");
 
         // Universums-Dropdown
-        comboUniverse.getItems().addAll("Universum 1", "Universum 2", "Universum 3", "Universum 4");
-        comboUniverse.setValue("Universum 1");
+        comboUniverse.getItems().addAll(
+                I18n.get("fixture.universe_n", 1),
+                I18n.get("fixture.universe_n", 2),
+                I18n.get("fixture.universe_n", 3),
+                I18n.get("fixture.universe_n", 4)
+        );
+        comboUniverse.setValue(I18n.get("fixture.universe_n", 1));
         comboUniverse.getStyleClass().add("desk-universe-combo");
         comboUniverse.valueProperty().addListener((obs, oldVal, newVal) -> {
             refreshPatchedFixtures();
             loadUniverseValues(getSelectedUniverseIndex());
         });
 
-        header.getChildren().addAll(new Label("Universum:"), comboUniverse);
+        this.lblUniverse = new Label(I18n.get("io.col.universe") + ":");
+        header.getChildren().addAll(lblUniverse, comboUniverse);
         return header;
     }
 
@@ -282,14 +299,35 @@ public class LightDeskWorkspaceView extends VBox {
     }
 
     private int getSelectedUniverseIndex() {
+        int idx = comboUniverse.getSelectionModel().getSelectedIndex();
+        if (idx >= 0 && idx < 4) {
+            return idx;
+        }
         String val = comboUniverse.getValue();
         if (val == null) return 0;
-        return switch (val) {
-            case "Universum 2" -> 1;
-            case "Universum 3" -> 2;
-            case "Universum 4" -> 3;
-            default -> 0;
-        };
+        for (int i = 1; i <= 4; i++) {
+            if (val.contains(String.valueOf(i))) {
+                return i - 1;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Aktualisiert alle lokalisierten Texte bei einem Sprachwechsel.
+     */
+    public void updateLocalization() {
+        if (lblUniverse != null) {
+            lblUniverse.setText(I18n.get("io.col.universe") + ":");
+        }
+        int curIdx = getSelectedUniverseIndex();
+        comboUniverse.getItems().setAll(
+                I18n.get("fixture.universe_n", 1),
+                I18n.get("fixture.universe_n", 2),
+                I18n.get("fixture.universe_n", 3),
+                I18n.get("fixture.universe_n", 4)
+        );
+        comboUniverse.getSelectionModel().select(Math.max(0, Math.min(3, curIdx)));
     }
 
     public ComboBox<String> getUniverseComboBox() {

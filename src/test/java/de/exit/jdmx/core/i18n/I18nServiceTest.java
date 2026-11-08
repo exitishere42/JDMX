@@ -27,6 +27,12 @@ class I18nServiceTest {
         assertThat(i18n.get("settings.title")).isEqualTo("Einstellungen");
         assertThat(i18n.get("fixture.list.title")).isEqualTo("Fixture-Liste");
         assertThat(i18n.get("control.color")).isEqualTo("Farbe");
+        assertThat(i18n.get("control.intensity")).isEqualTo("Intensität");
+        assertThat(i18n.get("control.position")).isEqualTo("Position");
+        assertThat(i18n.get("explorer.title")).isEqualTo("Projekt-Explorer");
+        assertThat(i18n.get("explorer.folder.groups")).isEqualTo("Gerätegruppen");
+        assertThat(i18n.get("io.dock.input")).isEqualTo("Eingang");
+        assertThat(i18n.get("menu.new_project")).isEqualTo("Neues Projekt");
         assertThat(i18n.get("action.zero_all")).isEqualTo("Alle Kanäle 0");
     }
 
@@ -39,6 +45,12 @@ class I18nServiceTest {
         assertThat(i18n.get("settings.title")).isEqualTo("Settings");
         assertThat(i18n.get("fixture.list.title")).isEqualTo("Fixture List");
         assertThat(i18n.get("control.color")).isEqualTo("Color");
+        assertThat(i18n.get("control.intensity")).isEqualTo("Intensity");
+        assertThat(i18n.get("control.position")).isEqualTo("Position");
+        assertThat(i18n.get("explorer.title")).isEqualTo("Project Explorer");
+        assertThat(i18n.get("explorer.folder.groups")).isEqualTo("Device Groups");
+        assertThat(i18n.get("io.dock.input")).isEqualTo("Input");
+        assertThat(i18n.get("menu.new_project")).isEqualTo("New Project");
         assertThat(i18n.get("action.zero_all")).isEqualTo("All Channels 0");
     }
 
@@ -51,6 +63,12 @@ class I18nServiceTest {
         assertThat(i18n.get("settings.title")).isEqualTo("Настройки");
         assertThat(i18n.get("fixture.list.title")).isEqualTo("Список приборов");
         assertThat(i18n.get("control.color")).isEqualTo("Цвет");
+        assertThat(i18n.get("control.intensity")).isEqualTo("Интенсивность");
+        assertThat(i18n.get("control.position")).isEqualTo("Позиция");
+        assertThat(i18n.get("explorer.title")).isEqualTo("Обозреватель проекта");
+        assertThat(i18n.get("explorer.folder.groups")).isEqualTo("Группы приборов");
+        assertThat(i18n.get("io.dock.input")).isEqualTo("Вход");
+        assertThat(i18n.get("menu.new_project")).isEqualTo("Новый проект");
         assertThat(i18n.get("action.zero_all")).isEqualTo("Все каналы 0");
     }
 

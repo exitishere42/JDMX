@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.service.UpdateService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.component.MarkdownView;
@@ -200,7 +201,7 @@ public class AboutUpdateDialog {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnCloseFooter = new Button("Schließen");
+        Button btnCloseFooter = new Button(I18n.get("action.close"));
         btnCloseFooter.getStyleClass().add("patch-cancel-btn");
         btnCloseFooter.setOnAction(e -> close());
 

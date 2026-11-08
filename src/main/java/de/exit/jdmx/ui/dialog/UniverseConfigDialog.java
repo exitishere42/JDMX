@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.UniverseConfig;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.icon.LucideIcon;
@@ -214,11 +215,11 @@ public class UniverseConfigDialog {
         footer.setAlignment(Pos.CENTER_RIGHT);
         footer.setPadding(new Insets(4, 0, 0, 0));
 
-        btnCancel = new Button("Abbrechen");
+        btnCancel = new Button(I18n.get("action.cancel"));
         btnCancel.getStyleClass().add("settings-btn-secondary");
         btnCancel.setOnAction(e -> close());
 
-        btnSave = new Button("Speichern");
+        btnSave = new Button(I18n.get("action.save"));
         btnSave.getStyleClass().add("settings-btn-primary");
         btnSave.setGraphic(new LucideIcon("check", 14, StudioTheme.COLOR_ICON_GREEN));
         btnSave.setOnAction(e -> handleSave());

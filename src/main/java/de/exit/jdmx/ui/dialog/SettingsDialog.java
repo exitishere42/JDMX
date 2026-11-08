@@ -9,6 +9,7 @@ import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.icon.FlagIcon;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -51,6 +52,18 @@ public class SettingsDialog {
     private VBox shortcutsView;
     private Button btnClose;
 
+    private Text titleText;
+    private Label lblLang;
+    private CheckBox cbFullscreen;
+    private CheckBox cbConfirmExit;
+    private Label lblAutoSave;
+    private Label lblFolder;
+    private Button btnBrowse;
+    private Label lblLog;
+    private Button btnOpenLog;
+    private Button btnCopyLog;
+    private Button btnDone;
+
     // Aktuell zur Aufnahme ausgewählte Shortcut-Aktion (null, wenn inaktiv)
     private ShortcutAction recordingAction = null;
     private Button recordingButton = null;
@@ -80,6 +93,15 @@ public class SettingsDialog {
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
+
+        // Dynamischer Sprachwechsel
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     private void buildUi() {
@@ -113,8 +135,8 @@ public class SettingsDialog {
 
         LucideIcon icon = new LucideIcon("settings", 20, StudioTheme.COLOR_MENU_SETTINGS);
 
-        Text title = new Text("Settings");
-        title.getStyleClass().add("dialog-title");
+        this.titleText = new Text(I18n.get("settings.title"));
+        titleText.getStyleClass().add("dialog-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -125,7 +147,7 @@ public class SettingsDialog {
         btnClose.setCursor(Cursor.HAND);
         btnClose.setOnAction(e -> mainWindow.hideOverlay());
 
-        header.getChildren().addAll(icon, title, spacer, btnClose);
+        header.getChildren().addAll(icon, titleText, spacer, btnClose);
         return header;
     }
 
@@ -134,13 +156,13 @@ public class SettingsDialog {
         tabBar.setAlignment(Pos.CENTER_LEFT);
         tabBar.getStyleClass().add("dialog-tab-bar");
 
-        btnTabGeneral = new Button("Allgemein");
+        btnTabGeneral = new Button(I18n.get("settings.tab.general"));
         btnTabGeneral.getStyleClass().addAll("dialog-tab-button", "active");
         btnTabGeneral.setGraphic(new LucideIcon("sliders", 14, StudioTheme.COLOR_TEXT_HIGH));
         btnTabGeneral.setCursor(Cursor.HAND);
         btnTabGeneral.setOnAction(e -> switchTab(true));
 
-        btnTabShortcuts = new Button("Shortcuts");
+        btnTabShortcuts = new Button(I18n.get("settings.tab.shortcuts"));
         btnTabShortcuts.getStyleClass().add("dialog-tab-button");
         btnTabShortcuts.setGraphic(new LucideIcon("keyboard", 14, StudioTheme.COLOR_TEXT_MED));
         btnTabShortcuts.setCursor(Cursor.HAND);
@@ -180,7 +202,7 @@ public class SettingsDialog {
         // 1. Sprache (Language mit echten Vektor-Flaggen für de, en, ru)
         HBox langRow = new HBox(12);
         langRow.setAlignment(Pos.CENTER_LEFT);
-        Label lblLang = new Label("Sprache:");
+        this.lblLang = new Label(I18n.get("settings.language"));
         lblLang.getStyleClass().add("settings-label");
         lblLang.setMinWidth(160);
 
@@ -188,19 +210,19 @@ public class SettingsDialog {
         langRow.getChildren().addAll(lblLang, cbLanguage);
 
         // 2. Vollbild beim Start
-        CheckBox cbFullscreen = new CheckBox("Vollbild beim Programmstart");
+        this.cbFullscreen = new CheckBox(I18n.get("settings.fullscreen"));
         cbFullscreen.getStyleClass().add("settings-checkbox");
         cbFullscreen.setSelected(false);
 
         // 3. Sicherheitsabfrage vor Beenden
-        CheckBox cbConfirmExit = new CheckBox("Bestätigung vor dem Schließen bei ungespeicherten Szenen");
+        this.cbConfirmExit = new CheckBox(I18n.get("settings.confirm_exit"));
         cbConfirmExit.getStyleClass().add("settings-checkbox");
         cbConfirmExit.setSelected(true);
 
         // 4. Auto-Save
         HBox autoSaveRow = new HBox(12);
         autoSaveRow.setAlignment(Pos.CENTER_LEFT);
-        Label lblAutoSave = new Label("Automatisches Speichern:");
+        this.lblAutoSave = new Label(I18n.get("settings.autosave"));
         lblAutoSave.getStyleClass().add("settings-label");
         lblAutoSave.setMinWidth(160);
         ComboBox<String> cbAutoSave = new ComboBox<>();
@@ -211,7 +233,7 @@ public class SettingsDialog {
 
         // 5. Standard-Projektverzeichnis
         VBox folderBox = new VBox(6);
-        Label lblFolder = new Label("Standard-Projektordner:");
+        this.lblFolder = new Label(I18n.get("settings.default_folder"));
         lblFolder.getStyleClass().add("settings-label");
 
         HBox folderRow = new HBox(8);
@@ -220,7 +242,7 @@ public class SettingsDialog {
         tfFolder.getStyleClass().add("settings-textfield");
         HBox.setHgrow(tfFolder, Priority.ALWAYS);
 
-        Button btnBrowse = new Button("Durchsuchen...");
+        this.btnBrowse = new Button(I18n.get("settings.browse"));
         btnBrowse.getStyleClass().add("settings-btn-secondary");
         btnBrowse.setGraphic(new LucideIcon("folder-open", 14, StudioTheme.COLOR_ICON_FADER));
         btnBrowse.setCursor(Cursor.HAND);
@@ -230,7 +252,7 @@ public class SettingsDialog {
 
         // 6. Diagnose & Log-Datei (für Fehleranalyse)
         VBox logBox = new VBox(6);
-        Label lblLog = new Label("Diagnose & Log-Datei:");
+        this.lblLog = new Label(I18n.get("settings.diagnostics"));
         lblLog.getStyleClass().add("settings-label");
 
         HBox logRow = new HBox(8);
@@ -240,13 +262,13 @@ public class SettingsDialog {
         tfLog.getStyleClass().add("settings-textfield");
         HBox.setHgrow(tfLog, Priority.ALWAYS);
 
-        Button btnOpenLog = new Button("Log-Ordner öffnen");
+        this.btnOpenLog = new Button(I18n.get("settings.open_log_folder"));
         btnOpenLog.getStyleClass().add("settings-btn-secondary");
         btnOpenLog.setGraphic(new LucideIcon("folder", 14, StudioTheme.COLOR_ICON_FADER));
         btnOpenLog.setCursor(Cursor.HAND);
         btnOpenLog.setOnAction(e -> AppLogger.openLogFolder());
 
-        Button btnCopyLog = new Button("Kopieren");
+        this.btnCopyLog = new Button(I18n.get("settings.copy_path"));
         btnCopyLog.getStyleClass().add("settings-btn-secondary");
         btnCopyLog.setGraphic(new LucideIcon("copy", 14, StudioTheme.COLOR_ICON_FADER));
         btnCopyLog.setCursor(Cursor.HAND);
@@ -475,7 +497,7 @@ public class SettingsDialog {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnDone = new Button("Fertig");
+        this.btnDone = new Button(I18n.get("action.close"));
         btnDone.getStyleClass().add("settings-btn-primary");
         btnDone.setGraphic(new LucideIcon("check", 14, StudioTheme.COLOR_ICON_GREEN));
         btnDone.setCursor(Cursor.HAND);
@@ -486,6 +508,25 @@ public class SettingsDialog {
 
         footer.getChildren().addAll(spacer, btnDone);
         return footer;
+    }
+
+    /**
+     * Aktualisiert alle Beschriftungen reaktiv bei Sprachwechsel.
+     */
+    public void updateLocalization() {
+        if (titleText != null) titleText.setText(I18n.get("settings.title"));
+        if (btnTabGeneral != null) btnTabGeneral.setText(I18n.get("settings.tab.general"));
+        if (btnTabShortcuts != null) btnTabShortcuts.setText(I18n.get("settings.tab.shortcuts"));
+        if (lblLang != null) lblLang.setText(I18n.get("settings.language"));
+        if (cbFullscreen != null) cbFullscreen.setText(I18n.get("settings.fullscreen"));
+        if (cbConfirmExit != null) cbConfirmExit.setText(I18n.get("settings.confirm_exit"));
+        if (lblAutoSave != null) lblAutoSave.setText(I18n.get("settings.autosave"));
+        if (lblFolder != null) lblFolder.setText(I18n.get("settings.default_folder"));
+        if (btnBrowse != null) btnBrowse.setText(I18n.get("settings.browse"));
+        if (lblLog != null) lblLog.setText(I18n.get("settings.diagnostics"));
+        if (btnOpenLog != null) btnOpenLog.setText(I18n.get("settings.open_log_folder"));
+        if (btnCopyLog != null) btnCopyLog.setText(I18n.get("settings.copy_path"));
+        if (btnDone != null) btnDone.setText(I18n.get("action.close"));
     }
 
     /**

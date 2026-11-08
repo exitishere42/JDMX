@@ -1,11 +1,13 @@
 package de.exit.jdmx.ui;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.menu.BrandActionMenu;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -19,6 +21,7 @@ import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -80,6 +83,9 @@ public class HeaderBar extends HBox {
     private final Label statusLabel = new Label();
     private SequentialTransition statusTransition;
 
+    private final ToggleButton blackoutBtn;
+    private final Button stopBtn;
+
     /**
      * Erstellt die All-in-One HeaderBar mit dezenter Hellgrau-Primärfarbe und bunten Icons.
      */
@@ -109,14 +115,23 @@ public class HeaderBar extends HBox {
         HBox.setMargin(headerStatusBox, new Insets(0, 8, 0, 0));
 
         // 4. Rechte Steuerungs- & Statusleiste
-        ToggleButton blackoutBtn = createBlackoutButton();
+        this.blackoutBtn = createBlackoutButton();
         HBox trafficPill = createTrafficPill();
-        Button stopBtn = createStopButton();
+        this.stopBtn = createStopButton();
 
         HBox rightBox = new HBox(8, blackoutBtn, trafficPill, stopBtn);
         rightBox.setAlignment(Pos.CENTER_RIGHT);
 
         getChildren().addAll(brandButton, undoRedoBox, separator, tabsBox, spacer, headerStatusBox, rightBox);
+
+        // Dynamischer Sprachwechsel
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     private HBox createStatusArea() {
@@ -302,7 +317,7 @@ public class HeaderBar extends HBox {
      * Erzeugt den Blackout-Toggle Button mit rotem Power-Symbol.
      */
     private ToggleButton createBlackoutButton() {
-        ToggleButton btn = new ToggleButton("BLACKOUT");
+        ToggleButton btn = new ToggleButton(I18n.get("action.blackout").toUpperCase());
         btn.getStyleClass().add("btn-blackout");
 
         LucideIcon powerIcon = new LucideIcon("power", 14, StudioTheme.COLOR_ICON_RED);
@@ -348,6 +363,7 @@ public class HeaderBar extends HBox {
     private Button createStopButton() {
         Button btn = new Button();
         btn.getStyleClass().add("btn-stop-symbol");
+        btn.setTooltip(new Tooltip(I18n.get("action.stop")));
 
         // Reines Lucide-Quadrat-Symbol in Weiß auf rotem Grund
         LucideIcon stopIcon = new LucideIcon("square", 16, Color.WHITE);
@@ -423,7 +439,7 @@ public class HeaderBar extends HBox {
 
         btnUndo.getStyleClass().add("header-tool-btn");
         btnUndo.setGraphic(new LucideIcon("undo-2", 14, Color.web("#D1D5DB")));
-        btnUndo.setTooltip(new javafx.scene.control.Tooltip("Rückgängig (Strg+Z)"));
+        btnUndo.setTooltip(new Tooltip(I18n.get("menu.undo") + " (Strg+Z)"));
         btnUndo.setDisable(true);
         btnUndo.setOnAction(e -> {
             if (undoHandler != null) {
@@ -433,7 +449,7 @@ public class HeaderBar extends HBox {
 
         btnRedo.getStyleClass().add("header-tool-btn");
         btnRedo.setGraphic(new LucideIcon("redo-2", 14, Color.web("#D1D5DB")));
-        btnRedo.setTooltip(new javafx.scene.control.Tooltip("Wiederholen (Strg+Y)"));
+        btnRedo.setTooltip(new Tooltip(I18n.get("menu.redo") + " (Strg+Y)"));
         btnRedo.setDisable(true);
         btnRedo.setOnAction(e -> {
             if (redoHandler != null) {
@@ -443,6 +459,27 @@ public class HeaderBar extends HBox {
 
         box.getChildren().addAll(btnUndo, btnRedo);
         return box;
+    }
+
+    /**
+     * Aktualisiert alle lokalisierten Texte bei einem Sprachwechsel.
+     */
+    public void updateLocalization() {
+        if (btnUndo != null) {
+            btnUndo.setTooltip(new Tooltip(I18n.get("menu.undo") + " (Strg+Z)"));
+        }
+        if (btnRedo != null) {
+            btnRedo.setTooltip(new Tooltip(I18n.get("menu.redo") + " (Strg+Y)"));
+        }
+        if (blackoutBtn != null) {
+            blackoutBtn.setText(I18n.get("action.blackout").toUpperCase());
+        }
+        if (stopBtn != null) {
+            stopBtn.setTooltip(new Tooltip(I18n.get("action.stop")));
+        }
+        if (actionMenu != null) {
+            actionMenu.updateLocalization();
+        }
     }
 
     public Button getUndoButton() {

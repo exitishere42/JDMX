@@ -8,6 +8,7 @@ import de.exit.jdmx.ui.component.CustomDropdownButton;
 import de.exit.jdmx.ui.dialog.UniverseConfigDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
@@ -45,7 +46,12 @@ public class UniversePatchTable extends VBox {
     private final HardwareDiscoveryService hardwareService;
     private final List<UniverseRow> universeRows = new ArrayList<>();
     private final List<HBox> dividers = new ArrayList<>();
+    private final Label titleLabel;
     private final Button btnRefresh;
+    private Label lblUni;
+    private Label lblIn;
+    private Label lblOut;
+    private Label lblStatus;
     private MainWindow mainWindow;
     private Runnable onConfigChanged;
 
@@ -85,13 +91,13 @@ public class UniversePatchTable extends VBox {
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setPadding(new Insets(2, 4, 6, 4));
 
-        Label titleLabel = new Label("I/O Patching");
+        this.titleLabel = new Label(I18n.get("io.table.title"));
         titleLabel.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-font-weight: 700; -fx-letter-spacing: 0.5px;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        this.btnRefresh = new Button("Aktualisieren");
+        this.btnRefresh = new Button(I18n.get("io.refresh"));
         btnRefresh.getStyleClass().add("io-refresh-btn");
         LucideIcon refreshIcon = new LucideIcon("refresh-cw", 12, Color.web("#9CA3AF"));
         btnRefresh.setGraphic(refreshIcon);
@@ -137,6 +143,15 @@ public class UniversePatchTable extends VBox {
                 getChildren().add(divider);
             }
         }
+
+        // Dynamischer Sprachwechsel
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     /**
@@ -165,14 +180,29 @@ public class UniversePatchTable extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(2, 0, 4, 0));
 
-        Label lblUni = createHeaderLabel(I18n.get("io.col.universe"), COL_WIDTH_UNIVERSE, Pos.CENTER_LEFT);
-        Label lblIn = createHeaderLabel(I18n.get("io.col.input"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
-        Label lblOut = createHeaderLabel(I18n.get("io.col.output"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
-        Label lblStatus = createHeaderLabel(I18n.get("io.col.status"), COL_WIDTH_STATUS, Pos.CENTER_LEFT);
+        this.lblUni = createHeaderLabel(I18n.get("io.col.universe"), COL_WIDTH_UNIVERSE, Pos.CENTER_LEFT);
+        this.lblIn = createHeaderLabel(I18n.get("io.col.input"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
+        this.lblOut = createHeaderLabel(I18n.get("io.col.output"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
+        this.lblStatus = createHeaderLabel(I18n.get("io.col.status"), COL_WIDTH_STATUS, Pos.CENTER_LEFT);
         Label lblCfg = createHeaderLabel("", COL_WIDTH_CONFIG, Pos.CENTER);
 
         header.getChildren().addAll(lblUni, lblIn, lblOut, lblStatus, lblCfg);
         return header;
+    }
+
+    /**
+     * Aktualisiert alle lokalisierten Texte bei einem Sprachwechsel.
+     */
+    public void updateLocalization() {
+        titleLabel.setText(I18n.get("io.table.title"));
+        btnRefresh.setText(I18n.get("io.refresh"));
+        if (lblUni != null) lblUni.setText(I18n.get("io.col.universe"));
+        if (lblIn != null) lblIn.setText(I18n.get("io.col.input"));
+        if (lblOut != null) lblOut.setText(I18n.get("io.col.output"));
+        if (lblStatus != null) lblStatus.setText(I18n.get("io.col.status"));
+        for (UniverseRow row : universeRows) {
+            row.updateLocalization();
+        }
     }
 
     private Label createHeaderLabel(String text, double width, Pos alignment) {
@@ -249,6 +279,7 @@ public class UniversePatchTable extends VBox {
         private final int universeIndex;
         private final java.util.function.Supplier<MainWindow> mainWindowSupplier;
         private final Runnable changeNotifier;
+        private final Label uniLabel;
         private final CustomDropdownButton inputDropdown;
         private final CustomDropdownButton outputDropdown;
         private final Circle statusDot;
@@ -273,7 +304,7 @@ public class UniversePatchTable extends VBox {
             setPadding(new Insets(4, 0, 4, 0));
 
             // Spalte 1: Universum-Label
-            Label uniLabel = new Label("Universum " + universeNumber);
+            this.uniLabel = new Label(I18n.get("fixture.universe_n", universeNumber));
             uniLabel.setMinWidth(COL_WIDTH_UNIVERSE);
             uniLabel.setPrefWidth(COL_WIDTH_UNIVERSE);
             uniLabel.setMaxWidth(COL_WIDTH_UNIVERSE);
@@ -349,20 +380,34 @@ public class UniversePatchTable extends VBox {
         }
 
         private void updateStatus() {
-            boolean hasInput = inputDropdown.getSelectedItem() != null && !inputDropdown.getSelectedItem().equals("Kein Input");
-            boolean hasOutput = outputDropdown.getSelectedItem() != null && !outputDropdown.getSelectedItem().equals("Kein Output");
+            boolean hasInput = inputDropdown.getSelectedItem() != null
+                    && !inputDropdown.getSelectedItem().equals("Kein Input")
+                    && !inputDropdown.getSelectedItem().equals("No Input")
+                    && !inputDropdown.getSelectedItem().equals("Без входа");
+            boolean hasOutput = outputDropdown.getSelectedItem() != null
+                    && !outputDropdown.getSelectedItem().equals("Kein Output")
+                    && !outputDropdown.getSelectedItem().equals("No Output")
+                    && !outputDropdown.getSelectedItem().equals("Без выхода");
             boolean isActive = hasInput || hasOutput;
             active.set(isActive);
 
             if (isActive) {
                 statusDot.setFill(Color.web("#10B981")); // Grün
-                statusText.setText("Aktiv");
+                statusText.setText(I18n.get("io.status.active"));
                 statusText.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: 600;");
             } else {
                 statusDot.setFill(Color.web("#6B7280")); // Grau
-                statusText.setText("Aus");
+                statusText.setText(I18n.get("io.status.inactive"));
                 statusText.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 12px; -fx-font-weight: 500;");
             }
+        }
+
+        /**
+         * Aktualisiert die Zeilen-Texte bei einem Sprachwechsel.
+         */
+        public void updateLocalization() {
+            uniLabel.setText(I18n.get("fixture.universe_n", universeNumber));
+            updateStatus();
         }
 
         /**

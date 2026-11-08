@@ -1,5 +1,7 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.core.i18n.I18n;
+import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Insets;
@@ -29,7 +31,7 @@ import java.util.List;
  */
 public class ColorModuleView extends VBox {
 
-    private final String title = "Farbe";
+    private final Label lblTitle;
 
     private final ObjectProperty<Color> selectedColor = new SimpleObjectProperty<>(Color.WHITE);
     private final Canvas colorWheelCanvas;
@@ -39,6 +41,8 @@ public class ColorModuleView extends VBox {
 
     private final List<Button> rightPresetButtons = new ArrayList<>();
     private final List<Color> rightColors = new ArrayList<>();
+
+    private final List<MenuItem> saveMenuItems = new ArrayList<>();
 
     private double currentHue = 0.0;
     private double currentSat = 0.0;
@@ -53,7 +57,7 @@ public class ColorModuleView extends VBox {
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("module-card-header");
-        Label lblTitle = new Label(title);
+        this.lblTitle = new Label(I18n.get("control.color"));
         lblTitle.getStyleClass().add("module-card-title");
         header.getChildren().add(lblTitle);
 
@@ -129,6 +133,15 @@ public class ColorModuleView extends VBox {
         drawColorWheel();
 
         getChildren().addAll(header, body);
+
+        // Dynamische Mehrsprachigkeit
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
     }
 
     private Button createPresetButton(Color initialColor, Runnable onClick, Runnable onSaveCurrentColor) {
@@ -141,9 +154,9 @@ public class ColorModuleView extends VBox {
         applyColorToButton(btn, initialColor);
 
         Tooltip tip = new Tooltip(initialColor == null
-                ? "Leerer Slot (Rechtsklick: Aktuelle Farbe speichern)"
-                : "Klick: Farbe wählen | Rechtsklick: Aktuelle Farbe speichern");
-        Tooltip.install(btn, tip);
+                ? I18n.get("control.color_empty_slot_tip")
+                : I18n.get("control.color_slot_tip"));
+        btn.setTooltip(tip);
 
         btn.setOnAction(e -> onClick.run());
 
@@ -154,9 +167,10 @@ public class ColorModuleView extends VBox {
         });
 
         ContextMenu contextMenu = new ContextMenu();
-        MenuItem itemSave = new MenuItem("Aktuelle Farbe speichern");
+        MenuItem itemSave = new MenuItem(I18n.get("control.save_color"));
         itemSave.setOnAction(e -> onSaveCurrentColor.run());
         contextMenu.getItems().add(itemSave);
+        saveMenuItems.add(itemSave);
         btn.setContextMenu(contextMenu);
 
         return btn;
@@ -278,7 +292,35 @@ public class ColorModuleView extends VBox {
     }
 
     public String getTitle() {
-        return title;
+        return I18n.get("control.color");
+    }
+
+    /**
+     * Aktualisiert alle lokalisierten Texte bei einem Sprachwechsel.
+     */
+    public void updateLocalization() {
+        lblTitle.setText(I18n.get("control.color"));
+        for (MenuItem item : saveMenuItems) {
+            item.setText(I18n.get("control.save_color"));
+        }
+        for (int i = 0; i < leftPresetButtons.size(); i++) {
+            Button btn = leftPresetButtons.get(i);
+            if (btn.getTooltip() != null) {
+                Color c = (i < leftColors.size()) ? leftColors.get(i) : null;
+                btn.getTooltip().setText(c == null
+                        ? I18n.get("control.color_empty_slot_tip")
+                        : I18n.get("control.color_slot_tip"));
+            }
+        }
+        for (int i = 0; i < rightPresetButtons.size(); i++) {
+            Button btn = rightPresetButtons.get(i);
+            if (btn.getTooltip() != null) {
+                Color c = (i < rightColors.size()) ? rightColors.get(i) : null;
+                btn.getTooltip().setText(c == null
+                        ? I18n.get("control.color_empty_slot_tip")
+                        : I18n.get("control.color_slot_tip"));
+            }
+        }
     }
 
     public Canvas getColorWheel() {

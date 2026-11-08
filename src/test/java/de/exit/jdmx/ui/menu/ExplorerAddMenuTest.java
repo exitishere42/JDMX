@@ -3,6 +3,7 @@ package de.exit.jdmx.ui.menu;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,11 @@ class ExplorerAddMenuTest {
         } catch (IllegalStateException ignored) {
             // Toolkit aktiv
         }
+    }
+
+    @AfterEach
+    void resetLocale() {
+        de.exit.jdmx.core.i18n.I18n.setLanguage("de");
     }
 
     @Test
@@ -48,6 +54,13 @@ class ExplorerAddMenuTest {
         Button btnPreset = menu.getItem("preset");
         assertThat(btnPreset).isNotNull();
         assertThat(btnPreset.getText()).isEqualTo("Preset");
+
+        // Umschalten auf Englisch
+        de.exit.jdmx.core.i18n.I18n.setLanguage("en");
+        assertThat(btnFixture.getText()).isEqualTo("Fixture");
+        assertThat(btnGroup.getText()).isEqualTo("Device Group");
+        assertThat(btnEffect.getText()).isEqualTo("Effect");
+        de.exit.jdmx.core.i18n.I18n.setLanguage("de");
     }
 
     @Test

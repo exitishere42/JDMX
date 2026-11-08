@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.stage;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.service.ProjectExplorerService;
@@ -60,10 +61,9 @@ public class ProjectExplorerView extends VBox {
     /** Universelles Drag & Drop Datenformat für Elemente des Project Explorers. */
     public static final DataFormat EXPLORER_ITEM_FORMAT = new DataFormat("application/x-jdmx-explorer-item");
 
-    private final String title = "Project Explorer";
-
     private final ProjectExplorerService service;
     private final HBox headerBox;
+    private Label lblTitle;
     private final Button btnAdd;
     private final Button btnCollapse;
     private final ExplorerAddMenu addMenu;
@@ -96,7 +96,7 @@ public class ProjectExplorerView extends VBox {
         this.btnAdd = new Button();
         btnAdd.getStyleClass().add("project-explorer-add-btn");
         btnAdd.setGraphic(new LucideIcon("plus", 13, StudioTheme.COLOR_ICON_TIMELINE));
-        btnAdd.setTooltip(new Tooltip("Hinzufügen"));
+        btnAdd.setTooltip(new Tooltip(I18n.get("explorer.add")));
         btnAdd.setOnAction(e -> {
             if (addMenu.isShowing()) {
                 addMenu.hide();
@@ -111,7 +111,7 @@ public class ProjectExplorerView extends VBox {
         this.btnCollapse = new Button();
         btnCollapse.getStyleClass().add("project-explorer-toggle-btn");
         btnCollapse.setGraphic(new LucideIcon("arrow-right-to-line", 14, javafx.scene.paint.Color.web("#9CA3AF")));
-        btnCollapse.setTooltip(new Tooltip("Einklappen"));
+        btnCollapse.setTooltip(new Tooltip(I18n.get("explorer.collapse")));
         btnCollapse.setOnAction(e -> {
             if (onToggleCollapse != null) {
                 onToggleCollapse.run();
@@ -161,6 +161,15 @@ public class ProjectExplorerView extends VBox {
                 Platform.runLater(this::rebuildTree);
             } else {
                 rebuildTree();
+            }
+        });
+
+        // Dynamischer Sprachwechsel-Listener
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
             }
         });
 
@@ -336,7 +345,7 @@ public class ProjectExplorerView extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
         header.getStyleClass().add("project-explorer-header");
 
-        Label lblTitle = new Label(title);
+        this.lblTitle = new Label(I18n.get("explorer.title"));
         lblTitle.getStyleClass().add("project-explorer-title");
 
         Region spacer = new Region();
@@ -347,7 +356,23 @@ public class ProjectExplorerView extends VBox {
     }
 
     public String getTitle() {
-        return title;
+        return I18n.get("explorer.title");
+    }
+
+    /**
+     * Aktualisiert Titel, Tooltips und alle Ordner reaktiv bei Sprachwechsel.
+     */
+    public void updateLocalization() {
+        if (lblTitle != null) {
+            lblTitle.setText(I18n.get("explorer.title"));
+        }
+        if (btnAdd != null) {
+            btnAdd.setTooltip(new Tooltip(I18n.get("explorer.add")));
+        }
+        if (btnCollapse != null) {
+            btnCollapse.setTooltip(new Tooltip(I18n.get("explorer.collapse")));
+        }
+        rebuildTree();
     }
 
     public HBox getHeaderBox() {
@@ -714,7 +739,19 @@ public class ProjectExplorerView extends VBox {
                 setGraphic(null);
                 setMouseTransparent(true);
             } else {
-                setText(item.getName());
+                if (item.isStandardFolder()) {
+                    String localized = switch (item.getId()) {
+                        case ProjectExplorerService.FOLDER_DEVICES_ID -> I18n.get("explorer.folder.devices");
+                        case ProjectExplorerService.FOLDER_GROUPS_ID -> I18n.get("explorer.folder.groups");
+                        case ProjectExplorerService.FOLDER_PRESETS_ID -> I18n.get("explorer.folder.presets");
+                        case ProjectExplorerService.FOLDER_CUELISTS_ID -> I18n.get("explorer.folder.cuelists");
+                        case ProjectExplorerService.FOLDER_EFFECTS_ID -> I18n.get("explorer.folder.effects");
+                        default -> item.getName();
+                    };
+                    setText(localized);
+                } else {
+                    setText(item.getName());
+                }
                 TreeItem<ExplorerItem> ti = getTreeItem();
                 setGraphic(ti != null ? ti.getGraphic() : null);
                 setMouseTransparent(false);

@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.*;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.ProjectExplorerService;
@@ -197,7 +198,7 @@ public class FixturePatchDialog {
         header.getStyleClass().add("settings-dialog-header");
 
         LucideIcon icon = new LucideIcon("plus", 18, Color.web("#38BDF8"));
-        Label title = new Label("Scheinwerfer hinzufügen");
+        Label title = new Label(I18n.get("fixture.dialog.add_title"));
         title.getStyleClass().add("settings-dialog-title");
 
         Region spacer = new Region();
@@ -218,11 +219,11 @@ public class FixturePatchDialog {
         footer.setAlignment(Pos.CENTER_RIGHT);
         footer.getStyleClass().add("settings-dialog-footer");
 
-        this.btnCancel = new Button("Abbrechen");
+        this.btnCancel = new Button(I18n.get("action.cancel"));
         btnCancel.getStyleClass().add("settings-btn-secondary");
         btnCancel.setOnAction(e -> close());
 
-        this.btnPatch = new Button("Scheinwerfer patchen");
+        this.btnPatch = new Button(I18n.get("fixture.dialog.patch_btn"));
         btnPatch.getStyleClass().add("settings-btn-primary");
         btnPatch.setGraphic(new LucideIcon("plus", 14, Color.WHITE));
         btnPatch.setOnAction(e -> executePatch());

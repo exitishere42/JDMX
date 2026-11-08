@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.menu;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -40,8 +41,8 @@ public class ExplorerItemContextMenu extends Popup {
         root.setMinWidth(140);
         root.setPrefWidth(150);
 
-        Button btnRename = createMenuItem("rename", "Umbenennen", "pencil", Color.web("#38BDF8"));
-        Button btnDelete = createMenuItem("delete", "Entfernen", "trash-2", Color.web("#EF4444"));
+        Button btnRename = createMenuItem("rename", I18n.get("dialog.rename"), "pencil", Color.web("#38BDF8"));
+        Button btnDelete = createMenuItem("delete", I18n.get("dialog.delete"), "trash-2", Color.web("#EF4444"));
 
         root.getChildren().addAll(
                 btnRename,
@@ -50,6 +51,29 @@ public class ExplorerItemContextMenu extends Popup {
         );
 
         getContent().add(root);
+
+        // Dynamischer Sprachwechsel-Listener
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread() || !isShowing()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
+    }
+
+    /**
+     * Aktualisiert alle Menüeinträge reaktiv bei Sprachwechsel.
+     */
+    public void updateLocalization() {
+        Button btnRename = items.get("rename");
+        if (btnRename != null) {
+            btnRename.setText(I18n.get("dialog.rename"));
+        }
+        Button btnDelete = items.get("delete");
+        if (btnDelete != null) {
+            btnDelete.setText(I18n.get("dialog.delete"));
+        }
     }
 
     private Button createMenuItem(String key, String title, String iconName, Color iconColor) {

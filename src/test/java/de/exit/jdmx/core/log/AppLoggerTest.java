@@ -48,6 +48,18 @@ class AppLoggerTest {
 
         Path logFile = AppLogger.getLogFilePath();
         List<String> lines = Files.readAllLines(logFile);
+        if (lines.stream().noneMatch(l -> l.contains(testMarker))) {
+            // Falls eine andere JDMX-Instanz läuft, schreibt der FileHandler rotierend in jdmx.log.1 etc.
+            try (var stream = Files.list(AppLogger.getLogDirectoryPath())) {
+                for (Path p : stream.filter(p -> p.getFileName().toString().startsWith("jdmx.log")).toList()) {
+                    List<String> altLines = Files.readAllLines(p);
+                    if (altLines.stream().anyMatch(l -> l.contains(testMarker))) {
+                        lines = altLines;
+                        break;
+                    }
+                }
+            }
+        }
 
         boolean foundInfo = lines.stream().anyMatch(l -> l.contains(testMarker));
         boolean foundDmx = lines.stream().anyMatch(l -> l.contains("Uni=1 Ch=12 Val: 0 -> 255"));

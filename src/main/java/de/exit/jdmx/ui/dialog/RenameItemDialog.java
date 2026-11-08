@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.ui.MainWindow;
@@ -119,7 +120,7 @@ public class RenameItemDialog {
 
         LucideIcon icon = new LucideIcon("pencil", 18, Color.web("#38BDF8"));
 
-        Label title = new Label("Gerät umbenennen");
+        Label title = new Label(I18n.get("dialog.rename.title"));
         title.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #F9FAFB;");
 
         Region spacer = new Region();
@@ -137,7 +138,7 @@ public class RenameItemDialog {
     private VBox buildInputSection() {
         VBox section = new VBox(6);
 
-        Label lbl = new Label("Name");
+        Label lbl = new Label(I18n.get("dialog.rename.prompt"));
         lbl.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 12px; -fx-font-weight: bold;");
 
         txtName = new TextField(item.getName());
@@ -165,12 +166,12 @@ public class RenameItemDialog {
         footer.setAlignment(Pos.CENTER_RIGHT);
         footer.setPadding(new Insets(6, 0, 0, 0));
 
-        btnCancel = new Button("Abbrechen");
+        btnCancel = new Button(I18n.get("action.cancel"));
         btnCancel.getStyleClass().add("settings-btn-secondary");
         btnCancel.setPrefHeight(32);
         btnCancel.setOnAction(e -> close());
 
-        btnSave = new Button("Speichern");
+        btnSave = new Button(I18n.get("action.save"));
         btnSave.getStyleClass().add("settings-btn-primary");
         btnSave.setGraphic(new LucideIcon("check", 14, StudioTheme.COLOR_ICON_GREEN));
         btnSave.setPrefHeight(32);

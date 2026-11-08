@@ -47,7 +47,17 @@ exec java -jar "$JAR_FILE" "$@"
 EOF
 chmod +x "$BUILD_DIR/AppDir/AppRun"
 
-curl -fsSL -o "$BUILD_DIR/runtime-x86_64" "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64"
+if [ -f "$PROJECT_DIR/.runtime-x86_64" ]; then
+    cp "$PROJECT_DIR/.runtime-x86_64" "$BUILD_DIR/runtime-x86_64"
+elif ! curl -fsSL -m 15 -o "$BUILD_DIR/runtime-x86_64" "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64"; then
+    if [ -f "$PROJECT_DIR/jdmx-x86_64.AppImage" ]; then
+        echo "[*] Nutze Runtime aus bestehendem AppImage..."
+        head -c 194183 "$PROJECT_DIR/jdmx-x86_64.AppImage" > "$BUILD_DIR/runtime-x86_64"
+    else
+        echo "[!] Fehler beim Herunterladen der AppImage-Runtime." >&2
+        exit 1
+    fi
+fi
 mksquashfs "$BUILD_DIR/AppDir" "$BUILD_DIR/app.squashfs" -root-owned -noappend -comp gzip > /dev/null
 cat "$BUILD_DIR/runtime-x86_64" "$BUILD_DIR/app.squashfs" > "$PROJECT_DIR/jdmx-x86_64.AppImage"
 chmod +x "$PROJECT_DIR/jdmx-x86_64.AppImage"

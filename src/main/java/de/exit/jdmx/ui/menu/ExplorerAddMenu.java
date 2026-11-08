@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.menu;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
@@ -44,11 +45,11 @@ public class ExplorerAddMenu extends Popup {
         root.setMinWidth(155);
         root.setPrefWidth(160);
 
-        Button btnFixture = createMenuItem("fixture", "Gerät", "box", StudioTheme.COLOR_ICON_STAGE);
-        Button btnGroup = createMenuItem("group", "Gerätegruppe", "layers", StudioTheme.COLOR_ICON_TIMELINE);
-        Button btnChaser = createMenuItem("chaser", "Chaser", "list-music", StudioTheme.COLOR_ICON_FADER);
-        Button btnEffect = createMenuItem("effect", "Effekt", "sparkles", StudioTheme.COLOR_ICON_MATRIX);
-        Button btnPreset = createMenuItem("preset", "Preset", "star", Color.web("#FB923C"));
+        Button btnFixture = createMenuItem("fixture", I18n.get("explorer.add.fixture"), "box", StudioTheme.COLOR_ICON_STAGE);
+        Button btnGroup = createMenuItem("group", I18n.get("explorer.add.group"), "layers", StudioTheme.COLOR_ICON_TIMELINE);
+        Button btnChaser = createMenuItem("chaser", I18n.get("explorer.add.chaser"), "list-music", StudioTheme.COLOR_ICON_FADER);
+        Button btnEffect = createMenuItem("effect", I18n.get("explorer.add.effect"), "sparkles", StudioTheme.COLOR_ICON_MATRIX);
+        Button btnPreset = createMenuItem("preset", I18n.get("explorer.add.preset"), "star", Color.web("#FB923C"));
 
         root.getChildren().addAll(
                 btnFixture,
@@ -61,6 +62,33 @@ public class ExplorerAddMenu extends Popup {
         );
 
         getContent().add(root);
+
+        // Dynamischer Sprachwechsel-Listener
+        I18n.addLanguageChangeListener(lang -> {
+            if (Platform.isFxApplicationThread() || !isShowing()) {
+                updateLocalization();
+            } else {
+                Platform.runLater(this::updateLocalization);
+            }
+        });
+    }
+
+    /**
+     * Aktualisiert alle Menüeinträge reaktiv bei Sprachwechsel.
+     */
+    public void updateLocalization() {
+        updateButtonText("fixture", "explorer.add.fixture");
+        updateButtonText("group", "explorer.add.group");
+        updateButtonText("chaser", "explorer.add.chaser");
+        updateButtonText("effect", "explorer.add.effect");
+        updateButtonText("preset", "explorer.add.preset");
+    }
+
+    private void updateButtonText(String key, String i18nKey) {
+        Button btn = items.get(key);
+        if (btn != null) {
+            btn.setText(I18n.get(i18nKey));
+        }
     }
 
     private Button createMenuItem(String key, String title, String iconName, Color iconColor) {
