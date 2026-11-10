@@ -89,6 +89,40 @@ public class ShortcutService {
     }
 
     /**
+     * Exportiert alle konfigurierten Shortcuts in eine Map (Aktionsname -> KeyCombination String).
+     */
+    public Map<String, String> exportShortcuts() {
+        Map<String, String> map = new LinkedHashMap<>();
+        for (Map.Entry<ShortcutAction, ShortcutItem> entry : shortcuts.entrySet()) {
+            KeyCombination comb = entry.getValue().keyCombination();
+            if (comb != null) {
+                map.put(entry.getKey().name(), comb.getName());
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Importiert Shortcuts aus einer Map. Ungültige Belegungen werden übersprungen.
+     *
+     * @param map Map von Aktionsname auf Tastenkombinations-String
+     */
+    public void importShortcuts(Map<String, String> map) {
+        if (map == null || map.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            try {
+                ShortcutAction action = ShortcutAction.valueOf(entry.getKey());
+                KeyCombination comb = KeyCombination.valueOf(entry.getValue());
+                setShortcut(action, comb);
+            } catch (Exception ignored) {
+                // Bei ungültigen Einträgen überspringen
+            }
+        }
+    }
+
+    /**
      * Setzt alle Shortcuts auf ihre Standardwerte zurück.
      */
     public void resetAll() {

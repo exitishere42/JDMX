@@ -2,6 +2,7 @@ package de.exit.jdmx.ui.dialog;
 
 import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.log.AppLogger;
+import de.exit.jdmx.service.SettingsService;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.ShortcutItem;
 import de.exit.jdmx.service.ShortcutService;
@@ -23,6 +24,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.scene.text.Text;
+import javafx.stage.DirectoryChooser;
 
 import java.io.File;
 import java.util.List;
@@ -42,6 +44,7 @@ public class SettingsDialog {
 
     private final MainWindow mainWindow;
     private final ShortcutService shortcutService;
+    private final SettingsService settingsService;
     private final VBox card;
 
     private Button btnTabGeneral;
@@ -74,7 +77,11 @@ public class SettingsDialog {
      * @param mainWindow Hauptfenster
      */
     public static void show(MainWindow mainWindow) {
-        SettingsDialog dialog = new SettingsDialog(mainWindow, mainWindow.getShortcutService());
+        SettingsDialog dialog = new SettingsDialog(
+                mainWindow,
+                mainWindow.getShortcutService(),
+                mainWindow.getSettingsService()
+        );
         mainWindow.showOverlay(dialog.getView());
     }
 
@@ -82,8 +89,16 @@ public class SettingsDialog {
      * Erstellt den Dialog mit übergebenem Shortcut-Service.
      */
     public SettingsDialog(MainWindow mainWindow, ShortcutService shortcutService) {
+        this(mainWindow, shortcutService, mainWindow != null ? mainWindow.getSettingsService() : new SettingsService());
+    }
+
+    /**
+     * Erstellt den Dialog mit übergebenem Shortcut- und Settings-Service.
+     */
+    public SettingsDialog(MainWindow mainWindow, ShortcutService shortcutService, SettingsService settingsService) {
         this.mainWindow = mainWindow;
         this.shortcutService = shortcutService;
+        this.settingsService = settingsService != null ? settingsService : new SettingsService();
 
         this.card = new VBox(12);
         card.getStyleClass().add("settings-dialog-card");
@@ -212,12 +227,20 @@ public class SettingsDialog {
         // 2. Vollbild beim Start
         this.cbFullscreen = new CheckBox(I18n.get("settings.fullscreen"));
         cbFullscreen.getStyleClass().add("settings-checkbox");
-        cbFullscreen.setSelected(false);
+        cbFullscreen.setSelected(settingsService.isFullscreen());
+        cbFullscreen.selectedProperty().addListener((obs, o, n) -> {
+            settingsService.setFullscreen(n);
+            if (mainWindow != null) mainWindow.autoSave();
+        });
 
         // 3. Sicherheitsabfrage vor Beenden
         this.cbConfirmExit = new CheckBox(I18n.get("settings.confirm_exit"));
         cbConfirmExit.getStyleClass().add("settings-checkbox");
-        cbConfirmExit.setSelected(true);
+        cbConfirmExit.setSelected(settingsService.isConfirmExit());
+        cbConfirmExit.selectedProperty().addListener((obs, o, n) -> {
+            settingsService.setConfirmExit(n);
+            if (mainWindow != null) mainWindow.autoSave();
+        });
 
         // 4. Auto-Save
         HBox autoSaveRow = new HBox(12);
@@ -227,8 +250,14 @@ public class SettingsDialog {
         lblAutoSave.setMinWidth(160);
         ComboBox<String> cbAutoSave = new ComboBox<>();
         cbAutoSave.getItems().addAll("Deaktiviert", "Alle 5 Minuten", "Alle 10 Minuten", "Alle 15 Minuten");
-        cbAutoSave.setValue("Alle 10 Minuten");
+        cbAutoSave.setValue(settingsService.getAutoSaveInterval());
         cbAutoSave.getStyleClass().add("settings-combo");
+        cbAutoSave.valueProperty().addListener((obs, o, n) -> {
+            if (n != null) {
+                settingsService.setAutoSaveInterval(n);
+                if (mainWindow != null) mainWindow.autoSave();
+            }
+        });
         autoSaveRow.getChildren().addAll(lblAutoSave, cbAutoSave);
 
         // 5. Standard-Projektverzeichnis
@@ -238,14 +267,34 @@ public class SettingsDialog {
 
         HBox folderRow = new HBox(8);
         folderRow.setAlignment(Pos.CENTER_LEFT);
-        TextField tfFolder = new TextField(System.getProperty("user.home") + File.separator + "jdmx-shows");
+        TextField tfFolder = new TextField(settingsService.getDefaultFolder());
         tfFolder.getStyleClass().add("settings-textfield");
         HBox.setHgrow(tfFolder, Priority.ALWAYS);
+        tfFolder.textProperty().addListener((obs, o, n) -> {
+            if (n != null) {
+                settingsService.setDefaultFolder(n);
+                if (mainWindow != null) mainWindow.autoSave();
+            }
+        });
 
         this.btnBrowse = new Button(I18n.get("settings.browse"));
         btnBrowse.getStyleClass().add("settings-btn-secondary");
         btnBrowse.setGraphic(new LucideIcon("folder-open", 14, StudioTheme.COLOR_ICON_FADER));
         btnBrowse.setCursor(Cursor.HAND);
+        btnBrowse.setOnAction(e -> {
+            DirectoryChooser chooser = new DirectoryChooser();
+            chooser.setTitle("Standard-Projektverzeichnis wählen");
+            File current = new File(tfFolder.getText());
+            if (current.exists() && current.isDirectory()) {
+                chooser.setInitialDirectory(current);
+            }
+            File chosen = chooser.showDialog(mainWindow != null && mainWindow.getScene() != null ? mainWindow.getScene().getWindow() : null);
+            if (chosen != null) {
+                tfFolder.setText(chosen.getAbsolutePath());
+                settingsService.setDefaultFolder(chosen.getAbsolutePath());
+                if (mainWindow != null) mainWindow.autoSave();
+            }
+        });
 
         folderRow.getChildren().addAll(tfFolder, btnBrowse);
         folderBox.getChildren().addAll(lblFolder, folderRow);
@@ -304,6 +353,10 @@ public class SettingsDialog {
         combo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 I18n.setLanguage(newVal.code());
+                settingsService.setLanguage(newVal.code());
+                if (mainWindow != null) {
+                    mainWindow.autoSave();
+                }
             }
         });
 
@@ -419,6 +472,9 @@ public class SettingsDialog {
             shortcutService.resetShortcut(item.action());
             btnKey.setText(shortcutService.getDisplayText(item.action()));
             btnKey.getStyleClass().remove("recording");
+            if (mainWindow != null) {
+                mainWindow.autoSave();
+            }
         });
 
         // Klick auf Hotkey startet Aufnahme-Modus
@@ -487,6 +543,9 @@ public class SettingsDialog {
 
         this.recordingAction = null;
         this.recordingButton = null;
+        if (mainWindow != null) {
+            mainWindow.autoSave();
+        }
     }
 
     private HBox buildFooter() {

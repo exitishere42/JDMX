@@ -16,10 +16,12 @@ import de.exit.jdmx.core.project.model.FixtureDataDto;
 import de.exit.jdmx.core.project.model.GroupDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
 import de.exit.jdmx.core.project.model.SceneDataDto;
+import de.exit.jdmx.core.project.model.SettingsDataDto;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectStorageService;
 import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.service.SettingsService;
 import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
@@ -94,6 +96,9 @@ public class MainWindow extends StackPane {
 
     /** Zentraler Shortcut-Service für konfigurierbare Tastaturkürzel. */
     private final ShortcutService shortcutService;
+
+    /** Zentraler Einstellungs-Service für Anwendungs- und Profileinstellungen. */
+    private final SettingsService settingsService = new SettingsService();
 
     /** Service zur Projekt-Persistierung (*.jdmx). */
     private final ProjectStorageService projectStorageService = new ProjectStorageService();
@@ -453,6 +458,9 @@ public class MainWindow extends StackPane {
         if (undoRedoService != null) {
             undoRedoService.clear();
         }
+        if (settingsService != null) {
+            settingsService.resetDefaults(shortcutService);
+        }
     }
 
     /**
@@ -722,6 +730,7 @@ public class MainWindow extends StackPane {
         }
 
         String name = currentProjectFile != null ? currentProjectFile.getName().replace(".jdmx", "") : "Default Project";
+        SettingsDataDto settingsDto = settingsService.toDto(shortcutService);
         return new ProjectData(
                 ProjectData.CURRENT_VERSION,
                 name,
@@ -730,7 +739,8 @@ public class MainWindow extends StackPane {
                 fixtures,
                 groupDtos,
                 sceneDtos,
-                chaserDtos
+                chaserDtos,
+                settingsDto
         );
     }
 
@@ -876,6 +886,11 @@ public class MainWindow extends StackPane {
                 );
                 explorer.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, item);
             }
+        }
+
+        // 6. Profileinstellungen wiederherstellen
+        if (data.settings() != null) {
+            settingsService.applyDto(data.settings(), shortcutService);
         }
     }
 
@@ -1066,5 +1081,12 @@ public class MainWindow extends StackPane {
      */
     public ShortcutService getShortcutService() {
         return shortcutService;
+    }
+
+    /**
+     * Liefert den zentralen SettingsService des Hauptfensters.
+     */
+    public SettingsService getSettingsService() {
+        return settingsService;
     }
 }

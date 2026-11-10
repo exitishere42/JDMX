@@ -10,6 +10,7 @@ import de.exit.jdmx.core.project.model.ChaserDataDto;
 import de.exit.jdmx.core.project.model.FixtureDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
 import de.exit.jdmx.core.project.model.SceneDataDto;
+import de.exit.jdmx.core.project.model.SettingsDataDto;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.ProjectStorageService;
@@ -178,6 +179,52 @@ class MainWindowProjectPersistenceTest {
                 assertThat(window.getCurrentProjectFile()).isEqualTo(projectFile);
                 assertThat(window.getStageWorkspaceView().getSceneService().getScene("sc-old")).isNull();
                 assertThat(window.getStageWorkspaceView().getSceneService().getScene("sc-new")).isNotNull();
+            } finally {
+                testLatch.countDown();
+            }
+        });
+
+        assertThat(testLatch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Soll Profileinstellungen (Sprache, Fullscreen, Shortcuts) im Projekt speichern und laden")
+    void shouldPersistAndRestoreSettingsInMainWindow(@TempDir Path tempDir) throws Exception {
+        CountDownLatch testLatch = new CountDownLatch(1);
+        File projectFile = tempDir.resolve("profile_test.jdmx").toFile();
+
+        Platform.runLater(() -> {
+            try {
+                MainWindow window = new MainWindow(new ShortcutService(), new DmxService());
+
+                // Einstellungen anpassen
+                window.getSettingsService().setLanguage("en");
+                window.getSettingsService().setFullscreen(true);
+                window.getSettingsService().setConfirmExit(false);
+                window.getSettingsService().setAutoSaveInterval("Alle 5 Minuten");
+                window.getSettingsService().setDefaultFolder("D:\\Shows");
+                window.getShortcutService().setShortcut(
+                        de.exit.jdmx.service.ShortcutAction.SAVE_PROJECT,
+                        new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.F9)
+                );
+
+                // Projekt speichern
+                window.saveCurrentProject(projectFile);
+                assertThat(projectFile).exists().isNotEmpty();
+
+                // Auf neues leeres Projekt zurücksetzen
+                window.newProject();
+                assertThat(window.getSettingsService().isFullscreen()).isFalse();
+
+                // Projekt wieder laden
+                window.loadProject(projectFile);
+
+                assertThat(window.getSettingsService().getLanguage()).isEqualTo("en");
+                assertThat(window.getSettingsService().isFullscreen()).isTrue();
+                assertThat(window.getSettingsService().isConfirmExit()).isFalse();
+                assertThat(window.getSettingsService().getAutoSaveInterval()).isEqualTo("Alle 5 Minuten");
+                assertThat(window.getSettingsService().getDefaultFolder()).isEqualTo("D:\\Shows");
+                assertThat(window.getShortcutService().getDisplayText(de.exit.jdmx.service.ShortcutAction.SAVE_PROJECT)).contains("F9");
             } finally {
                 testLatch.countDown();
             }

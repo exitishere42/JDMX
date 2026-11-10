@@ -6,6 +6,7 @@ import de.exit.jdmx.core.project.model.FixtureDataDto;
 import de.exit.jdmx.core.project.model.GroupDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
 import de.exit.jdmx.core.project.model.SceneDataDto;
+import de.exit.jdmx.core.project.model.SettingsDataDto;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -118,6 +119,46 @@ class ProjectStorageServiceTest {
         assertThat(loaded.chasers().get(0).bpm()).isEqualTo(130.0);
         assertThat(loaded.chasers().get(0).steps()).hasSize(1);
         assertThat(loaded.chasers().get(0).steps().get(0).sceneId()).isEqualTo("scene-1");
+    }
+
+    @Test
+    @DisplayName("Soll Projekt mit Einstellungen serialisieren und deserialisieren")
+    void shouldSaveAndLoadProjectWithSettings(@TempDir Path tempDir) throws IOException {
+        ProjectStorageService service = new ProjectStorageService();
+        File targetFile = tempDir.resolve("project_with_settings.jdmx").toFile();
+
+        SettingsDataDto settings = new SettingsDataDto(
+                "en",
+                true,
+                false,
+                "Alle 5 Minuten",
+                "D:\\CustomShows",
+                java.util.Map.of("SAVE_PROJECT", "Ctrl+Alt+S")
+        );
+
+        ProjectData project = new ProjectData(
+                ProjectData.CURRENT_VERSION,
+                "Show With Settings",
+                "2026-11-10T19:00:00Z",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                settings
+        );
+
+        service.saveProject(project, targetFile);
+        assertThat(targetFile).exists().isNotEmpty();
+
+        ProjectData loaded = service.loadProject(targetFile);
+        assertThat(loaded.settings()).isNotNull();
+        assertThat(loaded.settings().language()).isEqualTo("en");
+        assertThat(loaded.settings().fullscreen()).isTrue();
+        assertThat(loaded.settings().confirmExit()).isFalse();
+        assertThat(loaded.settings().autoSaveInterval()).isEqualTo("Alle 5 Minuten");
+        assertThat(loaded.settings().defaultFolder()).isEqualTo("D:\\CustomShows");
+        assertThat(loaded.settings().shortcuts()).containsEntry("SAVE_PROJECT", "Ctrl+Alt+S");
     }
 
     @Test

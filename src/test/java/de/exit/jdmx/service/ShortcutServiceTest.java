@@ -100,4 +100,26 @@ class ShortcutServiceTest {
                 javafx.scene.input.KeyEvent.KEY_PRESSED, "", "", KeyCode.NUMPAD1, false, false, false, false);
         assertThat(service.matches(ShortcutAction.TAB_STAGE, numpad1Event)).isTrue();
     }
+
+    @Test
+    @DisplayName("Sollte Shortcuts als Map exportieren und importieren können")
+    void shouldExportAndImportShortcuts() {
+        ShortcutService service = new ShortcutService();
+        service.setShortcut(ShortcutAction.SAVE_PROJECT, new KeyCodeCombination(KeyCode.W, KeyCombination.CONTROL_DOWN));
+
+        var exported = service.exportShortcuts();
+        assertThat(exported).containsKey("SAVE_PROJECT");
+
+        ShortcutService newService = new ShortcutService();
+        newService.importShortcuts(exported);
+        assertThat(newService.getDisplayText(ShortcutAction.SAVE_PROJECT)).contains("Strg + W");
+    }
+
+    @Test
+    @DisplayName("Sollte fehlerhafte Import-Werte ignorieren ohne Fehler zu werfen")
+    void shouldIgnoreInvalidShortcutEntryOnImport() {
+        ShortcutService service = new ShortcutService();
+        service.importShortcuts(java.util.Map.of("UNKNOWN_ACTION", "Ctrl+X", "SAVE_PROJECT", "INVALID_COMBINATION"));
+        assertThat(service.getShortcut(ShortcutAction.SAVE_PROJECT)).isNotNull();
+    }
 }

@@ -17,6 +17,7 @@ import java.util.List;
  * @param groups      Liste der konfigurierten Gerätegruppen
  * @param scenes      Liste der gespeicherten Lichtszenen (Cues)
  * @param chasers     Liste der konfigurierten Chaser (Sequenzen)
+ * @param settings    Profileinstellungen (Sprache, Fullscreen, AutoSave, Shortcuts)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProjectData(
@@ -27,7 +28,8 @@ public record ProjectData(
         List<FixtureDataDto> fixtures,
         List<GroupDataDto> groups,
         List<SceneDataDto> scenes,
-        List<ChaserDataDto> chasers
+        List<ChaserDataDto> chasers,
+        SettingsDataDto settings
 ) {
     /**
      * Aktuelle Formatversion für neue Projektdateien.
@@ -35,17 +37,24 @@ public record ProjectData(
     public static final String CURRENT_VERSION = "1.0";
 
     /**
+     * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Einstellungen).
+     */
+    public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures, List<GroupDataDto> groups, List<SceneDataDto> scenes, List<ChaserDataDto> chasers) {
+        this(version, projectName, savedAt, universes, fixtures, groups, scenes, chasers, SettingsDataDto.defaultSettings());
+    }
+
+    /**
      * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Szenen und Chaser).
      */
     public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures, List<GroupDataDto> groups) {
-        this(version, projectName, savedAt, universes, fixtures, groups, List.of(), List.of());
+        this(version, projectName, savedAt, universes, fixtures, groups, List.of(), List.of(), SettingsDataDto.defaultSettings());
     }
 
     /**
      * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Gruppen, Szenen und Chaser).
      */
     public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures) {
-        this(version, projectName, savedAt, universes, fixtures, List.of(), List.of(), List.of());
+        this(version, projectName, savedAt, universes, fixtures, List.of(), List.of(), List.of(), SettingsDataDto.defaultSettings());
     }
 
     /**
@@ -63,7 +72,8 @@ public record ProjectData(
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                SettingsDataDto.defaultSettings()
         );
     }
 }
