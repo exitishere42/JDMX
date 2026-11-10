@@ -91,19 +91,17 @@ public class ProjectStorageService {
     }
 
     /**
-     * Liefert den Pfad zur Standard-Projektdatei ({@code default.jdmx}).
-     *
-     * @return Datei-Objekt für default.jdmx
+     * @deprecated default.jdmx wird nicht mehr unterstützt. Projekte müssen explizit benannt/geladen werden.
      */
+    @Deprecated
     public File getDefaultProjectFile() {
         return new File(getProjectsDirectory(), DEFAULT_PROJECT_FILENAME);
     }
 
     /**
-     * Prüft, ob eine Standard-Projektdatei existiert und lesbar ist.
-     *
-     * @return true, falls vorhanden
+     * @deprecated default.jdmx wird nicht mehr unterstützt.
      */
+    @Deprecated
     public boolean hasDefaultProject() {
         File file = getDefaultProjectFile();
         return file.exists() && file.isFile() && file.length() > 0;
@@ -150,21 +148,17 @@ public class ProjectStorageService {
     }
 
     /**
-     * Speichert das aktuelle Projekt in die Standard-Projektdatei ({@code default.jdmx}).
-     *
-     * @param project Die zu speichernden Projektdaten
-     * @throws IOException Wenn beim Speichern ein Fehler auftritt
+     * @deprecated default.jdmx wird nicht mehr unterstützt.
      */
+    @Deprecated
     public void saveDefaultProject(ProjectData project) throws IOException {
         saveProject(project, getDefaultProjectFile());
     }
 
     /**
-     * Lädt die Standard-Projektdatei ({@code default.jdmx}).
-     *
-     * @return Die geladenen Projektdaten
-     * @throws IOException Wenn die Datei nicht existiert oder nicht geladen werden kann
+     * @deprecated default.jdmx wird nicht mehr unterstützt.
      */
+    @Deprecated
     public ProjectData loadDefaultProject() throws IOException {
         return loadProject(getDefaultProjectFile());
     }

@@ -231,6 +231,23 @@ public class SceneService implements AutoCloseable {
         }, 0, 25, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Stoppt eine derzeit laufende Überblendung (Fading).
+     */
+    public synchronized void stopFade() {
+        if (activeFadeTask != null && !activeFadeTask.isDone()) {
+            activeFadeTask.cancel(true);
+        }
+    }
+
+    /**
+     * Bricht laufende Fades ab und leert alle registrierten Lichtszenen.
+     */
+    public synchronized void clearScenes() {
+        stopFade();
+        scenes.clear();
+    }
+
     @Override
     public void close() {
         fadeExecutor.shutdownNow();

@@ -185,7 +185,11 @@ public class MainWindow extends StackPane {
                     if (newWin instanceof javafx.stage.Stage stage) {
                         stage.setFullScreenExitHint("");
                         stage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.NO_MATCH);
-                        stage.setOnCloseRequest(e -> autoSave());
+                        stage.setOnCloseRequest(e -> {
+                            if (currentProjectFile != null) {
+                                autoSave();
+                            }
+                        });
                         stage.fullScreenProperty().addListener((fObs, wasFull, isFull) -> {
                             if (Boolean.TRUE.equals(isFull)) {
                                 showFullscreenHint();
@@ -215,9 +219,7 @@ public class MainWindow extends StackPane {
         // Brand Action-Menü Events
         headerBar.getActionMenu().setOnAction("new_project", this::newProject);
         headerBar.getActionMenu().setOnAction("open_file", this::handleOpenProject);
-        headerBar.getActionMenu().setOnAction("save", () -> {
-            saveCurrentProject(currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile());
-        });
+        headerBar.getActionMenu().setOnAction("save", this::handleSaveProject);
         headerBar.getActionMenu().setOnAction("save_as", this::handleSaveAsProject);
         headerBar.getActionMenu().setOnAction("fullscreen", this::toggleFullscreen);
 
@@ -246,8 +248,8 @@ public class MainWindow extends StackPane {
         // Initialen Tab anzeigen (Tab 0 = Stage & Fixtures)
         switchToTab(0);
 
-        // Initiales Projekt laden oder Standard-Projekt persistieren
-        loadInitialProject();
+        // Initiales leeres Projekt starten (ohne default.jdmx)
+        newProject();
     }
 
     /**
@@ -431,33 +433,40 @@ public class MainWindow extends StackPane {
     }
 
     /**
-     * Lädt beim Start automatisch das Standardprojekt oder legt es neu an.
+     * Setzt alle Services und Puffer (Szenen, Chaser, Scheinwerfer, DMX-Kanäle, Undo-Stack)
+     * vollständig und rückstandslos zurück.
      */
-    public void loadInitialProject() {
-        File defaultFile = projectStorageService.getDefaultProjectFile();
-        if (projectStorageService.hasDefaultProject()) {
-            try {
-                ProjectData data = projectStorageService.loadDefaultProject();
-                applyProjectData(data);
-                this.currentProjectFile = defaultFile;
-                log.info("Standardprojekt erfolgreich wiederhergestellt: {}", defaultFile.getAbsolutePath());
-            } catch (Exception ex) {
-                log.warn("Konnte Standardprojekt nicht laden, verwende Initialzustand", ex);
-                autoSave();
+    public void resetProjectState() {
+        if (stageWorkspaceView != null) {
+            if (stageWorkspaceView.getChaserService() != null) {
+                stageWorkspaceView.getChaserService().clearChasers();
             }
-        } else {
-            this.currentProjectFile = defaultFile;
-            autoSave();
-            log.info("Neues Standardprojekt initialisiert: {}", defaultFile.getAbsolutePath());
+            if (stageWorkspaceView.getSceneService() != null) {
+                stageWorkspaceView.getSceneService().clearScenes();
+            }
+            stageWorkspaceView.getStageCanvasView().clearFixtures();
+            stageWorkspaceView.getExplorerService().clearItems();
+        }
+        if (dmxService != null) {
+            dmxService.blackout();
+        }
+        if (undoRedoService != null) {
+            undoRedoService.clear();
         }
     }
 
     /**
      * Speichert das Projekt automatisch und geräuschlos im Hintergrund.
+     * <p>
+     * Ist dem aktuellen Projekt noch keine Datei zugeordnet (unbenannt),
+     * findet kein Schreibvorgang statt (keine automatische default.jdmx).
+     * </p>
      */
     public void autoSave() {
-        File target = currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile();
-        saveProjectSilently(target);
+        if (currentProjectFile == null) {
+            return;
+        }
+        saveProjectSilently(currentProjectFile);
     }
 
     /**
@@ -479,17 +488,33 @@ public class MainWindow extends StackPane {
     }
 
     /**
-     * Speichert das Projekt und zeigt eine Bestätigung im HUD an.
+     * Speichert das aktuelle Projekt (Strg+S). Wenn noch kein Dateiname existiert,
+     * wird der Nutzer per 'Speichern unter...'-Dialog zur Namens- und Pfadwahl aufgefordert.
+     */
+    public void handleSaveProject() {
+        if (currentProjectFile != null) {
+            saveCurrentProject(currentProjectFile);
+        } else {
+            handleSaveAsProject();
+        }
+    }
+
+    /**
+     * Speichert das Projekt in die angegebene Datei, aktualisiert den Fenstertitel
+     * und zeigt eine Bestätigung im HUD an.
      *
      * @param file Zieldatei
      */
     public void saveCurrentProject(File file) {
         saveProjectSilently(file);
+        this.currentProjectFile = file;
+        updateWindowTitle();
         showHudNotification("Projekt gespeichert: " + file.getName());
     }
 
     /**
      * Lädt ein Projekt aus einer Datei und aktualisiert die Benutzeroberfläche.
+     * Vor dem Laden werden alte Szenen, Chaser und Scheinwerfer restlos bereinigt.
      *
      * @param file Zu ladende Projektdatei
      */
@@ -498,9 +523,11 @@ public class MainWindow extends StackPane {
             return;
         }
         try {
+            resetProjectState();
             ProjectData data = projectStorageService.loadProject(file);
             applyProjectData(data);
             this.currentProjectFile = file;
+            updateWindowTitle();
             showHudNotification("Projekt geladen: " + file.getName());
         } catch (Exception ex) {
             log.error("Fehler beim Laden von " + file.getAbsolutePath(), ex);
@@ -509,14 +536,10 @@ public class MainWindow extends StackPane {
     }
 
     /**
-     * Setzt die Universen und die Bühne auf ein leeres Neu-Projekt zurück.
+     * Setzt die Universen und die Bühne auf ein leeres Neu-Projekt zurück (currentProjectFile = null).
      */
     public void newProject() {
-        recordUndoSnapshot();
-        if (stageWorkspaceView != null) {
-            stageWorkspaceView.getStageCanvasView().clearFixtures();
-            stageWorkspaceView.getExplorerService().clearItems();
-        }
+        resetProjectState();
         for (int i = 0; i < 4; i++) {
             UniverseConfig defaultCfg = UniverseConfig.defaultFor(i);
             dmxService.setUniverseConfig(i, defaultCfg);
@@ -530,17 +553,22 @@ public class MainWindow extends StackPane {
                 }
             }
         }
-        this.currentProjectFile = projectStorageService.getDefaultProjectFile();
-        autoSave();
+        this.currentProjectFile = null;
+        updateWindowTitle();
         showHudNotification("Neues Projekt erstellt");
     }
 
-    private void handleSaveAsProject() {
+    public void handleSaveAsProject() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Projekt speichern unter...");
-        File initialDir = projectStorageService.getProjectsDirectory();
+        File initialDir = (currentProjectFile != null && currentProjectFile.getParentFile() != null && currentProjectFile.getParentFile().exists())
+                ? currentProjectFile.getParentFile()
+                : projectStorageService.getProjectsDirectory();
         if (initialDir.exists()) {
             chooser.setInitialDirectory(initialDir);
+        }
+        if (currentProjectFile != null) {
+            chooser.setInitialFileName(currentProjectFile.getName());
         }
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JDMX Projekt (*.jdmx)", "*.jdmx"));
         File chosen = chooser.showSaveDialog(getScene() != null ? getScene().getWindow() : null);
@@ -552,10 +580,12 @@ public class MainWindow extends StackPane {
         }
     }
 
-    private void handleOpenProject() {
+    public void handleOpenProject() {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Projekt öffnen...");
-        File initialDir = projectStorageService.getProjectsDirectory();
+        File initialDir = (currentProjectFile != null && currentProjectFile.getParentFile() != null && currentProjectFile.getParentFile().exists())
+                ? currentProjectFile.getParentFile()
+                : projectStorageService.getProjectsDirectory();
         if (initialDir.exists()) {
             chooser.setInitialDirectory(initialDir);
         }
@@ -564,6 +594,34 @@ public class MainWindow extends StackPane {
         if (chosen != null) {
             loadProject(chosen);
         }
+    }
+
+    /**
+     * Synchronisiert den Titel des Hauptfensters mit dem aktuellen Projektnamen.
+     */
+    public void updateWindowTitle() {
+        if (getScene() != null && getScene().getWindow() instanceof javafx.stage.Stage stage) {
+            if (currentProjectFile != null) {
+                stage.setTitle("jdmx - " + currentProjectFile.getName());
+            } else {
+                stage.setTitle(de.exit.jdmx.JdmxApplication.APP_TITLE);
+            }
+        }
+    }
+
+    /**
+     * Liefert die aktuell geöffnete/gespeicherte Projektdatei oder {@code null},
+     * wenn das Projekt noch unbenannt ist.
+     */
+    public File getCurrentProjectFile() {
+        return currentProjectFile;
+    }
+
+    /**
+     * Liefert den Projekt-Storage-Service.
+     */
+    public ProjectStorageService getProjectStorageService() {
+        return projectStorageService;
     }
 
     /**
@@ -971,7 +1029,9 @@ public class MainWindow extends StackPane {
         ProjectData prev = undoRedoService.undo(current);
         if (prev != null) {
             applyProjectData(prev);
-            saveProjectSilently(currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile());
+            if (currentProjectFile != null) {
+                saveProjectSilently(currentProjectFile);
+            }
             showHudNotification("Rückgängig ausgeführt");
         }
     }
@@ -987,7 +1047,9 @@ public class MainWindow extends StackPane {
         ProjectData next = undoRedoService.redo(current);
         if (next != null) {
             applyProjectData(next);
-            saveProjectSilently(currentProjectFile != null ? currentProjectFile : projectStorageService.getDefaultProjectFile());
+            if (currentProjectFile != null) {
+                saveProjectSilently(currentProjectFile);
+            }
             showHudNotification("Wiederholen ausgeführt");
         }
     }

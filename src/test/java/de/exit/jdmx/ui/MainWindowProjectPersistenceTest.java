@@ -4,18 +4,27 @@ import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.core.model.FixtureDefinition;
 import de.exit.jdmx.core.model.FixtureInstance;
+import de.exit.jdmx.core.model.SceneDefinition;
+import de.exit.jdmx.core.model.ChaserDefinition;
+import de.exit.jdmx.core.project.model.ChaserDataDto;
 import de.exit.jdmx.core.project.model.FixtureDataDto;
 import de.exit.jdmx.core.project.model.ProjectData;
+import de.exit.jdmx.core.project.model.SceneDataDto;
 import de.exit.jdmx.core.project.model.UniverseDataDto;
 import de.exit.jdmx.service.DmxService;
+import de.exit.jdmx.service.ProjectStorageService;
 import de.exit.jdmx.service.ShortcutService;
 import javafx.application.Platform;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -77,6 +86,98 @@ class MainWindowProjectPersistenceTest {
                 assertThat(snapshot.fixtures().get(0).name()).isEqualTo("Generic Dimmer Test");
                 assertThat(snapshot.fixtures().get(0).stageX()).isEqualTo(200.0);
                 assertThat(snapshot.fixtures().get(0).stageY()).isEqualTo(150.0);
+            } finally {
+                testLatch.countDown();
+            }
+        });
+
+        assertThat(testLatch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Soll MainWindow ohne default.jdmx initialisieren und mit currentProjectFile == null starten")
+    void shouldStartWithNullProjectFileAndNoDefaultFile() throws InterruptedException {
+        CountDownLatch testLatch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                MainWindow window = new MainWindow(new ShortcutService(), new DmxService());
+                assertThat(window.getCurrentProjectFile()).isNull();
+
+                // AutoSave bei unbenanntem Projekt darf keine Datei anlegen
+                window.autoSave();
+                assertThat(window.getCurrentProjectFile()).isNull();
+            } finally {
+                testLatch.countDown();
+            }
+        });
+
+        assertThat(testLatch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Soll bei newProject alle Services vollständig leeren und currentProjectFile auf null setzen")
+    void shouldCleanAllServicesOnNewProject() throws InterruptedException {
+        CountDownLatch testLatch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                MainWindow window = new MainWindow(new ShortcutService(), new DmxService());
+
+                // Szenen und Chaser hinzufügen
+                window.getStageWorkspaceView().getSceneService().captureScene("sc-1", "Test-Szene", 200, List.of());
+                window.getStageWorkspaceView().getChaserService().createChaser("ch-1", "Test-Chaser", 120.0);
+                assertThat(window.getStageWorkspaceView().getSceneService().getAllScenes()).isNotEmpty();
+                assertThat(window.getStageWorkspaceView().getChaserService().getAllChasers()).isNotEmpty();
+
+                // newProject aufrufen
+                window.newProject();
+
+                assertThat(window.getCurrentProjectFile()).isNull();
+                assertThat(window.getStageWorkspaceView().getSceneService().getAllScenes()).isEmpty();
+                assertThat(window.getStageWorkspaceView().getChaserService().getAllChasers()).isEmpty();
+                assertThat(window.getStageWorkspaceView().getStageCanvasView().getPlacedFixtures()).isEmpty();
+            } finally {
+                testLatch.countDown();
+            }
+        });
+
+        assertThat(testLatch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Soll beim Laden eines Projekts vorherige Szenen und Chaser restlos entfernen")
+    void shouldCleanPreviousStateWhenOpeningNewProject(@TempDir Path tempDir) throws Exception {
+        CountDownLatch testLatch = new CountDownLatch(1);
+        File projectFile = tempDir.resolve("sample.jdmx").toFile();
+
+        SceneDataDto sNew = new SceneDataDto("sc-new", "Frische Szene", 100, Map.of(0, Map.of(1, 255)));
+        ProjectData projectData = new ProjectData(
+                ProjectData.CURRENT_VERSION,
+                "SampleProject",
+                "2026-11-10T12:00:00Z",
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(sNew),
+                List.of()
+        );
+        new ProjectStorageService().saveProject(projectData, projectFile);
+
+        Platform.runLater(() -> {
+            try {
+                MainWindow window = new MainWindow(new ShortcutService(), new DmxService());
+
+                // Altzustand mit alten Szenen belegen
+                window.getStageWorkspaceView().getSceneService().captureScene("sc-old", "Alte Szene", 500, List.of());
+                assertThat(window.getStageWorkspaceView().getSceneService().getScene("sc-old")).isNotNull();
+
+                // Projekt laden
+                window.loadProject(projectFile);
+
+                assertThat(window.getCurrentProjectFile()).isEqualTo(projectFile);
+                assertThat(window.getStageWorkspaceView().getSceneService().getScene("sc-old")).isNull();
+                assertThat(window.getStageWorkspaceView().getSceneService().getScene("sc-new")).isNotNull();
             } finally {
                 testLatch.countDown();
             }

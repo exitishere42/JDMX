@@ -69,6 +69,31 @@ public class ChaserService implements AutoCloseable {
         }
     }
 
+    /**
+     * Erstellt einen neuen Chaser mit Standard-Richtung (Vorwärts) und registriert ihn.
+     *
+     * @param id   Eindeutige ID
+     * @param name Name des Chasers
+     * @param bpm  Geschwindigkeit in Beats per Minute
+     * @return Registrierter Chaser
+     */
+    public ChaserDefinition createChaser(String id, String name, double bpm) {
+        ChaserDefinition chaser = new ChaserDefinition(id, name, bpm, ChaserDirection.FORWARD);
+        registerChaser(chaser);
+        return chaser;
+    }
+
+    /**
+     * Stoppt alle aktiven Chaser-Läufer und leert alle registrierten Chaser.
+     */
+    public synchronized void clearChasers() {
+        for (ChaserRunner r : activeRunners.values()) {
+            r.stop();
+        }
+        activeRunners.clear();
+        chasers.clear();
+    }
+
     public ChaserDefinition getChaser(String chaserId) {
         if (chaserId == null) return null;
         return chasers.get(chaserId);
