@@ -4,8 +4,6 @@ chcp 65001 >nul 2>&1
 
 set "REPO=exitishere42/JDMX"
 set "INSTALL_DIR=%USERPROFILE%\jdmx"
-set "JAR_NAME=jdmx-1.15.5-all.jar"
-set "RELEASE_URL=https://github.com/%REPO%/releases/latest/download"
 set "RAW_URL=https://raw.githubusercontent.com/%REPO%/main"
 
 echo ==================================================================
@@ -43,16 +41,24 @@ if "%JAVA_OK%"=="1" (
 :: ------------------------------------------------------------------------------
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 
-echo [*] Lade jdmx und Logo herunter...
+echo [*] Lade neueste jdmx-Version und Logo herunter...
 powershell -NoProfile -Command ^
     "$ProgressPreference = 'SilentlyContinue'; " ^
-    "Invoke-WebRequest -Uri '%RELEASE_URL%/%JAR_NAME%' -OutFile '%INSTALL_DIR%\%JAR_NAME%'; " ^
+    "$rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/%REPO%/releases/latest'; " ^
+    "$asset = $rel.assets | Where-Object { $_.name -like 'jdmx-*-all.jar' } | Select-Object -First 1; " ^
+    "if ($asset) { " ^
+    "    Write-Host ('[*] Lade ' + $asset.name + '...'); " ^
+    "    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile ('%INSTALL_DIR%\' + $asset.name); " ^
+    "    Copy-Item -Path ('%INSTALL_DIR%\' + $asset.name) -Destination '%INSTALL_DIR%\jdmx.jar' -Force; " ^
+    "} else { " ^
+    "    Write-Host '[!] Kein Release-JAR gefunden!' -ForegroundColor Red; " ^
+    "}; " ^
     "Invoke-WebRequest -Uri '%RAW_URL%/jdmx.ico' -OutFile '%INSTALL_DIR%\jdmx.ico'; " ^
     "Invoke-WebRequest -Uri '%RAW_URL%/jdmx.png' -OutFile '%INSTALL_DIR%\jdmx.png'; " ^
     "Invoke-WebRequest -Uri '%RAW_URL%/uninstall.bat' -OutFile '%INSTALL_DIR%\uninstall.bat'"
 
-if not exist "%INSTALL_DIR%\%JAR_NAME%" (
-    echo [!] Fehler beim Herunterladen von %JAR_NAME%.
+if not exist "%INSTALL_DIR%\jdmx.jar" (
+    echo [!] Fehler beim Herunterladen von jdmx.jar.
     pause
     exit /b 1
 )
@@ -61,11 +67,7 @@ if not exist "%INSTALL_DIR%\%JAR_NAME%" (
 (
 echo @echo off
 echo cd /d "%%~dp0"
-echo for /f "delims=" %%%%f in ^('dir /b /o:-d "%%~dp0jdmx-*-all.jar" "%%~dp0jdmx.jar" 2^^^>nul'^) do ^(
-echo     start "" javaw -jar "%%~dp0%%%%f" %%*
-echo     exit /b 0
-echo ^)
-echo start "" javaw -jar "%%~dp0%JAR_NAME%" %%*
+echo start "" javaw -jar "%%~dp0jdmx.jar" %%*
 ) > "%INSTALL_DIR%\run.bat"
 
 :: ------------------------------------------------------------------------------
@@ -81,7 +83,7 @@ powershell -NoProfile -Command ^
     "foreach ($lnkPath in @($smPath, $dtPath)) { " ^
     "  $s = $ws.CreateShortcut($lnkPath); " ^
     "  $s.TargetPath = $javaw; " ^
-    "  $s.Arguments = '-jar \"' + '%INSTALL_DIR%\%JAR_NAME%' + '\"'; " ^
+    "  $s.Arguments = '-jar \"' + '%INSTALL_DIR%\jdmx.jar' + '\"'; " ^
     "  $s.WorkingDirectory = '%INSTALL_DIR%'; " ^
     "  $s.IconLocation = '%INSTALL_DIR%\jdmx.ico,0'; " ^
     "  $s.Description = 'jdmx - Modular Java DMX Lighting Controller'; " ^

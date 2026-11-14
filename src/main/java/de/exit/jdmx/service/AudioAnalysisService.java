@@ -128,43 +128,74 @@ public class AudioAnalysisService {
 
     /**
      * Analysiert eine MP3-Datei über den reinen Java JLayer-Dekoder.
+     * Überspringt ID3v2-Tags und fehlerhafte Sync-Header tolerant, ohne abzubrechen.
      */
-    private AudioAnalysisResult analyzeMp3(File mp3File) throws Exception {
+    private AudioAnalysisResult analyzeMp3(File mp3File) {
         try (InputStream in = new BufferedInputStream(new FileInputStream(mp3File))) {
             Bitstream bitstream = new Bitstream(in);
             Decoder decoder = new Decoder();
 
-            Header header;
             List<Float> framePeaks = new ArrayList<>();
             int sampleRate = 44100;
             long totalFrames = 0;
             double msPerFrame = 26.122; // Standard für 44.1kHz Layer 3
 
-            while ((header = bitstream.readFrame()) != null) {
+            while (true) {
+                Header header;
+                try {
+                    header = bitstream.readFrame();
+                } catch (Exception e) {
+                    try {
+                        bitstream.closeFrame();
+                    } catch (Exception ignored) {
+                    }
+                    continue;
+                }
+                if (header == null) {
+                    break;
+                }
+
                 totalFrames++;
                 sampleRate = header.frequency();
                 msPerFrame = header.ms_per_frame();
 
-                SampleBuffer output = (SampleBuffer) decoder.decodeFrame(header, bitstream);
-                if (output != null) {
-                    short[] buffer = output.getBuffer();
-                    int len = output.getBufferLength();
-                    float maxPeak = 0.0f;
+                try {
+                    SampleBuffer output = (SampleBuffer) decoder.decodeFrame(header, bitstream);
+                    if (output != null) {
+                        short[] buffer = output.getBuffer();
+                        int len = output.getBufferLength();
+                        float maxPeak = 0.0f;
 
-                    for (int i = 0; i < len; i++) {
-                        float absVal = Math.abs(buffer[i]) / 32768.0f;
-                        if (absVal > maxPeak) {
-                            maxPeak = absVal;
+                        for (int i = 0; i < len; i++) {
+                            float absVal = Math.abs(buffer[i]) / 32768.0f;
+                            if (absVal > maxPeak) {
+                                maxPeak = absVal;
+                            }
                         }
+                        framePeaks.add(maxPeak);
                     }
-                    framePeaks.add(maxPeak);
+                } catch (Exception ignored) {
+                    // Einzelner Frame nicht dekodierbar -> überspringen
+                } finally {
+                    try {
+                        bitstream.closeFrame();
+                    } catch (Exception ignored) {
+                    }
                 }
-                bitstream.closeFrame();
             }
 
             long durationMs = Math.round(totalFrames * msPerFrame);
+            if (durationMs <= 0 && mp3File.length() > 0) {
+                // Heuristik: 192 kbit/s = ~24.000 Bytes/s
+                durationMs = Math.max(10_000L, (mp3File.length() * 1000L) / 24000L);
+            }
+
             float[] waveform = resamplePeaks(toFloatArray(framePeaks), DEFAULT_WAVEFORM_POINTS);
             return new AudioAnalysisResult(durationMs, waveform, sampleRate);
+        } catch (Exception e) {
+            log.warn("Fehler beim MP3-Parsing von '{}': {}", mp3File.getName(), e.getMessage());
+            long fallbackDuration = mp3File.length() > 0 ? Math.max(10_000L, (mp3File.length() * 1000L) / 24000L) : 60_000L;
+            return new AudioAnalysisResult(fallbackDuration, new float[0], 44100);
         }
     }
 

@@ -118,7 +118,7 @@ public class TimelineTrackHeaderBox extends HBox {
     private void setupDragAndDrop() {
         setOnDragOver(e -> {
             javafx.scene.input.Dragboard db = e.getDragboard();
-            if (db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
+            if (db.hasFiles() || db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
                 e.acceptTransferModes(javafx.scene.input.TransferMode.COPY_OR_MOVE);
                 if (!getStyleClass().contains("timeline-track-drop-target")) {
                     getStyleClass().add("timeline-track-drop-target");
@@ -135,15 +135,23 @@ public class TimelineTrackHeaderBox extends HBox {
         setOnDragDropped(e -> {
             getStyleClass().remove("timeline-track-drop-target");
             javafx.scene.input.Dragboard db = e.getDragboard();
-            String draggedText = (String) (db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                    ? db.getContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                    : db.getString());
+            java.io.File targetFile = null;
 
-            if (draggedText != null) {
-                String songName = db.hasString() ? db.getString() : draggedText;
-                java.util.Optional<java.io.File> songOpt = service.findSongFileByName(songName);
-                java.io.File songFile = songOpt.orElseGet(() -> new java.io.File(songName));
-                service.assignSongToTrack(track.getId(), songFile);
+            if (db.hasFiles() && !db.getFiles().isEmpty()) {
+                targetFile = db.getFiles().get(0);
+            } else {
+                String draggedText = (String) (db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)
+                        ? db.getContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)
+                        : db.getString());
+                if (draggedText != null) {
+                    String songName = db.hasString() ? db.getString() : draggedText;
+                    java.util.Optional<java.io.File> songOpt = service.findSongFileByName(songName);
+                    targetFile = songOpt.orElseGet(() -> new java.io.File(songName));
+                }
+            }
+
+            if (targetFile != null) {
+                service.assignSongToTrack(track.getId(), targetFile);
                 lblName.setText(track.getName());
                 e.setDropCompleted(true);
             }

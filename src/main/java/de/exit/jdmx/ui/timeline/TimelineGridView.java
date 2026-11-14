@@ -63,8 +63,15 @@ public class TimelineGridView extends Pane {
         heightProperty().addListener((obs, oldH, newH) -> drawGrid());
 
         service.addChangeListener(() -> {
-            updateGridDimensions();
-            drawGrid();
+            if (getScene() != null && !javafx.application.Platform.isFxApplicationThread()) {
+                javafx.application.Platform.runLater(() -> {
+                    updateGridDimensions();
+                    drawGrid();
+                });
+            } else {
+                updateGridDimensions();
+                drawGrid();
+            }
         });
 
         // Klick und Drag zum Scrubben (Versetzen der Timeline-Linie)
@@ -83,7 +90,7 @@ public class TimelineGridView extends Pane {
     private void setupDragAndDrop() {
         setOnDragOver(e -> {
             Dragboard db = e.getDragboard();
-            if (db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
+            if (db.hasFiles() || db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
                 e.acceptTransferModes(TransferMode.COPY_OR_MOVE);
             }
             e.consume();
@@ -91,23 +98,27 @@ public class TimelineGridView extends Pane {
 
         setOnDragDropped(e -> {
             Dragboard db = e.getDragboard();
-            String draggedText = (String) (db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                    ? db.getContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                    : db.getString());
+            File targetFile = null;
 
-            if (draggedText != null) {
-                // Ermitteln, auf welche Spur die Maus zeigt
+            if (db.hasFiles() && !db.getFiles().isEmpty()) {
+                targetFile = db.getFiles().get(0);
+            } else {
+                String draggedText = (String) (db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
+                        ? db.getContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
+                        : db.getString());
+                if (draggedText != null) {
+                    String songName = db.hasString() ? db.getString() : draggedText;
+                    Optional<File> songOpt = service.findSongFileByName(songName);
+                    targetFile = songOpt.orElseGet(() -> new File(songName));
+                }
+            }
+
+            if (targetFile != null) {
                 int trackIdx = getTrackIndexAtY(e.getY());
                 List<TimelineTrack> tracks = service.getTracks();
                 if (trackIdx >= 0 && trackIdx < tracks.size()) {
                     TimelineTrack targetTrack = tracks.get(trackIdx);
-
-                    // Song anhand ID oder Name auffinden
-                    String songName = db.hasString() ? db.getString() : draggedText;
-                    Optional<File> songOpt = service.findSongFileByName(songName);
-
-                    File songFile = songOpt.orElseGet(() -> new File(songName));
-                    service.assignSongToTrack(targetTrack.getId(), songFile);
+                    service.assignSongToTrack(targetTrack.getId(), targetFile);
                     e.setDropCompleted(true);
                 }
             }
@@ -154,7 +165,7 @@ public class TimelineGridView extends Pane {
      */
     public void updateGridDimensions() {
         long maxDurationMs = service.getMaxTimelineDurationMs();
-        double targetWidth = Math.max(1600.0, millisToX(maxDurationMs) + (BAR_WIDTH * 8));
+        double targetWidth = Math.max(1200.0, millisToX(maxDurationMs) + (BAR_WIDTH * 8));
         if (getPrefWidth() != targetWidth) {
             setMinWidth(targetWidth);
             setPrefWidth(targetWidth);
