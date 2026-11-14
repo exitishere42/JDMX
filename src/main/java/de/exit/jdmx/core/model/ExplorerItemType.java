@@ -20,5 +20,8 @@ public enum ExplorerItemType {
     CUELIST,
 
     /** Ein dynamischer Chaser- oder Wellen-Effekt. */
-    EFFECT
+    EFFECT,
+
+    /** Ein Audio-Song-Track (MP3/WAV) in der Show-Timeline. */
+    SONG
 }

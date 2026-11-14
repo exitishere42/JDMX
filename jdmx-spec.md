@@ -256,6 +256,73 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 ---
 
+### Beat-System (Show-Timeline)
+
+#### 1. Automatische Beat-Erkennung
+
+Sobald ein Lied in der Show-Timeline geladen ist, kann per Klick auf den Button **„🔍 Beats erkennen"** (Toolbar der Timeline) eine automatische Analyse gestartet werden.
+
+- Der `BeatAnalyzerService` analysiert die MP3/WAV-Datei offline (im Hintergrund-Thread, UI bleibt reaktionsfähig).
+- Ergebnis: Liste von Beat-Timestamps (ms-genau) + ermittelter BPM-Wert.
+- Jeder erkannte Beat wird als **roter senkrechter Strich** auf der Wellenform in der Timeline angezeigt.
+- Es gibt nur einen einzigen Beat-Typ: **„Beat"** — unabhängig davon, ob er automatisch erkannt oder manuell hinzugefügt wurde. Kein visueller Unterschied.
+
+#### 2. Manuelle Verfeinerung
+
+Da die automatische Erkennung nicht immer perfekt ist (z. B. falsche Beats bei reinen Vokal-Passagen), können Beats manuell angepasst werden:
+
+| Aktion | Bedienung |
+| :--- | :--- |
+| **Beat löschen** | Klick auf roten Marker (wird ausgewählt) → `Entf` oder `Backspace` |
+| **Beat verschieben** | Marker anfassen und horizontal ziehen |
+| **Beat manuell hinzufügen** | Doppelklick auf die Wellenform an der gewünschten Stelle |
+| **Alle Beats löschen** | „Beats löschen"-Button in der Toolbar |
+
+#### 3. Beat Record (MIDI-Tap)
+
+Für das präzise Hinzufügen von Beats während der Wiedergabe gibt es den **Beat Record Modus**:
+
+- **Aktivierung:** Button **„⏺ BEAT REC"** in der Timeline-Toolbar drücken (alternativ Taste `R`).
+- Der Button leuchtet rot / blinkt, solange der Modus aktiv ist.
+- Das Lied läuft per `▶ PLAY` weiter.
+- Jeder **MIDI-Pad-Treffer** (per MIDI-Learn zuweisbar) oder Tastendruck (`B` als Fallback ohne MIDI) setzt exakt zum aktuellen Playback-Zeitstempel einen neuen Beat-Marker.
+- Der Marker erscheint **sofort live** auf der Wellenform.
+- **Deaktivierung:** „⏺ BEAT REC" nochmal drücken.
+
+#### 4. Beat-Export (ID3 TXXX-Tag)
+
+Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** wird die Originaldatei exportiert:
+
+- Das Audio wird **vollständig unverändert** übernommen (identische Qualität, keine Neukodierung).
+- Die Beat-Daten (BPM + alle Timestamps in ms) werden als **ID3v2 TXXX-Tag** mit dem Key `JDMX_BEATS` in die MP3-Datei eingebettet:
+
+```json
+{
+  "bpm": 128,
+  "beats": [0, 468, 936, 1404, 1872]
+}
+```
+
+- Die exportierte Datei bleibt eine **normale `.mp3`** — in jedem Player abspielbar.
+- JDMX kann diese Datei beim erneuten Laden erkennen und die Beats direkt wiederherstellen (kein erneutes Analysieren nötig).
+- **Bibliothek:** `JAudioTagger` (Maven-Dependency).
+
+#### Neue Komponenten
+
+| Komponente | Package | Beschreibung |
+| :--- | :--- | :--- |
+| `BeatAnalyzerService` | `service` | Offline-Analyse von MP3/WAV, liefert BPM + `List<BeatMarker>` |
+| `BeatTapService` | `service` | Wertet MIDI/Tastatur-Taps während Playback aus, erzeugt `BeatMarker` |
+| `BeatMarker` | `core.model` | Timestamp (ms) — kein weiteres Unterscheidungsmerkmal |
+| `BeatExportService` | `service` | Schreibt/liest Beat-JSON via ID3 TXXX-Tag mit JAudioTagger |
+| Beat-Marker Rendering | UI / Timeline-Canvas | Rote senkrechte Linien auf der Wellenform |
+
+#### Roadmap-Eintrag
+
+- [ ] **Phase 4b: Beat-System** — `BeatAnalyzerService`, `BeatTapService` (MIDI/Tastatur), Beat-Marker Rendering in Timeline-Canvas, Beat Record Modus, `BeatExportService` (JAudioTagger / ID3 TXXX), Beats beim Laden automatisch wiederherstellen. TDD 100%.
+
+---
+
 ### Tab 5: Input/Output & Diagnostik
 
 - **DMX-Ausgänge:** Art-Net UDP (Port 6454), DMX2USB (`jSerialComm`), Virtuelle Simulation.
@@ -293,4 +360,5 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 | **2026-11-05** | **Tab 1: Dashboard-Höhe auf 220px skaliert** | Standard- und Mindesthöhe des Steuerungsdocks von 135px auf **220px** angehoben (`DOCK_HEIGHT = 220.0`), um Fader, Farbrad und 2D-XY-Pad noch mehr vertikalen Raum und Bedienkomfort zu bieten. |
 | **2026-11-05** | **Tab 1: Project Explorer (Rechte Seitenleiste)** | Durchgehender `Project Explorer` über die gesamte rechte Fensterhöhe (neben Bühne und Dock). 5 aufklappbare Standard-Ordner (`Geräte`, `Gerätegruppen`, `Presets`, `Szenenlisten`, `Effekte`) mit Drag & Drop-Sortierung, unkategorisierten Items unterhalb, zentriertem grünem `[ + ]` Hinzufügen-Menü (`ExplorerAddMenu`) und Einklapp-Button (`arrow-right-to-line` / `arrow-left-to-line`). Drag & Drop ist strikt auf die Baumstruktur im Explorer beschränkt. |
 | **2026-11-05** | **Tab 2: Umbenennung in LightDesk** | Tab 2 von `Simple Desk` in **`LightDesk`** umbenannt, um eine moderne, eigenständige Nomenklatur zu gewährleisten. |
+| **2026-11-14** | **Tab 4: Beat-System** | Automatische Beat-Erkennung per `BeatAnalyzerService` (rote Marker auf Wellenform), manuelle Verfeinerung (Löschen per `Entf`/`Backspace`, Verschieben, Doppelklick zum Hinzufügen), Beat Record Modus per MIDI-Tap (`⏺ BEAT REC`-Button + Taste `R`). Export: Beat-Daten (BPM + Timestamps) als ID3v2 TXXX-Tag `JDMX_BEATS` via JAudioTagger — Audio bleibt qualitätsidentisch. Neue Phase 4b in der Roadmap. |
 

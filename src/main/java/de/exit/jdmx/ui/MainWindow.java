@@ -37,6 +37,7 @@ import de.exit.jdmx.ui.io.UniversePatchTable;
 import de.exit.jdmx.ui.stage.StageFixtureNode;
 import de.exit.jdmx.ui.stage.StageCanvasView;
 import de.exit.jdmx.ui.stage.StageWorkspaceView;
+import de.exit.jdmx.ui.timeline.ShowTimelineWorkspaceView;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
@@ -114,6 +115,9 @@ public class MainWindow extends StackPane {
 
     /** Referenz auf den LightDesk-Workspace (Tab 2). */
     private LightDeskWorkspaceView lightDeskWorkspaceView;
+
+    /** Referenz auf den Show-Timeline-Workspace (Tab 4). */
+    private ShowTimelineWorkspaceView showTimelineWorkspaceView;
 
     /** Referenz auf den IO-Workspace (Tab 5). */
     private IOWorkspaceView ioWorkspaceView;
@@ -318,7 +322,9 @@ public class MainWindow extends StackPane {
         this.lightDeskWorkspaceView = new LightDeskWorkspaceView(dmxService, stageWorkspaceView.getExplorerService());
         tabViews[1] = lightDeskWorkspaceView;
         tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
-        tabViews[3] = createTabPlaceholder("Show-Timeline", "audio-lines", StudioTheme.COLOR_ICON_TIMELINE);
+
+        this.showTimelineWorkspaceView = new ShowTimelineWorkspaceView();
+        tabViews[3] = showTimelineWorkspaceView;
 
         this.ioWorkspaceView = new IOWorkspaceView(new HardwareDiscoveryService(), this);
         ioWorkspaceView.getPatchTable().setOnConfigChanged(this::autoSave);
