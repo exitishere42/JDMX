@@ -36,6 +36,12 @@ public class TimelineTrack {
     /** Zugeordnete Song-Datei, oder {@code null}. */
     private java.io.File songFile;
 
+    /** Gesamtlaufzeit des Songs in Millisekunden (0 wenn kein Song zugewiesen). */
+    private long durationMs = 0L;
+
+    /** Normalisierte Wellenform-Peaks (Werte zwischen 0.0f und 1.0f) oder {@code null}. */
+    private float[] waveformData;
+
     /**
      * Erstellt einen neuen ungemuteten Timeline-Track mit Standardhöhe.
      *
@@ -182,6 +188,51 @@ public class TimelineTrack {
      */
     public void setSongFile(java.io.File songFile) {
         this.songFile = songFile;
+    }
+
+    /**
+     * Liefert die Gesamtlaufzeit des Songs in Millisekunden.
+     *
+     * @return Dauer in Millisekunden (>= 0)
+     */
+    public long getDurationMs() {
+        return durationMs;
+    }
+
+    /**
+     * Setzt die Gesamtlaufzeit des Songs in Millisekunden.
+     *
+     * @param durationMs Dauer in Millisekunden (Werte < 0 werden als 0 gewertet)
+     */
+    public void setDurationMs(long durationMs) {
+        this.durationMs = Math.max(0L, durationMs);
+    }
+
+    /**
+     * Liefert eine Kopie der normalisierten Wellenform-Daten oder {@code null}.
+     *
+     * @return Kopie der Wellenform-Peaks oder {@code null}
+     */
+    public float[] getWaveformData() {
+        return waveformData != null ? waveformData.clone() : null;
+    }
+
+    /**
+     * Setzt die normalisierten Wellenform-Daten (Werte zwischen 0.0f und 1.0f).
+     *
+     * @param waveformData Wellenform-Peaks oder {@code null}
+     */
+    public void setWaveformData(float[] waveformData) {
+        this.waveformData = waveformData != null ? waveformData.clone() : null;
+    }
+
+    /**
+     * Prüft, ob echte Wellenform-Daten für diesen Track vorliegen.
+     *
+     * @return {@code true}, wenn Wellenform-Peaks vorhanden sind
+     */
+    public boolean hasWaveform() {
+        return waveformData != null && waveformData.length > 0;
     }
 
     @Override

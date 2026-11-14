@@ -57,10 +57,15 @@ public class TimelineGridView extends Pane {
         canvas.widthProperty().bind(widthProperty());
         canvas.heightProperty().bind(heightProperty());
 
+        updateGridDimensions();
+
         widthProperty().addListener((obs, oldW, newW) -> drawGrid());
         heightProperty().addListener((obs, oldH, newH) -> drawGrid());
 
-        service.addChangeListener(this::drawGrid);
+        service.addChangeListener(() -> {
+            updateGridDimensions();
+            drawGrid();
+        });
 
         // Klick und Drag zum Scrubben (Versetzen der Timeline-Linie)
         setOnMousePressed(e -> handleSeek(e.getX()));
@@ -145,6 +150,18 @@ public class TimelineGridView extends Pane {
     }
 
     /**
+     * Aktualisiert die Gesamtbreite des Grid-Panes passend zur Maximallaufzeit der Timeline.
+     */
+    public void updateGridDimensions() {
+        long maxDurationMs = service.getMaxTimelineDurationMs();
+        double targetWidth = Math.max(1600.0, millisToX(maxDurationMs) + (BAR_WIDTH * 8));
+        if (getPrefWidth() != targetWidth) {
+            setMinWidth(targetWidth);
+            setPrefWidth(targetWidth);
+        }
+    }
+
+    /**
      * Zeichnet das Playlist-Raster, die Song-Clips und die Timeline-Linie auf die Canvas.
      */
     public void drawGrid() {
@@ -211,11 +228,12 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Zeichnet einen Song-Clip Block auf einer Spur.
+     * Zeichnet einen Song-Clip Block auf einer Spur mit realer Länge und echter Wellenform.
      */
     private void drawSongClip(GraphicsContext gc, TimelineTrack track, double y, double h, double maxW) {
         double clipX = 0;
-        double clipW = Math.min(maxW - 20, 600.0); // Vorläufige Clip-Länge
+        long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
+        double clipW = Math.max(80.0, millisToX(durationMs));
         double clipH = h - 6;
         double clipY = y + 3;
 
@@ -227,18 +245,41 @@ public class TimelineGridView extends Pane {
         gc.setLineWidth(1.0);
         gc.strokeRoundRect(clipX + 2, clipY, clipW, clipH, 6, 6);
 
-        // Simulierte Wellenform im Clip
-        gc.setStroke(Color.web("#34D399"));
-        gc.setLineWidth(1.5);
-        double waveCenterY = clipY + (clipH / 2.0);
-        for (double wx = clipX + 10; wx < clipX + clipW - 10; wx += 6) {
-            double amplitude = (Math.sin(wx * 0.15) * 0.5 + 0.5) * (clipH * 0.35);
-            gc.strokeLine(wx, waveCenterY - amplitude, wx, waveCenterY + amplitude);
+        // Echte Wellenform zeichnen
+        float[] waveform = track.getWaveformData();
+        if (waveform != null && waveform.length > 0) {
+            gc.setStroke(Color.web("#34D399"));
+            gc.setLineWidth(1.5);
+            double waveCenterY = clipY + (clipH / 2.0);
+            double maxAmpH = (clipH / 2.0) - 5.0;
+
+            double stepPx = 2.0;
+            for (double wx = clipX + 4; wx < clipX + clipW - 4; wx += stepPx) {
+                double progress = (wx - clipX) / clipW;
+                int sampleIdx = (int) (progress * (waveform.length - 1));
+                float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
+                double ampHeight = Math.max(1.0, amp * maxAmpH);
+                gc.strokeLine(wx, waveCenterY - ampHeight, wx, waveCenterY + ampHeight);
+            }
+        } else {
+            // Subtile Mittellinie als visueller Anker, falls noch keine Wellenform berechnet
+            gc.setStroke(Color.web("#059669"));
+            gc.setLineWidth(1.0);
+            double waveCenterY = clipY + (clipH / 2.0);
+            gc.strokeLine(clipX + 8, waveCenterY, clipX + clipW - 8, waveCenterY);
         }
 
-        // Song-Titel Header
+        // Song-Titel Header mit Formatierung der Laufzeit
         gc.setFill(Color.web("#F3F4F6"));
-        gc.fillText(track.getSongName(), clipX + 12, clipY + 14);
+        String durationStr = formatDuration(durationMs);
+        gc.fillText(track.getSongName() + " (" + durationStr + ")", clipX + 12, clipY + 14);
+    }
+
+    private String formatDuration(long ms) {
+        long totalSec = ms / 1000;
+        long mins = totalSec / 60;
+        long secs = totalSec % 60;
+        return String.format("%02d:%02d", mins, secs);
     }
 
     /**

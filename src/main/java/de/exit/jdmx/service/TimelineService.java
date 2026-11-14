@@ -54,11 +54,24 @@ public class TimelineService {
     private ScheduledExecutorService playbackExecutor;
     private volatile long lastTickNanos = 0L;
 
+    /** Audioanalyse-Service für Laufzeit- und Wellenform-Berechnungen. */
+    private final AudioAnalysisService audioAnalysisService;
+
     /**
      * Erstellt einen neuen {@link TimelineService} und initialisiert diesen standardmäßig
      * mit einer ersten Spur ("Track 1").
      */
     public TimelineService() {
+        this(new AudioAnalysisService());
+    }
+
+    /**
+     * Erstellt einen neuen {@link TimelineService} mit injiziertem {@link AudioAnalysisService}.
+     *
+     * @param audioAnalysisService der Audioanalyse-Dienst (darf nicht {@code null} sein)
+     */
+    public TimelineService(AudioAnalysisService audioAnalysisService) {
+        this.audioAnalysisService = Objects.requireNonNull(audioAnalysisService, "audioAnalysisService must not be null");
         initDefaultTrack();
     }
 
@@ -258,6 +271,18 @@ public class TimelineService {
             track.setSongFile(songFile);
             track.setSongName(songFile.getName());
 
+            // Audioanalyse durchführen (Laufzeit und echte Wellenform)
+            de.exit.jdmx.core.model.AudioAnalysisResult analysis = audioAnalysisService.analyze(songFile);
+            if (analysis.durationMs() > 0) {
+                track.setDurationMs(analysis.durationMs());
+            } else {
+                track.setDurationMs(60_000L); // 60s Standard-Fallback
+            }
+
+            if (analysis.hasWaveform()) {
+                track.setWaveformData(analysis.waveformPeaks());
+            }
+
             if (track.getName().matches("^Track\\s+\\d+$")) {
                 track.setName(songFile.getName());
             }
@@ -270,6 +295,22 @@ public class TimelineService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Liefert die maximale Gesamtlaufzeit der Timeline in Millisekunden.
+     * Ermittelt die längste Spur mit zugewiesenem Song oder liefert standardmäßig 60.000 ms (1 Minute).
+     *
+     * @return maximale Laufzeit in ms
+     */
+    public long getMaxTimelineDurationMs() {
+        long maxSongDuration = 0L;
+        for (TimelineTrack t : tracks) {
+            if (t.hasSong() && t.getDurationMs() > maxSongDuration) {
+                maxSongDuration = t.getDurationMs();
+            }
+        }
+        return maxSongDuration > 0 ? maxSongDuration : 60_000L;
     }
 
     /**
@@ -360,8 +401,14 @@ public class TimelineService {
 
             long deltaMs = elapsedNanos / 1_000_000L;
             if (deltaMs > 0) {
-                currentPositionMs.addAndGet(deltaMs);
-                notifyChange();
+                long newPos = currentPositionMs.addAndGet(deltaMs);
+                long maxDuration = getMaxTimelineDurationMs();
+                if (maxDuration > 0 && newPos >= maxDuration) {
+                    currentPositionMs.set(maxDuration);
+                    pausePlayback();
+                } else {
+                    notifyChange();
+                }
             }
         }, 25, 25, TimeUnit.MILLISECONDS);
     }

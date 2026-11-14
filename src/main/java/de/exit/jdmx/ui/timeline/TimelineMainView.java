@@ -118,7 +118,7 @@ public class TimelineMainView extends VBox {
         gridScrollPane.getStyleClass().addAll("timeline-grid-scroll", "edge-to-edge");
         gridScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         gridScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        gridScrollPane.setFitToWidth(true);
+        gridScrollPane.setFitToWidth(false);
         gridScrollPane.setFitToHeight(true);
         HBox.setHgrow(gridScrollPane, Priority.ALWAYS);
         VBox.setVgrow(gridScrollPane, Priority.ALWAYS);
@@ -165,7 +165,14 @@ public class TimelineMainView extends VBox {
      */
     public void updateFromService() {
         rebuildTrackBoxes();
-        lblTimeDisplay.setText(formatTime(service.getCurrentPositionMs()));
+        long curPos = service.getCurrentPositionMs();
+        long maxDuration = service.getMaxTimelineDurationMs();
+        boolean hasSong = service.getTracks().stream().anyMatch(TimelineTrack::hasSong);
+        if (hasSong || maxDuration > 60_000L) {
+            lblTimeDisplay.setText(formatTime(curPos) + " / " + formatTime(maxDuration));
+        } else {
+            lblTimeDisplay.setText(formatTime(curPos));
+        }
         updatePlayButtonVisual();
     }
 
