@@ -56,4 +56,31 @@ class TimelineMainViewTest {
 
         assertThat(view.getTimelineGridView()).isNotNull();
     }
+
+    @Test
+    @DisplayName("Sollte Play- und Stop-Buttons mit dem TimelineService synchronisieren")
+    void shouldSynchronizePlayAndStopWithService() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        assertThat(service.isPlaying()).isFalse();
+
+        // Play drücken
+        view.getBtnPlay().fire();
+        assertThat(service.isPlaying()).isTrue();
+
+        // Stop drücken
+        view.getBtnStop().fire();
+        assertThat(service.isPlaying()).isFalse();
+        assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
+        assertThat(view.getLblTimeDisplay().getText()).isEqualTo("00:00.000");
+    }
+
+    @Test
+    @DisplayName("Sollte Zeitstempel exakt im Format mm:ss.SSS formatieren")
+    void shouldFormatTimeCorrectly() {
+        assertThat(TimelineMainView.formatTime(0L)).isEqualTo("00:00.000");
+        assertThat(TimelineMainView.formatTime(1500L)).isEqualTo("00:01.500");
+        assertThat(TimelineMainView.formatTime(65432L)).isEqualTo("01:05.432");
+    }
 }

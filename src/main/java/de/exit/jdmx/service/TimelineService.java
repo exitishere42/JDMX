@@ -2,9 +2,12 @@ package de.exit.jdmx.service;
 
 import de.exit.jdmx.core.model.TimelineTrack;
 
+import java.io.File;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Service für die Geschäftslogik der Show-Timeline (100% Core/Service-Schicht).
@@ -14,12 +17,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  *     <li>Die Liste aller aktiven Spuren (Tracks) in der Show-Timeline</li>
  *     <li>Hinzufügen neuer Tracks im FL Studio Playlist-Stil mit fortlaufender Nummerierung</li>
  *     <li>Umbenennen von Spuren und Mute-Steuerung</li>
+ *     <li>Importierte Audio-Songs (MP3/WAV) und aktiver Playback-Track</li>
+ *     <li>Start-, Pause- und Stop-Logik für die Timeline mit präziser Zeitverfolgung</li>
  *     <li>Benachrichtigung registrierter Listener bei Änderungen (Reaktivität)</li>
  * </ul>
  * </p>
  * <p>
- * <b>Thread-Sicherheit:</b> Vollständig thread-sicher über interne Synchronisation
- * und {@link CopyOnWriteArrayList}.
+ * <b>Thread-Sicherheit:</b> Vollständig thread-sicher über atomare Variablen,
+ * {@link CopyOnWriteArrayList} und synchronisierte Playback-Verwaltung.
  * </p>
  */
 public class TimelineService {
@@ -27,11 +32,27 @@ public class TimelineService {
     /** Interne Track-Liste der Timeline. */
     private final List<TimelineTrack> tracks = new CopyOnWriteArrayList<>();
 
+    /** Liste der importierten Songs. */
+    private final List<File> importedSongs = new CopyOnWriteArrayList<>();
+
+    /** Aktuell aktive Audio-Datei. */
+    private volatile File activeSongFile;
+
     /** Zähler für fortlaufende Standard-Track-Namen ("Track 1", "Track 2", ...). */
     private final AtomicInteger trackSequenceCounter = new AtomicInteger(1);
 
+    /** Ob die Timeline aktuell abgespielt wird. */
+    private final AtomicBoolean playing = new AtomicBoolean(false);
+
+    /** Aktuelle Abspielposition in Millisekunden. */
+    private final AtomicLong currentPositionMs = new AtomicLong(0L);
+
     /** Registrierte Listener für Daten- und Zustandsänderungen. */
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
+
+    /** Scheduled Executor für den Playback-Takt. */
+    private ScheduledExecutorService playbackExecutor;
+    private volatile long lastTickNanos = 0L;
 
     /**
      * Erstellt einen neuen {@link TimelineService} und initialisiert diesen standardmäßig
@@ -179,8 +200,141 @@ public class TimelineService {
         return removed;
     }
 
+    // =========================================================================
+    // Song-Import & Audio-Verwaltung
+    // =========================================================================
+
     /**
-     * Registriert einen Listener, der bei Änderungen an den Tracks aufgerufen wird.
+     * Importiert eine Audio-Datei (MP3/WAV) in die Timeline.
+     *
+     * @param songFile die zu importierende Datei (darf nicht {@code null} sein)
+     * @throws NullPointerException wenn {@code songFile} {@code null} ist
+     */
+    public void importSong(File songFile) {
+        Objects.requireNonNull(songFile, "songFile must not be null");
+        if (!importedSongs.contains(songFile)) {
+            importedSongs.add(songFile);
+        }
+        this.activeSongFile = songFile;
+        notifyChange();
+    }
+
+    /**
+     * Liefert die Liste aller importierten Songs.
+     *
+     * @return unmodifizierbare Liste der importierten Dateien
+     */
+    public List<File> getImportedSongs() {
+        return Collections.unmodifiableList(importedSongs);
+    }
+
+    /**
+     * Liefert die aktuell aktive Song-Datei für Playback.
+     *
+     * @return aktive Datei oder {@code null}
+     */
+    public File getActiveSongFile() {
+        return activeSongFile;
+    }
+
+    // =========================================================================
+    // Playback-Steuerung (Start, Pause, Stop, Position)
+    // =========================================================================
+
+    /**
+     * Prüft, ob die Timeline aktuell wiedergegeben wird.
+     *
+     * @return {@code true}, wenn aktiv, sonst {@code false}
+     */
+    public boolean isPlaying() {
+        return playing.get();
+    }
+
+    /**
+     * Liefert die aktuelle Abspielposition in Millisekunden.
+     *
+     * @return Position in ms
+     */
+    public long getCurrentPositionMs() {
+        return currentPositionMs.get();
+    }
+
+    /**
+     * Setzt die aktuelle Abspielposition in Millisekunden.
+     *
+     * @param positionMs Position in Millisekunden (>= 0)
+     */
+    public void setPositionMs(long positionMs) {
+        currentPositionMs.set(Math.max(0L, positionMs));
+        notifyChange();
+    }
+
+    /**
+     * Startet die Wiedergabe der Timeline ab der aktuellen Position.
+     */
+    public synchronized void startPlayback() {
+        if (playing.compareAndSet(false, true)) {
+            lastTickNanos = System.nanoTime();
+            startPlaybackTimer();
+            notifyChange();
+        }
+    }
+
+    /**
+     * Pausiert die Wiedergabe der Timeline, behält die aktuelle Position bei.
+     */
+    public synchronized void pausePlayback() {
+        if (playing.compareAndSet(true, false)) {
+            stopPlaybackTimer();
+            notifyChange();
+        }
+    }
+
+    /**
+     * Stoppt die Wiedergabe der Timeline vollständig und setzt die Position auf 0ms zurück.
+     */
+    public synchronized void stopPlayback() {
+        playing.set(false);
+        stopPlaybackTimer();
+        currentPositionMs.set(0L);
+        notifyChange();
+    }
+
+    private void startPlaybackTimer() {
+        stopPlaybackTimer();
+        playbackExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "Timeline-Playback-Clock");
+            t.setDaemon(true);
+            return t;
+        });
+
+        playbackExecutor.scheduleAtFixedRate(() -> {
+            if (!playing.get()) return;
+            long now = System.nanoTime();
+            long elapsedNanos = now - lastTickNanos;
+            lastTickNanos = now;
+
+            long deltaMs = elapsedNanos / 1_000_000L;
+            if (deltaMs > 0) {
+                currentPositionMs.addAndGet(deltaMs);
+                notifyChange();
+            }
+        }, 25, 25, TimeUnit.MILLISECONDS);
+    }
+
+    private void stopPlaybackTimer() {
+        if (playbackExecutor != null && !playbackExecutor.isShutdown()) {
+            playbackExecutor.shutdownNow();
+            playbackExecutor = null;
+        }
+    }
+
+    // =========================================================================
+    // Change-Listener
+    // =========================================================================
+
+    /**
+     * Registriert einen Listener, der bei Änderungen an den Tracks oder am Playback aufgerufen wird.
      *
      * @param listener Callback-Aktion
      */

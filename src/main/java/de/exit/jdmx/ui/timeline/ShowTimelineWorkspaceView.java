@@ -46,7 +46,7 @@ public class ShowTimelineWorkspaceView extends SplitPane {
         this.timelineMainView = new TimelineMainView(this.timelineService);
 
         // --- Rechter Bereich (Explorer) ---
-        this.explorerView = new ShowTimelineExplorerView();
+        this.explorerView = new ShowTimelineExplorerView(this.timelineService);
 
         getItems().addAll(timelineMainView, explorerView);
         setDividerPositions(DEFAULT_SPLIT_RATIO);

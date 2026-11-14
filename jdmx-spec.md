@@ -276,8 +276,9 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
   - **Mute-Knopf (●):** Runder Statusindikator. Grün (`#10B981`) = aktiv, Dunkelgrau (`#3F3F46`) = stummgeschaltet (Muted). Ein Klick schaltet die Spur stumm oder wieder aktiv.
   - **Track-Name:** Fette Typografie im Studio-Dark-Design.
   - **Inline-Rename:** Per Doppelklick auf den Namen öffnet sich direkt ein Textfeld an Ort und Stelle. Mit `Enter` oder Klick außerhalb wird der neue Name übernommen; mit `Escape` wird abgebrochen.
-- **`[+]`-Button mit Outline:**
+- **`[+]`-Button (Stage-Stil ohne Outline):**
   - Direkt unter der letzten Trackbox platziert.
+  - Transparent im Ruhezustand (wie in Stage), mit dezentem Hover-Effekt.
   - Erzeugt bei Klick die nächste Spur mit fortlaufender Nummerierung (`Track 2`, `Track 3` etc.).
   - Auch wenn „Track 1" umbenannt wurde (z. B. zu „Showtanz"), wird die nächste Spur sauber als „Track 2" benannt.
 
@@ -286,13 +287,19 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 - Vertikales Taktraster unterteilt Takte (Bars) und Viertel-Beats mit dezenten Kontrastlinien.
 - Vertikales Scrollen zwischen linker Header-Spalte und rechtem Grid ist bidirektional synchronisiert.
 
+#### Playback-Steuerung & Zeitverfolgung
+- **Transport-Buttons:** `Play` (Start/Pause) und `Stop` (setzt auf `00:00.000` zurück).
+- **Echtzeit-Zeitanzeige:** Präzise Anzeige im Format `mm:ss.SSS`.
+- **Hintergrund-Taktung:** Thread-sicherer 25ms Playback-Timer im `TimelineService`.
+
 #### Architektur & Klassen
 | Klasse | Schicht | Funktion |
 | :--- | :--- | :--- |
 | `TimelineTrack` | `core.model` | ID, Name, Mute-Status, Spurhöhe |
-| `TimelineService` | `service` | Verwaltung der Tracks, fortlaufende Sequenznummern, Thread-Sicherheit, Change-Listener |
+| `TimelineService` | `service` | Verwaltung der Tracks, Song-Import, Playback-Clock (Play/Pause/Stop), Thread-Sicherheit |
 | `TimelineTrackHeaderBox` | `ui.timeline` | Linke Trackbox mit Mute-Punkt und Inline-Rename |
 | `TimelineGridView` | `ui.timeline` | Canvas-Zeichnung des synchronisierten Taktrasters |
+| `TimelineInspectorView` | `ui.timeline` | Inspektor-Ansicht für selektierte Elemente |
 | `TimelineMainView` | `ui.timeline` | Playlist-Hauptansicht mit Toolbar, Track-Header-Leiste und Grid |
 
 ---
@@ -301,7 +308,7 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 ```
 ┌──────────────────────────┐
-│ [Explorer]            [+]│  ← kompakte Text-Tabs + Outline-Plus-Button
+│ [Inspektor] [Explorer][+]│  ← kompakte Text-Tabs + Stage-Style Plus-Button
 ├──────────────────────────┤
 │ ▸ Songs                  │  ← TreeView
 │   ├─ showtanz26.mp3      │
@@ -309,12 +316,13 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 └──────────────────────────┘
 ```
 
-- **Kompakte Tab-Leiste** oben: `[Explorer]` (aktiv: unterstrichen, Primärfarbe) — Inspector-Tab wird später ergänzt.
-- **`[+]` Button** (Outline-Stil, direkt neben den Tabs):
+- **Kompakte Tab-Leiste** oben: `[Inspektor]` und `[Explorer]` (aktiver Tab: unterstrichen, Primärfarbe).
+- **Inspektor-Ansicht (`TimelineInspectorView`):** Ermöglicht Detailinspektion und Beat-Parametrierung; zeigt leeren Platzhalter bei inaktiver Auswahl.
+- **`[+]` Button** (ohne Outline im Stage-Stil):
   - Klick öffnet Dropdown-Menü und wechselt automatisch zum Explorer-Tab.
-  - Dropdown enthält: **Song** → öffnet Datei-Dialog (WAV/MP3).
-- **Explorer-TreeView:** Ordner `Songs` — listet geladene Audio-Tracks auf.
-- **Implementierung:** `ShowTimelineWorkspaceView` (SplitPane, 76/24), `ShowTimelineExplorerView`, `ShowTimelineAddMenu`.
+  - Dropdown enthält: **Song** → öffnet System-Dateidialog (`FileChooser` für MP3 & WAV).
+  - Nach Auswahl wird der Song importiert und im Songs-Ordner der TreeView gelistet.
+- **Implementierung:** `ShowTimelineWorkspaceView` (SplitPane, 76/24), `ShowTimelineExplorerView`, `TimelineInspectorView`, `ShowTimelineAddMenu`.
 
 ---
 
@@ -425,4 +433,5 @@ Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** 
 | **2026-11-14** | **Tab 4: Show-Timeline Workspace — Rechte Seitenleiste** | `ShowTimelineWorkspaceView` ersetzt den Placeholder in Tab 4. Rechte Seitenleiste (`ShowTimelineExplorerView`) mit kompakten Tabs (`[Explorer]` aktiv, Inspector folgt später) und `[+]`-Outline-Button (öffnet `ShowTimelineAddMenu` mit „Song"-Eintrag, wechselt automatisch auf Explorer-Tab). TreeView mit Songs-Ordner. `ExplorerItemType.SONG` ergänzt. CSS, i18n (DE/EN) vollständig. 8 neue Tests, alle 297 grün. |
 | **2026-11-14** | **Tab 4: Beat-System** | Automatische Beat-Erkennung per `BeatAnalyzerService` (rote Marker auf Wellenform), manuelle Verfeinerung (Löschen per `Entf`/`Backspace`, Verschieben, Doppelklick zum Hinzufügen), Beat Record Modus per MIDI-Tap (`⏺ BEAT REC`-Button + Taste `R`). Export: Beat-Daten (BPM + Timestamps) als ID3v2 TXXX-Tag `JDMX_BEATS` via JAudioTagger — Audio bleibt qualitätsidentisch. Neue Phase 4b in der Roadmap. |
 | **2026-11-14** | **Tab 4: Show-Timeline Playlist (Track-Boxen & Grid)** | Implementierung des FL Studio Playlist-Konzepts: Linke Track-Header-Leiste mit `TimelineTrackHeaderBox` (runder Mute-Knopf aktiv/stumm, Inline-Rename per Doppelklick), Outline `[+]`-Button unter den Boxen für fortlaufende Track-Erzeugung (`Track 1` default, dann `Track 2`, `Track 3` etc. auch bei Umbenennung). Rechtes synchronisiertes Canvas-Taktraster (`TimelineGridView`) mit horizontalen Spur-Lanes und Takt-/Beat-Raster. MVC-Trennung mit `TimelineTrack` und thread-sicherem `TimelineService`. 17 neue Tests, alle 314 Tests grün. |
+| **2026-11-14** | **Tab 4: Inspektor-Tab, Song-Import & Playback-Engine** | Seitenleiste um `TimelineInspectorView` erweitert mit Umschaltung via `[Inspektor]`- und `[Explorer]`-Tabs. `[+]`-Button im Tab-Header und Track-`[+]`-Button auf transparentes Stage-Design ohne Outline umgestellt. Song-Import (`*.mp3`, `*.wav`) via FileChooser und `TimelineService.importSong()`, automatische Synchronisation mit der Songs-TreeView. Playback-Steuerung (Play/Pause, Stop) mit Millisekunden-Genauigkeit (`mm:ss.SSS`) und 25ms Taktung. 7 neue Tests, alle 321 Tests grün. |
 

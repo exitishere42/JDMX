@@ -65,11 +65,19 @@ public class TimelineMainView extends VBox {
         btnPlay.getStyleClass().add("timeline-transport-btn");
         btnPlay.setGraphic(new LucideIcon("play", 13, StudioTheme.COLOR_ICON_GREEN));
         btnPlay.setTooltip(new Tooltip("Play"));
+        btnPlay.setOnAction(e -> {
+            if (service.isPlaying()) {
+                service.pausePlayback();
+            } else {
+                service.startPlayback();
+            }
+        });
 
         this.btnStop = new Button();
         btnStop.getStyleClass().add("timeline-transport-btn");
         btnStop.setGraphic(new LucideIcon("square", 12, StudioTheme.COLOR_ICON_RED));
         btnStop.setTooltip(new Tooltip("Stop"));
+        btnStop.setOnAction(e -> service.stopPlayback());
 
         this.lblTimeDisplay = new Label("00:00.000");
         lblTimeDisplay.getStyleClass().add("timeline-time-display");
@@ -125,17 +133,55 @@ public class TimelineMainView extends VBox {
 
         getChildren().addAll(topToolbar, contentBox);
 
-        // Initialer Aufbau der Trackboxen
-        rebuildTrackBoxes();
+        // Initialer Aufbau der Trackboxen und Playback-Zustand
+        updateFromService();
 
         // Auf Änderungen im Service lauschen
         service.addChangeListener(() -> {
             if (getScene() != null && !Platform.isFxApplicationThread()) {
-                Platform.runLater(this::rebuildTrackBoxes);
+                Platform.runLater(this::updateFromService);
             } else {
-                rebuildTrackBoxes();
+                updateFromService();
             }
         });
+    }
+
+    /**
+     * Formatiert eine Zeitspanne in Millisekunden in die digitale Zeitanzeige {@code mm:ss.SSS}.
+     *
+     * @param totalMs Zeit in Millisekunden
+     * @return formatierter String im Format {@code mm:ss.SSS}
+     */
+    public static String formatTime(long totalMs) {
+        long safeMs = Math.max(0L, totalMs);
+        long minutes = (safeMs / 1000L) / 60L;
+        long seconds = (safeMs / 1000L) % 60L;
+        long millis = safeMs % 1000L;
+        return String.format("%02d:%02d.%03d", minutes, seconds, millis);
+    }
+
+    /**
+     * Aktualisiert die Trackboxen, die Zeitanzeige und den Play-Button-Status.
+     */
+    public void updateFromService() {
+        rebuildTrackBoxes();
+        lblTimeDisplay.setText(formatTime(service.getCurrentPositionMs()));
+        updatePlayButtonVisual();
+    }
+
+    /**
+     * Aktualisiert das Icon und Styling des Play-Buttons.
+     */
+    public void updatePlayButtonVisual() {
+        if (service.isPlaying()) {
+            btnPlay.setGraphic(new LucideIcon("pause", 13, StudioTheme.COLOR_ICON_TIMELINE));
+            if (!btnPlay.getStyleClass().contains("active")) {
+                btnPlay.getStyleClass().add("active");
+            }
+        } else {
+            btnPlay.setGraphic(new LucideIcon("play", 13, StudioTheme.COLOR_ICON_GREEN));
+            btnPlay.getStyleClass().remove("active");
+        }
     }
 
     /**

@@ -1667,24 +1667,23 @@
     -fx-padding: 6 8 4 2;
 }
 
-/* [+] Button (Outline-Stil, klein) */
+/* [+] Button (ohne Outline im Stage-Stil) */
 .timeline-explorer-add-btn {
     -fx-background-color: transparent;
-    -fx-border-color: #383838;
+    -fx-border-color: transparent;
     -fx-border-radius: 4px;
     -fx-background-radius: 4px;
-    -fx-padding: 2 5;
+    -fx-padding: 2 4;
     -fx-cursor: hand;
-    -fx-margin: 0 0 4 0;
 }
 
 .timeline-explorer-add-btn:hover {
     -fx-background-color: #242424;
-    -fx-border-color: #10B981;
+    -fx-border-color: #383838;
 }
 
 .timeline-explorer-add-btn:pressed {
-    -fx-background-color: #1A1A1A;
+    -fx-background-color: #2E2E2E;
 }
 
 
@@ -1800,25 +1799,54 @@
     -fx-padding: 2 5;
 }
 
+/* [+] Button für Tracks (ohne Outline im Stage-Stil) */
 .timeline-track-add-btn {
     -fx-background-color: transparent;
-    -fx-border-color: #383838;
-    -fx-border-style: dashed;
+    -fx-border-color: transparent;
     -fx-border-radius: 4px;
     -fx-background-radius: 4px;
-    -fx-padding: 4 6;
-    -fx-margin: 8 10;
+    -fx-padding: 3 6;
+    -fx-margin: 6 10;
     -fx-cursor: hand;
     -fx-alignment: center;
 }
 
 .timeline-track-add-btn:hover {
-    -fx-background-color: #222222;
-    -fx-border-color: #10B981;
+    -fx-background-color: #242424;
+    -fx-border-color: #383838;
 }
 
 .timeline-track-add-btn:pressed {
+    -fx-background-color: #2E2E2E;
+}
+
+/* Inspektor-Ansicht in der Timeline */
+.timeline-inspector-view {
     -fx-background-color: #171717;
+    -fx-padding: 6 8;
+}
+
+.timeline-inspector-header {
+    -fx-padding: 4 4 6 4;
+    -fx-border-color: transparent transparent #262626 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.timeline-inspector-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #9CA3AF;
+}
+
+.timeline-inspector-content {
+    -fx-background-color: transparent;
+    -fx-padding: 24 10;
+}
+
+.timeline-inspector-placeholder {
+    -fx-text-fill: #6B7280;
+    -fx-font-size: 11px;
+    -fx-alignment: center;
 }
 
 .timeline-tracks-scroll,
