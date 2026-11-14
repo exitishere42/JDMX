@@ -37,6 +37,8 @@ class ShowTimelineWorkspaceViewTest {
         ShowTimelineWorkspaceView workspace = new ShowTimelineWorkspaceView();
         assertThat(workspace.getExplorerView()).isNotNull();
         assertThat(workspace.getItems().get(1)).isEqualTo(workspace.getExplorerView());
+        assertThat(workspace.getTimelineMainView()).isNotNull();
+        assertThat(workspace.getItems().get(0)).isEqualTo(workspace.getTimelineMainView());
     }
 
     @Test

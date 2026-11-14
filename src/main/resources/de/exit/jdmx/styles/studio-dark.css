@@ -1686,3 +1686,153 @@
 .timeline-explorer-add-btn:pressed {
     -fx-background-color: #1A1A1A;
 }
+
+
+/* ============================================================
+   Show-Timeline Playlist Tracks & Grid (FL Studio Stil)
+   ============================================================ */
+
+.timeline-main-view {
+    -fx-background-color: #121212;
+}
+
+.timeline-top-toolbar {
+    -fx-background-color: #171717;
+    -fx-padding: 5 10;
+    -fx-border-color: transparent transparent #262626 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.timeline-transport-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: #333333;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 8;
+    -fx-cursor: hand;
+}
+
+.timeline-transport-btn:hover {
+    -fx-background-color: #242424;
+    -fx-border-color: #4B5563;
+}
+
+.timeline-transport-btn:pressed {
+    -fx-background-color: #1A1A1A;
+}
+
+.timeline-time-display {
+    -fx-text-fill: #E4E4E7;
+    -fx-font-size: 13px;
+    -fx-font-family: monospace, "Segoe UI";
+    -fx-font-weight: bold;
+    -fx-padding: 3 10;
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: #2A2A2A;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.timeline-left-headers-pane {
+    -fx-background-color: #171717;
+    -fx-border-color: transparent #262626 transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.timeline-tracks-container {
+    -fx-background-color: transparent;
+}
+
+.timeline-track-header-box {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: transparent transparent #222222 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 10;
+}
+
+.timeline-track-header-box:hover {
+    -fx-background-color: #222222;
+}
+
+.timeline-track-mute-btn {
+    -fx-min-width: 14px;
+    -fx-pref-width: 14px;
+    -fx-max-width: 14px;
+    -fx-min-height: 14px;
+    -fx-pref-height: 14px;
+    -fx-max-height: 14px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.timeline-track-mute-btn.active {
+    -fx-background-color: #10B981;
+    -fx-border-color: #059669;
+    -fx-border-width: 1px;
+}
+
+.timeline-track-mute-btn.muted {
+    -fx-background-color: #3F3F46;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1px;
+}
+
+.timeline-track-mute-btn:hover {
+    -fx-opacity: 0.85;
+}
+
+.timeline-track-name-lbl {
+    -fx-text-fill: #D1D5DB;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-cursor: text;
+}
+
+.timeline-track-rename-txt {
+    -fx-background-color: #222222;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 11px;
+    -fx-border-color: #10B981;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-padding: 2 5;
+}
+
+.timeline-track-add-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: #383838;
+    -fx-border-style: dashed;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 4 6;
+    -fx-margin: 8 10;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+
+.timeline-track-add-btn:hover {
+    -fx-background-color: #222222;
+    -fx-border-color: #10B981;
+}
+
+.timeline-track-add-btn:pressed {
+    -fx-background-color: #171717;
+}
+
+.timeline-tracks-scroll,
+.timeline-grid-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.timeline-tracks-scroll > .viewport,
+.timeline-grid-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.timeline-grid-view {
+    -fx-background-color: #121212;
+}

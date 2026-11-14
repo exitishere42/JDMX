@@ -256,6 +256,68 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 ---
 
+### Playlist-Tracks & Raster (FL Studio Playlist-Konzept)
+
+```text
+┌──────────────┬──────────────────────────────────────────────────────────────┐
+│ [▶] [■] 00:00│ [Bar 1]       [Bar 2]       [Bar 3]       [Bar 4]            │
+├──────────────┼──────────────────────────────────────────────────────────────┤
+│ ● Track 1    │ ───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───   │
+├──────────────┤ ───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───   │
+│ ┌ ─ ─ ─ ─ ┐  │                                                              │
+│ │    +    │  │                                                              │
+│ └ ─ ─ ─ ─ ┘  │                                                              │
+└──────────────┴──────────────────────────────────────────────────────────────┘
+```
+
+#### Linke Track-Header-Leiste
+- **Initiale Spur:** Die Timeline startet standardmäßig mit einer Spur: **„Track 1"**.
+- **Track-Box (`TimelineTrackHeaderBox`):**
+  - **Mute-Knopf (●):** Runder Statusindikator. Grün (`#10B981`) = aktiv, Dunkelgrau (`#3F3F46`) = stummgeschaltet (Muted). Ein Klick schaltet die Spur stumm oder wieder aktiv.
+  - **Track-Name:** Fette Typografie im Studio-Dark-Design.
+  - **Inline-Rename:** Per Doppelklick auf den Namen öffnet sich direkt ein Textfeld an Ort und Stelle. Mit `Enter` oder Klick außerhalb wird der neue Name übernommen; mit `Escape` wird abgebrochen.
+- **`[+]`-Button mit Outline:**
+  - Direkt unter der letzten Trackbox platziert.
+  - Erzeugt bei Klick die nächste Spur mit fortlaufender Nummerierung (`Track 2`, `Track 3` etc.).
+  - Auch wenn „Track 1" umbenannt wurde (z. B. zu „Showtanz"), wird die nächste Spur sauber als „Track 2" benannt.
+
+#### Rechtes Timeline-Grid (`TimelineGridView`)
+- Horizontale Spur-Zeilen sind exakt auf die Höhe der linken Track-Header-Boxen (48px) ausgerichtet.
+- Vertikales Taktraster unterteilt Takte (Bars) und Viertel-Beats mit dezenten Kontrastlinien.
+- Vertikales Scrollen zwischen linker Header-Spalte und rechtem Grid ist bidirektional synchronisiert.
+
+#### Architektur & Klassen
+| Klasse | Schicht | Funktion |
+| :--- | :--- | :--- |
+| `TimelineTrack` | `core.model` | ID, Name, Mute-Status, Spurhöhe |
+| `TimelineService` | `service` | Verwaltung der Tracks, fortlaufende Sequenznummern, Thread-Sicherheit, Change-Listener |
+| `TimelineTrackHeaderBox` | `ui.timeline` | Linke Trackbox mit Mute-Punkt und Inline-Rename |
+| `TimelineGridView` | `ui.timeline` | Canvas-Zeichnung des synchronisierten Taktrasters |
+| `TimelineMainView` | `ui.timeline` | Playlist-Hauptansicht mit Toolbar, Track-Header-Leiste und Grid |
+
+---
+
+### Rechte Seitenleiste (Explorer & Inspector)
+
+```
+┌──────────────────────────┐
+│ [Explorer]            [+]│  ← kompakte Text-Tabs + Outline-Plus-Button
+├──────────────────────────┤
+│ ▸ Songs                  │  ← TreeView
+│   ├─ showtanz26.mp3      │
+│   └─ fanfare.mp3         │
+└──────────────────────────┘
+```
+
+- **Kompakte Tab-Leiste** oben: `[Explorer]` (aktiv: unterstrichen, Primärfarbe) — Inspector-Tab wird später ergänzt.
+- **`[+]` Button** (Outline-Stil, direkt neben den Tabs):
+  - Klick öffnet Dropdown-Menü und wechselt automatisch zum Explorer-Tab.
+  - Dropdown enthält: **Song** → öffnet Datei-Dialog (WAV/MP3).
+- **Explorer-TreeView:** Ordner `Songs` — listet geladene Audio-Tracks auf.
+- **Implementierung:** `ShowTimelineWorkspaceView` (SplitPane, 76/24), `ShowTimelineExplorerView`, `ShowTimelineAddMenu`.
+
+---
+
 ### Beat-System (Show-Timeline)
 
 #### 1. Automatische Beat-Erkennung
@@ -360,5 +422,7 @@ Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** 
 | **2026-11-05** | **Tab 1: Dashboard-Höhe auf 220px skaliert** | Standard- und Mindesthöhe des Steuerungsdocks von 135px auf **220px** angehoben (`DOCK_HEIGHT = 220.0`), um Fader, Farbrad und 2D-XY-Pad noch mehr vertikalen Raum und Bedienkomfort zu bieten. |
 | **2026-11-05** | **Tab 1: Project Explorer (Rechte Seitenleiste)** | Durchgehender `Project Explorer` über die gesamte rechte Fensterhöhe (neben Bühne und Dock). 5 aufklappbare Standard-Ordner (`Geräte`, `Gerätegruppen`, `Presets`, `Szenenlisten`, `Effekte`) mit Drag & Drop-Sortierung, unkategorisierten Items unterhalb, zentriertem grünem `[ + ]` Hinzufügen-Menü (`ExplorerAddMenu`) und Einklapp-Button (`arrow-right-to-line` / `arrow-left-to-line`). Drag & Drop ist strikt auf die Baumstruktur im Explorer beschränkt. |
 | **2026-11-05** | **Tab 2: Umbenennung in LightDesk** | Tab 2 von `Simple Desk` in **`LightDesk`** umbenannt, um eine moderne, eigenständige Nomenklatur zu gewährleisten. |
+| **2026-11-14** | **Tab 4: Show-Timeline Workspace — Rechte Seitenleiste** | `ShowTimelineWorkspaceView` ersetzt den Placeholder in Tab 4. Rechte Seitenleiste (`ShowTimelineExplorerView`) mit kompakten Tabs (`[Explorer]` aktiv, Inspector folgt später) und `[+]`-Outline-Button (öffnet `ShowTimelineAddMenu` mit „Song"-Eintrag, wechselt automatisch auf Explorer-Tab). TreeView mit Songs-Ordner. `ExplorerItemType.SONG` ergänzt. CSS, i18n (DE/EN) vollständig. 8 neue Tests, alle 297 grün. |
 | **2026-11-14** | **Tab 4: Beat-System** | Automatische Beat-Erkennung per `BeatAnalyzerService` (rote Marker auf Wellenform), manuelle Verfeinerung (Löschen per `Entf`/`Backspace`, Verschieben, Doppelklick zum Hinzufügen), Beat Record Modus per MIDI-Tap (`⏺ BEAT REC`-Button + Taste `R`). Export: Beat-Daten (BPM + Timestamps) als ID3v2 TXXX-Tag `JDMX_BEATS` via JAudioTagger — Audio bleibt qualitätsidentisch. Neue Phase 4b in der Roadmap. |
+| **2026-11-14** | **Tab 4: Show-Timeline Playlist (Track-Boxen & Grid)** | Implementierung des FL Studio Playlist-Konzepts: Linke Track-Header-Leiste mit `TimelineTrackHeaderBox` (runder Mute-Knopf aktiv/stumm, Inline-Rename per Doppelklick), Outline `[+]`-Button unter den Boxen für fortlaufende Track-Erzeugung (`Track 1` default, dann `Track 2`, `Track 3` etc. auch bei Umbenennung). Rechtes synchronisiertes Canvas-Taktraster (`TimelineGridView`) mit horizontalen Spur-Lanes und Takt-/Beat-Raster. MVC-Trennung mit `TimelineTrack` und thread-sicherem `TimelineService`. 17 neue Tests, alle 314 Tests grün. |
 
