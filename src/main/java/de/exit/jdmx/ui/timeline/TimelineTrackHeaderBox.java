@@ -109,7 +109,46 @@ public class TimelineTrackHeaderBox extends HBox {
         nameContainer.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(nameContainer, Priority.ALWAYS);
 
-        getChildren().addAll(btnMute, nameContainer);
+        getChildren().addAll(nameContainer, btnMute);
+
+        // Drag & Drop für Songs auf die Track-Box
+        setupDragAndDrop();
+    }
+
+    private void setupDragAndDrop() {
+        setOnDragOver(e -> {
+            javafx.scene.input.Dragboard db = e.getDragboard();
+            if (db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
+                e.acceptTransferModes(javafx.scene.input.TransferMode.COPY_OR_MOVE);
+                if (!getStyleClass().contains("timeline-track-drop-target")) {
+                    getStyleClass().add("timeline-track-drop-target");
+                }
+            }
+            e.consume();
+        });
+
+        setOnDragExited(e -> {
+            getStyleClass().remove("timeline-track-drop-target");
+            e.consume();
+        });
+
+        setOnDragDropped(e -> {
+            getStyleClass().remove("timeline-track-drop-target");
+            javafx.scene.input.Dragboard db = e.getDragboard();
+            String draggedText = (String) (db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)
+                    ? db.getContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)
+                    : db.getString());
+
+            if (draggedText != null) {
+                String songName = db.hasString() ? db.getString() : draggedText;
+                java.util.Optional<java.io.File> songOpt = service.findSongFileByName(songName);
+                java.io.File songFile = songOpt.orElseGet(() -> new java.io.File(songName));
+                service.assignSongToTrack(track.getId(), songFile);
+                lblName.setText(track.getName());
+                e.setDropCompleted(true);
+            }
+            e.consume();
+        });
     }
 
     /**

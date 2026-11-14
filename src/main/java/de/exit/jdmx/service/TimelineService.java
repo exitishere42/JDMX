@@ -229,6 +229,50 @@ public class TimelineService {
     }
 
     /**
+     * Sucht eine importierte Song-Datei anhand ihres Dateinamens.
+     *
+     * @param songName Name der gesuchten Datei (z. B. "showtanz.mp3")
+     * @return Optional mit der Datei, falls gefunden
+     */
+    public Optional<File> findSongFileByName(String songName) {
+        if (songName == null) return Optional.empty();
+        return importedSongs.stream()
+                .filter(f -> f.getName().equalsIgnoreCase(songName))
+                .findFirst();
+    }
+
+    /**
+     * Weist einer Spur (Track) eine Audiodatei als Song-Clip zu.
+     * Wenn die Spur noch ihren Standard-Namen (z. B. "Track 1") trägt, wird sie
+     * automatisch auf den Namen des Songs umbenannt.
+     *
+     * @param trackId  ID der Zielspur
+     * @param songFile die zuzuweisende Audiodatei
+     * @return {@code true}, wenn die Zuweisung erfolgreich war
+     */
+    public boolean assignSongToTrack(String trackId, File songFile) {
+        Objects.requireNonNull(songFile, "songFile must not be null");
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            TimelineTrack track = trackOpt.get();
+            track.setSongFile(songFile);
+            track.setSongName(songFile.getName());
+
+            if (track.getName().matches("^Track\\s+\\d+$")) {
+                track.setName(songFile.getName());
+            }
+
+            if (!importedSongs.contains(songFile)) {
+                importedSongs.add(songFile);
+            }
+            this.activeSongFile = songFile;
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Liefert die aktuell aktive Song-Datei für Playback.
      *
      * @return aktive Datei oder {@code null}

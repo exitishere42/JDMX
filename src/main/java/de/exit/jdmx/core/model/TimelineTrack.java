@@ -30,6 +30,12 @@ public class TimelineTrack {
     /** Höhe des Tracks in der Playlist-Ansicht in Pixeln. */
     private double height;
 
+    /** Zugeordneter Dateiname des Songs (z. B. "showtanz26.mp3"), oder {@code null}. */
+    private String songName;
+
+    /** Zugeordnete Song-Datei, oder {@code null}. */
+    private java.io.File songFile;
+
     /**
      * Erstellt einen neuen ungemuteten Timeline-Track mit Standardhöhe.
      *
@@ -131,6 +137,51 @@ public class TimelineTrack {
         if (height > 0.0) {
             this.height = height;
         }
+    }
+
+    /**
+     * Prüft, ob dieser Spur ein Song zugewiesen ist.
+     *
+     * @return {@code true}, wenn ein Song zugewiesen ist, sonst {@code false}
+     */
+    public boolean hasSong() {
+        return songName != null && !songName.trim().isEmpty();
+    }
+
+    /**
+     * Liefert den Namen des zugewiesenen Songs.
+     *
+     * @return Song-Name oder {@code null}
+     */
+    public String getSongName() {
+        return songName;
+    }
+
+    /**
+     * Setzt den Namen des zugewiesenen Songs.
+     *
+     * @param songName Song-Name oder {@code null} zum Entfernen
+     */
+    public void setSongName(String songName) {
+        this.songName = songName;
+    }
+
+    /**
+     * Liefert die zugewiesene Song-Datei.
+     *
+     * @return Datei oder {@code null}
+     */
+    public java.io.File getSongFile() {
+        return songFile;
+    }
+
+    /**
+     * Setzt die zugewiesene Song-Datei.
+     *
+     * @param songFile Song-Datei oder {@code null}
+     */
+    public void setSongFile(java.io.File songFile) {
+        this.songFile = songFile;
     }
 
     @Override

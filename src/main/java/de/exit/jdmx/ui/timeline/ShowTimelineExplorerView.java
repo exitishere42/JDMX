@@ -96,7 +96,8 @@ public class ShowTimelineExplorerView extends VBox {
             } else {
                 Bounds bounds = btnAdd.localToScreen(btnAdd.getBoundsInLocal());
                 if (bounds != null && btnAdd.getScene() != null && btnAdd.getScene().getWindow() != null) {
-                    addMenu.show(btnAdd.getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
+                    double menuX = Math.max(0, bounds.getMaxX() - 140);
+                    addMenu.show(btnAdd.getScene().getWindow(), menuX, bounds.getMaxY() + 4);
                 }
             }
         });
@@ -135,6 +136,7 @@ public class ShowTimelineExplorerView extends VBox {
         this.treeView = new TreeView<>(rootItem);
         treeView.setShowRoot(false);
         treeView.getStyleClass().add("project-explorer-tree");
+        treeView.setCellFactory(tv -> new TimelineExplorerTreeCell());
         VBox.setVgrow(treeView, Priority.ALWAYS);
 
         buildTree();
@@ -338,5 +340,93 @@ public class ShowTimelineExplorerView extends VBox {
      */
     public TimelineService getTimelineService() {
         return timelineService;
+    }
+
+    /**
+     * TreeCell für den Timeline Explorer mit korrekter Disclosure-Node Zentrierung
+     * und nativer Drag & Drop Unterstützung für Songs.
+     */
+    public static class TimelineExplorerTreeCell extends javafx.scene.control.TreeCell<ExplorerItem> {
+
+        private javafx.scene.Node defaultDisclosureNode;
+
+        public TimelineExplorerTreeCell() {
+            setupDragAndDrop();
+            setupClickHandler();
+        }
+
+        private void setupDragAndDrop() {
+            setOnDragDetected(event -> {
+                if (isEmpty() || getItem() == null) return;
+                ExplorerItem item = getItem();
+                if (item.isStandardFolder() || item.getType() == ExplorerItemType.FOLDER) return;
+
+                javafx.scene.input.Dragboard db = startDragAndDrop(javafx.scene.input.TransferMode.COPY_OR_MOVE);
+                javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+                content.put(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT, item.getId());
+                content.putString(item.getName());
+                db.setContent(content);
+                event.consume();
+            });
+        }
+
+        private void setupClickHandler() {
+            setOnMouseClicked(event -> {
+                if (isEmpty() || getItem() == null) return;
+                TreeItem<ExplorerItem> ti = getTreeItem();
+                if (ti != null && !ti.getChildren().isEmpty() && event.getClickCount() == 1) {
+                    ti.setExpanded(!ti.isExpanded());
+                    event.consume();
+                }
+            });
+        }
+
+        @Override
+        public void updateItem(ExplorerItem item, boolean empty) {
+            super.updateItem(item, empty);
+            if (defaultDisclosureNode == null) {
+                if (getDisclosureNode() != null) {
+                    defaultDisclosureNode = getDisclosureNode();
+                } else {
+                    StackPane arrow = new StackPane();
+                    arrow.getStyleClass().setAll("arrow");
+                    defaultDisclosureNode = new StackPane(arrow);
+                    defaultDisclosureNode.getStyleClass().setAll("tree-disclosure-node");
+                }
+            }
+
+            if (empty || item == null) {
+                setText(null);
+                setGraphic(null);
+                setMouseTransparent(true);
+            } else {
+                if (item.isStandardFolder()) {
+                    setText(I18n.get("timeline.explorer.folder.songs"));
+                } else {
+                    setText(item.getName());
+                }
+                TreeItem<ExplorerItem> ti = getTreeItem();
+                setGraphic(ti != null ? ti.getGraphic() : null);
+                setMouseTransparent(false);
+
+                boolean hasChildren = ti != null && !ti.getChildren().isEmpty();
+                if (hasChildren) {
+                    setDisclosureNode(defaultDisclosureNode);
+                } else {
+                    setDisclosureNode(null);
+                }
+            }
+        }
+
+        @Override
+        protected void layoutChildren() {
+            super.layoutChildren();
+            javafx.scene.Node disclosure = getDisclosureNode();
+            if (disclosure != null && disclosure.isVisible()) {
+                double dh = disclosure.getLayoutBounds().getHeight();
+                double centeredY = Math.round((getHeight() - dh) / 2.0);
+                disclosure.setLayoutY(centeredY);
+            }
+        }
     }
 }

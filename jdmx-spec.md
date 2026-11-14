@@ -286,6 +286,12 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 - Horizontale Spur-Zeilen sind exakt auf die Höhe der linken Track-Header-Boxen (48px) ausgerichtet.
 - Vertikales Taktraster unterteilt Takte (Bars) und Viertel-Beats mit dezenten Kontrastlinien.
 - Vertikales Scrollen zwischen linker Header-Spalte und rechtem Grid ist bidirektional synchronisiert.
+- **Song-Clips & Wellenform:** Spuren mit zugewiesenem Song zeigen einen abgerundeten Clip-Block in Smaragdgrün (`#064E3B`/`#10B981`) mit Song-Titel und Wellenform-Kontur.
+- **Dynamische Timeline-Linie (Playhead):**
+  - Prominente vertikale Nadel in Warm-Orange (`#FB923C`) mit dreieckigem Playhead-Kopf am oberen Rand.
+  - Wandert in Echtzeit bei laufender Wiedergabe über das Raster.
+  - Erlaubt Scrubbing und Positionswechsel per Klick oder Ziehen mit der Maus an jede beliebige Stelle.
+- **Drag & Drop:** Songs können aus dem Explorer direkt auf eine freie oder bestehende Spur gezogen werden.
 
 #### Playback-Steuerung & Zeitverfolgung
 - **Transport-Buttons:** `Play` (Start/Pause) und `Stop` (setzt auf `00:00.000` zurück).
@@ -295,10 +301,10 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 #### Architektur & Klassen
 | Klasse | Schicht | Funktion |
 | :--- | :--- | :--- |
-| `TimelineTrack` | `core.model` | ID, Name, Mute-Status, Spurhöhe |
-| `TimelineService` | `service` | Verwaltung der Tracks, Song-Import, Playback-Clock (Play/Pause/Stop), Thread-Sicherheit |
-| `TimelineTrackHeaderBox` | `ui.timeline` | Linke Trackbox mit Mute-Punkt und Inline-Rename |
-| `TimelineGridView` | `ui.timeline` | Canvas-Zeichnung des synchronisierten Taktrasters |
+| `TimelineTrack` | `core.model` | ID, Name, Mute-Status, Spurhöhe, Song-Zuweisung (`songName`, `songFile`) |
+| `TimelineService` | `service` | Verwaltung der Tracks, Song-Import, Song-Zuweisung, Playback-Clock (Play/Pause/Stop), Thread-Sicherheit |
+| `TimelineTrackHeaderBox` | `ui.timeline` | Linke Trackbox mit Mute-Punkt, Inline-Rename und Drag&Drop-Ziel für Songs |
+| `TimelineGridView` | `ui.timeline` | Canvas-Zeichnung des Rasters, Song-Clips und der dynamischen Playhead-Timeline-Linie |
 | `TimelineInspectorView` | `ui.timeline` | Inspektor-Ansicht für selektierte Elemente |
 | `TimelineMainView` | `ui.timeline` | Playlist-Hauptansicht mit Toolbar, Track-Header-Leiste und Grid |
 
@@ -310,7 +316,7 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 ┌──────────────────────────┐
 │ [Inspektor] [Explorer][+]│  ← kompakte Text-Tabs + Stage-Style Plus-Button
 ├──────────────────────────┤
-│ ▸ Songs                  │  ← TreeView
+│ ▸ Songs                  │  ← TreeView mit zentriertem Pfeil & Drag&Drop
 │   ├─ showtanz26.mp3      │
 │   └─ fanfare.mp3         │
 └──────────────────────────┘
@@ -320,8 +326,11 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 - **Inspektor-Ansicht (`TimelineInspectorView`):** Ermöglicht Detailinspektion und Beat-Parametrierung; zeigt leeren Platzhalter bei inaktiver Auswahl.
 - **`[+]` Button** (ohne Outline im Stage-Stil):
   - Klick öffnet Dropdown-Menü und wechselt automatisch zum Explorer-Tab.
-  - Dropdown enthält: **Song** → öffnet System-Dateidialog (`FileChooser` für MP3 & WAV).
+  - Dropdown (`ShowTimelineAddMenu`): oben wie unten sauber abgerundet (`8px`), Dropdown enthält: **Song** → öffnet System-Dateidialog (`FileChooser` für MP3 & WAV).
   - Nach Auswahl wird der Song importiert und im Songs-Ordner der TreeView gelistet.
+- **TreeView (`TimelineExplorerTreeCell`):**
+  - Saubere vertikale Zentrierung des Ausklapp-Pfeils (`arrow`), Ausblendung auf Leaf-Ebene (Songs).
+  - Native Drag & Drop Unterstützung: Songs können per Dragboard direkt auf Tracks und ins Grid gezogen werden.
 - **Implementierung:** `ShowTimelineWorkspaceView` (SplitPane, 76/24), `ShowTimelineExplorerView`, `TimelineInspectorView`, `ShowTimelineAddMenu`.
 
 ---
@@ -434,4 +443,5 @@ Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** 
 | **2026-11-14** | **Tab 4: Beat-System** | Automatische Beat-Erkennung per `BeatAnalyzerService` (rote Marker auf Wellenform), manuelle Verfeinerung (Löschen per `Entf`/`Backspace`, Verschieben, Doppelklick zum Hinzufügen), Beat Record Modus per MIDI-Tap (`⏺ BEAT REC`-Button + Taste `R`). Export: Beat-Daten (BPM + Timestamps) als ID3v2 TXXX-Tag `JDMX_BEATS` via JAudioTagger — Audio bleibt qualitätsidentisch. Neue Phase 4b in der Roadmap. |
 | **2026-11-14** | **Tab 4: Show-Timeline Playlist (Track-Boxen & Grid)** | Implementierung des FL Studio Playlist-Konzepts: Linke Track-Header-Leiste mit `TimelineTrackHeaderBox` (runder Mute-Knopf aktiv/stumm, Inline-Rename per Doppelklick), Outline `[+]`-Button unter den Boxen für fortlaufende Track-Erzeugung (`Track 1` default, dann `Track 2`, `Track 3` etc. auch bei Umbenennung). Rechtes synchronisiertes Canvas-Taktraster (`TimelineGridView`) mit horizontalen Spur-Lanes und Takt-/Beat-Raster. MVC-Trennung mit `TimelineTrack` und thread-sicherem `TimelineService`. 17 neue Tests, alle 314 Tests grün. |
 | **2026-11-14** | **Tab 4: Inspektor-Tab, Song-Import & Playback-Engine** | Seitenleiste um `TimelineInspectorView` erweitert mit Umschaltung via `[Inspektor]`- und `[Explorer]`-Tabs. `[+]`-Button im Tab-Header und Track-`[+]`-Button auf transparentes Stage-Design ohne Outline umgestellt. Song-Import (`*.mp3`, `*.wav`) via FileChooser und `TimelineService.importSong()`, automatische Synchronisation mit der Songs-TreeView. Playback-Steuerung (Play/Pause, Stop) mit Millisekunden-Genauigkeit (`mm:ss.SSS`) und 25ms Taktung. 7 neue Tests, alle 321 Tests grün. |
+| **2026-11-14** | **Tab 4: Song Drag & Drop, Playhead-Linie & FL Studio Playlist-Polish (v1.19.0)** | Drag & Drop von Songs direkt aus dem Explorer auf Spuren oder das Grid mit automatischer Song-Zuweisung (`assignSongToTrack`) und Umbenennung unberührter Standard-Tracks. Optische Korrektur des TreeView-Ausklapppfeils (mittige Ausrichtung und Ausblendung bei Leaf-Elementen). Dropdown-Menü des `[+]`-Buttons oben abgerundet (`-fx-background-radius: 8px`). Vertikale Timeline-Linie (Playhead) in Amber (`#FB923C`) mit Zeigerkopf und interaktivem Scrubbing per Klick & Drag auf dem Grid. Track-Header-Box ergonomisch nach FL Studio ausgerichtet (Name links, runder LED-Mute-Button rechts). 10 neue Tests, 331 Tests zu 100% grün. |
 

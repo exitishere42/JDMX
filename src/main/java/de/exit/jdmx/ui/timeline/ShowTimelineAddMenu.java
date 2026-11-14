@@ -41,6 +41,12 @@ public class ShowTimelineAddMenu extends Popup {
         root.getStyleClass().add("action-menu-popup");
         root.setMinWidth(130);
         root.setPrefWidth(140);
+        root.setStyle("-fx-background-color: #1E1E1E; -fx-background-radius: 8px; -fx-border-radius: 8px; -fx-border-color: #2E2E2E; -fx-border-width: 1px; -fx-padding: 5px;");
+
+        java.net.URL cssUrl = getClass().getResource("/de/exit/jdmx/styles/studio-dark.css");
+        if (cssUrl != null) {
+            root.getStylesheets().add(cssUrl.toExternalForm());
+        }
 
         Button btnSong = createMenuItem("song", I18n.get("timeline.explorer.add.song"),
                 "music", StudioTheme.COLOR_ICON_TIMELINE);

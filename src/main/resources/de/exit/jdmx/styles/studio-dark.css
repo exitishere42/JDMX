@@ -1767,14 +1767,14 @@
 }
 
 .timeline-track-mute-btn.active {
-    -fx-background-color: #10B981;
-    -fx-border-color: #059669;
+    -fx-background-color: #2DD4BF;
+    -fx-border-color: #14B8A6;
     -fx-border-width: 1px;
 }
 
 .timeline-track-mute-btn.muted {
-    -fx-background-color: #3F3F46;
-    -fx-border-color: #27272A;
+    -fx-background-color: #2A2A2A;
+    -fx-border-color: #1C1C1C;
     -fx-border-width: 1px;
 }
 
@@ -1863,4 +1863,11 @@
 
 .timeline-grid-view {
     -fx-background-color: #121212;
+}
+
+
+.timeline-track-header-box.timeline-track-drop-target {
+    -fx-border-color: #10B981;
+    -fx-border-width: 1px;
+    -fx-background-color: rgba(16, 185, 129, 0.15);
 }
