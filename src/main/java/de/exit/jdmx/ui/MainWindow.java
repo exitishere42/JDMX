@@ -26,6 +26,7 @@ import de.exit.jdmx.service.ShortcutAction;
 import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.service.ShortcutService;
+import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.service.UndoRedoService;
 import de.exit.jdmx.ui.desk.LightDeskWorkspaceView;
 import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
@@ -995,6 +996,23 @@ public class MainWindow extends StackPane {
             switchToTab(4);
             event.consume();
             return;
+        }
+
+        // 4b. Leertaste (Spacebar) für die Show-Timeline (Tab 3 = Show-Timeline)
+        if (headerBar.getActiveTabIndex() == 3 && event.getCode() == KeyCode.SPACE) {
+            Node focusOwner = getScene() != null ? getScene().getFocusOwner() : null;
+            if (!(focusOwner instanceof javafx.scene.control.TextInputControl)) {
+                TimelineService tService = showTimelineWorkspaceView != null ? showTimelineWorkspaceView.getTimelineService() : null;
+                if (tService != null) {
+                    if (tService.isPlaying()) {
+                        tService.pausePlayback();
+                    } else {
+                        tService.startPlayback();
+                    }
+                    event.consume();
+                    return;
+                }
+            }
         }
 
         // 5. Menü-Aktionen (Strg+N, Strg+O, Strg+S, Strg+Umschalt+S, Strg+Z, Strg+Y)

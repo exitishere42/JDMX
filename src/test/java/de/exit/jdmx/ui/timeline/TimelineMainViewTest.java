@@ -104,4 +104,56 @@ class TimelineMainViewTest {
         assertThat(view.getTrackBoxes().get(0).getTrack().getName()).isEqualTo("test.mp3");
         assertThat(view.getLblTimeDisplay().getText()).contains(" / ");
     }
+
+    @Test
+    @DisplayName("Sollte bei Leertaste Playback starten und stoppen (Toggle)")
+    void shouldTogglePlaybackWhenSpacebarPressed() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        assertThat(service.isPlaying()).isFalse();
+
+        // Leertaste drücken -> Start
+        javafx.scene.input.KeyEvent spaceEvent1 = new javafx.scene.input.KeyEvent(
+                javafx.scene.input.KeyEvent.KEY_PRESSED,
+                " ", " ", javafx.scene.input.KeyCode.SPACE, false, false, false, false
+        );
+        view.fireEvent(spaceEvent1);
+        assertThat(service.isPlaying()).isTrue();
+
+        // Erneut Leertaste drücken -> Pause
+        javafx.scene.input.KeyEvent spaceEvent2 = new javafx.scene.input.KeyEvent(
+                javafx.scene.input.KeyEvent.KEY_PRESSED,
+                " ", " ", javafx.scene.input.KeyCode.SPACE, false, false, false, false
+        );
+        view.fireEvent(spaceEvent2);
+        assertThat(service.isPlaying()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Sollte bei Doppelklick auf Stop-Button auch die Scroll-Sicht an den Anfang zurücksetzen")
+    void shouldResetViewToBeginningOnStopDoubleClick() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        // Position simulieren und Viewport verschieben
+        service.setPositionMs(15000L);
+        service.startPlayback();
+        view.getGridScrollPane().setHvalue(0.8);
+
+        assertThat(service.isPlaying()).isTrue();
+        assertThat(service.getCurrentPositionMs()).isEqualTo(15000L);
+
+        // Doppelklick auf Stop simulieren
+        javafx.scene.input.MouseEvent doubleClick = new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_CLICKED,
+                0, 0, 0, 0, javafx.scene.input.MouseButton.PRIMARY, 2,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        view.getBtnStop().fireEvent(doubleClick);
+
+        assertThat(service.isPlaying()).isFalse();
+        assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
+        assertThat(view.getGridScrollPane().getHvalue()).isEqualTo(0.0);
+    }
 }

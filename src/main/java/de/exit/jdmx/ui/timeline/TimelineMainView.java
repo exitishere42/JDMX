@@ -6,10 +6,16 @@ import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -81,6 +87,14 @@ public class TimelineMainView extends VBox {
         btnStop.setGraphic(new LucideIcon("square", 12, StudioTheme.COLOR_ICON_RED));
         btnStop.setTooltip(new Tooltip("Stop"));
         btnStop.setOnAction(e -> service.stopPlayback());
+        btnStop.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.PRIMARY) {
+                service.stopPlayback();
+                if (e.getClickCount() >= 2) {
+                    resetViewToBeginning();
+                }
+            }
+        });
 
         this.lblTimeDisplay = new Label("00:00.000");
         lblTimeDisplay.getStyleClass().add("timeline-time-display");
@@ -149,6 +163,21 @@ public class TimelineMainView extends VBox {
         // Initialer Aufbau der Trackboxen und Playback-Zustand
         updateFromService();
 
+        // 5. Leertaste (Spacebar) zum Starten / Pausieren der Wiedergabe
+        addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.SPACE) {
+                Node focusOwner = getScene() != null ? getScene().getFocusOwner() : null;
+                if (!(focusOwner instanceof TextInputControl)) {
+                    if (service.isPlaying()) {
+                        service.pausePlayback();
+                    } else {
+                        service.startPlayback();
+                    }
+                    event.consume();
+                }
+            }
+        });
+
         // Auf Änderungen im Service lauschen
         service.addChangeListener(() -> {
             if (Platform.isFxApplicationThread() || getScene() == null) {
@@ -157,6 +186,22 @@ public class TimelineMainView extends VBox {
                 Platform.runLater(this::updateFromService);
             }
         });
+    }
+
+    /**
+     * Setzt die Scroll-Ansicht der Timeline vollständig an den Anfang (0, 0) zurück.
+     */
+    public void resetViewToBeginning() {
+        if (gridScrollPane != null) {
+            gridScrollPane.setHvalue(0.0);
+            gridScrollPane.setVvalue(0.0);
+        }
+        if (tracksScrollPane != null) {
+            tracksScrollPane.setVvalue(0.0);
+        }
+        if (timelineGridView != null) {
+            timelineGridView.redraw();
+        }
     }
 
     /**
