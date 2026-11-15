@@ -30,8 +30,38 @@ public class UpdateService {
 
     private static final Logger LOGGER = Logger.getLogger(UpdateService.class.getName());
 
-    /** Aktuelle Anwendungsversion. */
-    public static final String CURRENT_VERSION = "1.15.5";
+    /** Feste Fallback-Version für Entwicklungsumgebungen. */
+    public static final String FALLBACK_VERSION = "1.20.2";
+
+    /** Aktuelle Anwendungsversion (dynamisch ermittelt aus version.properties). */
+    public static final String CURRENT_VERSION = resolveCurrentVersion();
+
+    /**
+     * Ermittelt die aktuelle Versionsnummer der Anwendung aus der gefilterten
+     * version.properties-Ressource, dem Package-Manifest oder der Fallback-Konstante.
+     *
+     * @return Versionsnummer im SemVer-Format (z. B. "1.20.2")
+     */
+    private static String resolveCurrentVersion() {
+        try (InputStream is = UpdateService.class.getResourceAsStream("/de/exit/jdmx/version.properties")) {
+            if (is != null) {
+                java.util.Properties props = new java.util.Properties();
+                props.load(is);
+                String ver = props.getProperty("version");
+                if (ver != null && !ver.isBlank() && !ver.startsWith("${")) {
+                    return ver.trim();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        Package pkg = UpdateService.class.getPackage();
+        if (pkg != null && pkg.getImplementationVersion() != null && !pkg.getImplementationVersion().isBlank()) {
+            return pkg.getImplementationVersion().trim();
+        }
+
+        return FALLBACK_VERSION;
+    }
 
     /** GitHub Repository-Bezeichnung. */
     public static final String GITHUB_REPO = "exitishere42/JDMX";

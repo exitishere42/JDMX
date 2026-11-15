@@ -7,7 +7,7 @@
 
     <groupId>de.exit</groupId>
     <artifactId>jdmx</artifactId>
-    <version>1.20.1</version>
+    <version>1.20.2</version>
     <packaging>jar</packaging>
 
     <name>jdmx</name>
@@ -179,6 +179,22 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/version.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/version.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <!-- Compiler Plugin -->
             <plugin>
