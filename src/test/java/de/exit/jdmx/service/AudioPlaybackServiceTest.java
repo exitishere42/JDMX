@@ -59,4 +59,20 @@ class AudioPlaybackServiceTest {
         assertThatCode(service::stop).doesNotThrowAnyException();
         assertThat(service.isPlaying()).isFalse();
     }
+
+    @Test
+    @DisplayName("Sollte Position auch im gestoppten Zustand sauber setzen und speichern")
+    void shouldStorePositionWhenStopped() {
+        AudioPlaybackService service = new AudioPlaybackService();
+
+        service.setPosition(5000L);
+        assertThat(service.getCurrentPositionMs()).isEqualTo(5000L);
+
+        service.seek(12500L);
+        assertThat(service.getCurrentPositionMs()).isEqualTo(12500L);
+
+        // Negative Positionen müssen auf 0 geklemmt werden
+        service.seek(-500L);
+        assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
+    }
 }

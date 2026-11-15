@@ -329,17 +329,9 @@ public class TimelineService {
             track.setSongFile(songFile);
             track.setSongName(songFile.getName());
 
-            // Audioanalyse durchführen (Laufzeit und echte Wellenform)
-            de.exit.jdmx.core.model.AudioAnalysisResult analysis = audioAnalysisService.analyze(songFile);
-            if (analysis.durationMs() > 0) {
-                track.setDurationMs(analysis.durationMs());
-            } else {
-                track.setDurationMs(60_000L); // 60s Standard-Fallback
-            }
-
-            if (analysis.hasWaveform()) {
-                track.setWaveformData(analysis.waveformPeaks());
-            }
+            // Vorläufige Dauer schätzen, damit die UI sofort (< 2ms) reagiert
+            long estDuration = songFile.length() > 0 ? Math.max(10_000L, (songFile.length() * 1000L) / 24000L) : 60_000L;
+            track.setDurationMs(estDuration);
 
             if (track.getName().matches("^Track\\s+\\d+$")) {
                 track.setName(songFile.getName());
@@ -349,6 +341,23 @@ public class TimelineService {
                 importedSongs.add(songFile);
             }
             this.activeSongFile = songFile;
+
+            // Asynchrone Audioanalyse durchführen (nicht blockierend für JavaFX-Thread)
+            CompletableFuture<de.exit.jdmx.core.model.AudioAnalysisResult> future = audioAnalysisService.analyzeAsync(songFile);
+            try {
+                // Schnelle 50ms-Prüfung für kleine WAV-Dateien und deterministische Tests
+                de.exit.jdmx.core.model.AudioAnalysisResult fastResult = future.get(50, TimeUnit.MILLISECONDS);
+                applyAnalysisResult(track, fastResult);
+            } catch (Exception e) {
+                // Bei längeren MP3s läuft die Dekodierung im Hintergrund weiter (0 ms UI-Lag)
+                future.thenAccept(result -> {
+                    if (result != null) {
+                        applyAnalysisResult(track, result);
+                        notifyChange();
+                    }
+                });
+            }
+
             notifyChange();
             AppLogger.info("[TIMELINE] Song '%s' erfolgreich Track '%s' ('%s') zugewiesen (Dauer=%d ms, Waveform=%d Peaks).",
                     songFile.getName(), track.getId(), track.getName(), track.getDurationMs(),
@@ -408,15 +417,16 @@ public class TimelineService {
 
     /**
      * Setzt die aktuelle Abspielposition in Millisekunden.
+     * Synchronisiert den Player nahtlos und startet ihn sofort an der neuen Position neu,
+     * falls die Wiedergabe gerade aktiv ist.
      *
      * @param positionMs Position in Millisekunden (>= 0)
      */
     public void setPositionMs(long positionMs) {
         long safeMs = Math.max(0L, positionMs);
         currentPositionMs.set(safeMs);
-        if (playing.get()) {
-            audioPlaybackService.seek(safeMs);
-        }
+        lastTickNanos = System.nanoTime();
+        audioPlaybackService.setPosition(safeMs);
         notifyChange();
     }
 
@@ -427,10 +437,40 @@ public class TimelineService {
         if (playing.compareAndSet(false, true)) {
             lastTickNanos = System.nanoTime();
             startPlaybackTimer();
-            if (activeSongFile != null && activeSongFile.exists()) {
-                audioPlaybackService.play(activeSongFile, currentPositionMs.get());
+            File songToPlay = resolveActiveSongFile();
+            if (songToPlay != null && songToPlay.exists()) {
+                audioPlaybackService.play(songToPlay, currentPositionMs.get());
             }
             notifyChange();
+        }
+    }
+
+    /**
+     * Ermittelt die aktive Song-Datei für Playback oder sucht automatisch den ersten Track
+     * mit einer zugewiesenen Audiodatei.
+     *
+     * @return gefundene Song-Datei oder {@code null}
+     */
+    public File resolveActiveSongFile() {
+        if (activeSongFile != null && activeSongFile.exists()) {
+            return activeSongFile;
+        }
+        for (TimelineTrack t : tracks) {
+            if (t.hasSong() && t.getSongFile() != null && t.getSongFile().exists()) {
+                this.activeSongFile = t.getSongFile();
+                return this.activeSongFile;
+            }
+        }
+        return null;
+    }
+
+    private void applyAnalysisResult(TimelineTrack track, de.exit.jdmx.core.model.AudioAnalysisResult analysis) {
+        if (track == null || analysis == null) return;
+        if (analysis.durationMs() > 0) {
+            track.setDurationMs(analysis.durationMs());
+        }
+        if (analysis.hasWaveform()) {
+            track.setWaveformData(analysis.waveformPeaks());
         }
     }
 

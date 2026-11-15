@@ -67,6 +67,7 @@ public class TimelineGridView extends Pane {
         getStyleClass().add("timeline-grid-view");
 
         this.canvas = new Canvas(1200, 600);
+        this.canvas.setMouseTransparent(true);
         getChildren().add(canvas);
 
         updateGridDimensions();
@@ -147,11 +148,17 @@ public class TimelineGridView extends Pane {
             viewH = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, getHeight() > 0 ? getHeight() : totalH));
         }
 
-        // Canvas an der sichtbaren Position im Pane verankern
-        canvas.setLayoutX(scrollX);
-        canvas.setLayoutY(scrollY);
+        // Canvas an der sichtbaren Position im Pane verankern (nur bei echter Pixelverschiebung >= 1.0)
+        double roundedScrollX = Math.round(scrollX);
+        double roundedScrollY = Math.round(scrollY);
+        if (Math.abs(canvas.getLayoutX() - roundedScrollX) >= 1.0) {
+            canvas.setLayoutX(roundedScrollX);
+        }
+        if (Math.abs(canvas.getLayoutY() - roundedScrollY) >= 1.0) {
+            canvas.setLayoutY(roundedScrollY);
+        }
 
-        if (canvas.getWidth() != viewW || canvas.getHeight() != viewH) {
+        if (Math.abs(canvas.getWidth() - viewW) >= 1.0 || Math.abs(canvas.getHeight() - viewH) >= 1.0) {
             canvas.setWidth(viewW);
             canvas.setHeight(viewH);
         }
@@ -402,11 +409,9 @@ public class TimelineGridView extends Pane {
         gc.setLineWidth(1.0);
         gc.strokeRoundRect(clipStartX + 2, clipY, clipW, clipH, 6, 6);
 
-        // Echte Wellenform zeichnen
+        // Echte Wellenform zeichnen (Gebündelter DAW-Stil mit RMS-Körper und Transienten-Spikes)
         float[] waveform = track.getWaveformData();
         if (waveform != null && waveform.length > 0) {
-            gc.setStroke(Color.web("#34D399"));
-            gc.setLineWidth(1.5);
             double waveCenterY = clipY + (clipH / 2.0);
             double maxAmpH = (clipH / 2.0) - 5.0;
 
@@ -414,12 +419,41 @@ public class TimelineGridView extends Pane {
             double drawStartX = Math.max(clipStartX + 4, 0);
             double drawEndX = Math.min(clipStartX + clipW - 4, viewW);
 
-            for (double wx = drawStartX; wx < drawEndX; wx += stepPx) {
-                double progress = (wx - clipStartX) / clipW;
-                int sampleIdx = (int) (progress * (waveform.length - 1));
-                float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
-                double ampHeight = Math.max(1.0, amp * maxAmpH);
-                gc.strokeLine(wx, waveCenterY - ampHeight, wx, waveCenterY + ampHeight);
+            if (drawEndX > drawStartX) {
+                // 1. Semi-transparenter DAW-Hüllkurvenkörper (flüssiges Füllen)
+                gc.setFill(Color.web("#059669", 0.35));
+                gc.beginPath();
+                gc.moveTo(drawStartX, waveCenterY);
+                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
+                    double progress = (wx - clipStartX) / clipW;
+                    int sampleIdx = (int) (progress * (waveform.length - 1));
+                    float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
+                    double ampHeight = Math.max(1.0, amp * maxAmpH);
+                    gc.lineTo(wx, waveCenterY - ampHeight);
+                }
+                for (double wx = drawEndX; wx >= drawStartX; wx -= stepPx) {
+                    double progress = (wx - clipStartX) / clipW;
+                    int sampleIdx = (int) (progress * (waveform.length - 1));
+                    float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
+                    double ampHeight = Math.max(1.0, amp * maxAmpH);
+                    gc.lineTo(wx, waveCenterY + ampHeight);
+                }
+                gc.closePath();
+                gc.fill();
+
+                // 2. Transienten-Spikes als vertikale Striche in EINEM gebündelten Pfad
+                gc.setStroke(Color.web("#34D399"));
+                gc.setLineWidth(1.5);
+                gc.beginPath();
+                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
+                    double progress = (wx - clipStartX) / clipW;
+                    int sampleIdx = (int) (progress * (waveform.length - 1));
+                    float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
+                    double ampHeight = Math.max(1.0, amp * maxAmpH);
+                    gc.moveTo(wx, waveCenterY - ampHeight);
+                    gc.lineTo(wx, waveCenterY + ampHeight);
+                }
+                gc.stroke();
             }
         } else {
             // Subtile Mittellinie als visueller Anker, falls noch keine Wellenform berechnet

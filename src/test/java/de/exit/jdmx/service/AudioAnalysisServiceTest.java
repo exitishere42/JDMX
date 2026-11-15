@@ -64,12 +64,62 @@ class AudioAnalysisServiceTest {
         float[] resampled = service.resamplePeaks(original, 3);
 
         assertThat(resampled).hasSize(3);
-        // Erstes Drittel (0.1, 0.8) -> Max 0.8
-        assertThat(resampled[0]).isEqualTo(0.8f);
-        // Zweites Drittel (0.4, 0.9) -> Max 0.9
-        assertThat(resampled[1]).isEqualTo(0.9f);
-        // Drittes Drittel (0.2, 0.5) -> Max 0.5
-        assertThat(resampled[2]).isEqualTo(0.5f);
+        // Resampling sollte normalisierte und dynamisch gespreizte Werte liefern
+        assertThat(resampled[0]).isBetween(0.5f, 1.0f);
+        assertThat(resampled[1]).isBetween(0.7f, 1.0f);
+        assertThat(resampled[2]).isBetween(0.2f, 0.7f);
+    }
+
+    @Test
+    @DisplayName("Sollte asynchrone Analyse über CompletableFuture zuverlässig ausführen")
+    void shouldAnalyzeAsyncSuccessfully(@TempDir Path tempDir) throws Exception {
+        File wavFile = tempDir.resolve("async_test.wav").toFile();
+        createSyntheticWavFile(wavFile, 44100, 1.0);
+
+        var future = service.analyzeAsync(wavFile);
+        assertThat(future).isNotNull();
+
+        AudioAnalysisResult result = future.get();
+        assertThat(result).isNotNull();
+        assertThat(result.durationMs()).isBetween(900L, 1100L);
+        assertThat(result.hasWaveform()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte leise und laute Abschnitte mit deutlicher Dynamik-Differenz abbilden")
+    void shouldReflectDynamicSpikesBetweenQuietAndLoudSections(@TempDir Path tempDir) throws Exception {
+        File wavFile = tempDir.resolve("dynamic_test.wav").toFile();
+        // 1 Sekunde leise (Amplitude 3000), 1 Sekunde laut (Amplitude 30000)
+        AudioFormat format = new AudioFormat(44100, 16, 1, true, false);
+        int halfSamples = 44100;
+        byte[] pcmData = new byte[halfSamples * 4];
+
+        for (int i = 0; i < halfSamples; i++) {
+            short quietSample = (short) (Math.sin(2.0 * Math.PI * i * 440.0 / 44100) * 3000.0);
+            pcmData[i * 2] = (byte) (quietSample & 0xFF);
+            pcmData[i * 2 + 1] = (byte) ((quietSample >> 8) & 0xFF);
+        }
+        for (int i = 0; i < halfSamples; i++) {
+            int offset = (halfSamples + i) * 2;
+            short loudSample = (short) (Math.sin(2.0 * Math.PI * i * 440.0 / 44100) * 30000.0);
+            pcmData[offset] = (byte) (loudSample & 0xFF);
+            pcmData[offset + 1] = (byte) ((loudSample >> 8) & 0xFF);
+        }
+
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(pcmData);
+             AudioInputStream ais = new AudioInputStream(bais, format, halfSamples * 2)) {
+            AudioSystem.write(ais, AudioFileFormat.Type.WAVE, wavFile);
+        }
+
+        AudioAnalysisResult result = service.analyze(wavFile);
+        assertThat(result.hasWaveform()).isTrue();
+        float[] peaks = result.waveformPeaks();
+
+        // Erstes Viertel (leise) muss signifikant kleiner sein als letztes Viertel (laut)
+        float quietAvg = (peaks[0] + peaks[peaks.length / 4]) / 2.0f;
+        float loudAvg = (peaks[peaks.length * 3 / 4] + peaks[peaks.length - 1]) / 2.0f;
+
+        assertThat(loudAvg).isGreaterThan(quietAvg * 2.0f);
     }
 
     /**

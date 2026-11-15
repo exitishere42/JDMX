@@ -34,6 +34,7 @@ public class AudioPlaybackService implements AutoCloseable {
 
     private final AtomicBoolean playing = new AtomicBoolean(false);
     private final AtomicLong currentPositionMs = new AtomicLong(0L);
+    private final AtomicLong sessionGeneration = new AtomicLong(0L);
     private volatile double volume = 1.0;
 
     private volatile File currentFile;
@@ -56,10 +57,12 @@ public class AudioPlaybackService implements AutoCloseable {
      * @param startPositionMs Startposition in Millisekunden (>= 0)
      */
     public synchronized void play(File audioFile, long startPositionMs) {
-        stop();
+        long generation = sessionGeneration.incrementAndGet();
+        closeCurrentMedia();
 
         if (audioFile == null || !audioFile.exists() || !audioFile.isFile() || audioFile.length() == 0) {
             AppLogger.warn("[AUDIO-PLAYBACK] Wiedergabe abgebrochen: Datei ist ungültig oder existiert nicht (%s)", audioFile);
+            playing.set(false);
             return;
         }
 
@@ -69,16 +72,17 @@ public class AudioPlaybackService implements AutoCloseable {
         this.playing.set(true);
 
         String name = audioFile.getName().toLowerCase();
-        AppLogger.info("[AUDIO-PLAYBACK] Starte Wiedergabe von '%s' ab Position %d ms", audioFile.getName(), safeStartMs);
+        AppLogger.info("[AUDIO-PLAYBACK] Starte Wiedergabe von '%s' ab Position %d ms (Gen=%d)",
+                audioFile.getName(), safeStartMs, generation);
 
         if (name.endsWith(".wav")) {
-            playWav(audioFile, safeStartMs);
+            playWav(audioFile, safeStartMs, generation);
         } else {
-            playMp3(audioFile, safeStartMs);
+            playMp3(audioFile, safeStartMs, generation);
         }
     }
 
-    private void playWav(File file, long startMs) {
+    private void playWav(File file, long startMs, long generation) {
         try {
             AudioInputStream ais = AudioSystem.getAudioInputStream(file);
             wavClip = AudioSystem.getClip();
@@ -89,27 +93,36 @@ public class AudioPlaybackService implements AutoCloseable {
 
             playbackThread = new Thread(() -> {
                 try {
-                    while (playing.get() && wavClip != null && wavClip.isRunning()) {
+                    while (playing.get() && sessionGeneration.get() == generation && wavClip != null && wavClip.isRunning()) {
                         currentPositionMs.set(wavClip.getMicrosecondPosition() / 1000L);
                         Thread.sleep(25);
                     }
                 } catch (InterruptedException ignored) {
                     Thread.currentThread().interrupt();
+                } finally {
+                    if (sessionGeneration.get() == generation) {
+                        playing.set(false);
+                    }
                 }
             }, "WAV-Playback-Monitor");
             playbackThread.setDaemon(true);
             playbackThread.start();
         } catch (Exception e) {
             AppLogger.error("[AUDIO-PLAYBACK] Fehler beim Abspielen der WAV-Datei '%s': %s", file.getName(), e.getMessage());
-            playing.set(false);
+            if (sessionGeneration.get() == generation) {
+                playing.set(false);
+            }
         }
     }
 
-    private void playMp3(File file, long startMs) {
+    private void playMp3(File file, long startMs, long generation) {
         int startFrame = (int) Math.round(startMs / MP3_MS_PER_FRAME);
 
         playbackThread = new Thread(() -> {
             try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+                if (sessionGeneration.get() != generation) {
+                    return;
+                }
                 this.currentStream = in;
                 AdvancedPlayer player = new AdvancedPlayer(in);
                 this.mp3Player = player;
@@ -119,7 +132,7 @@ public class AudioPlaybackService implements AutoCloseable {
 
                 // Separater Thread zur kontinuierlichen Positionsaktualisierung
                 Thread posTracker = new Thread(() -> {
-                    while (playing.get() && mp3Player != null) {
+                    while (playing.get() && sessionGeneration.get() == generation && mp3Player != null) {
                         long elapsed = System.currentTimeMillis() - startTime;
                         currentPositionMs.set(baseMs + elapsed);
                         try {
@@ -134,11 +147,13 @@ public class AudioPlaybackService implements AutoCloseable {
 
                 player.play(startFrame, Integer.MAX_VALUE);
             } catch (Exception e) {
-                if (playing.get()) {
+                if (playing.get() && sessionGeneration.get() == generation) {
                     AppLogger.warn("[AUDIO-PLAYBACK] MP3-Wiedergabe beendet oder unterbrochen: %s", e.getMessage());
                 }
             } finally {
-                playing.set(false);
+                if (sessionGeneration.get() == generation) {
+                    playing.set(false);
+                }
             }
         }, "MP3-Playback-Worker");
         playbackThread.setDaemon(true);
@@ -149,6 +164,7 @@ public class AudioPlaybackService implements AutoCloseable {
      * Pausiert die aktuelle Wiedergabe und speichert die aktuelle Position.
      */
     public synchronized void pause() {
+        sessionGeneration.incrementAndGet();
         if (!playing.get()) return;
         playing.set(false);
         closeCurrentMedia();
@@ -159,10 +175,26 @@ public class AudioPlaybackService implements AutoCloseable {
      * Stoppt die aktuelle Wiedergabe vollständig und setzt die Position auf 0 zurück.
      */
     public synchronized void stop() {
+        sessionGeneration.incrementAndGet();
         playing.set(false);
         closeCurrentMedia();
         currentPositionMs.set(0L);
         AppLogger.info("[AUDIO-PLAYBACK] Wiedergabe vollständig gestoppt.");
+    }
+
+    /**
+     * Setzt die Position des Players in Millisekunden.
+     * Wenn gerade abgespielt wird, wird die Wiedergabe an der neuen Position nahtlos fortgesetzt.
+     *
+     * @param targetMs Zielposition in ms
+     */
+    public synchronized void setPosition(long targetMs) {
+        long safeMs = Math.max(0L, targetMs);
+        currentPositionMs.set(safeMs);
+
+        if (playing.get() && currentFile != null && currentFile.exists()) {
+            play(currentFile, safeMs);
+        }
     }
 
     /**
@@ -172,12 +204,7 @@ public class AudioPlaybackService implements AutoCloseable {
      * @param targetMs Zielposition in ms
      */
     public synchronized void seek(long targetMs) {
-        long safeMs = Math.max(0L, targetMs);
-        currentPositionMs.set(safeMs);
-
-        if (playing.get() && currentFile != null) {
-            play(currentFile, safeMs);
-        }
+        setPosition(targetMs);
     }
 
     private void closeCurrentMedia() {

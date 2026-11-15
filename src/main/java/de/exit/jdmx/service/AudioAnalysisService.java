@@ -17,6 +17,9 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Service für die präzise Extraktion von Audiodaten (Gesamtlaufzeit und echte Wellenform-Peaks).
@@ -26,7 +29,8 @@ import java.util.List;
  *     <li><b>WAV-Dateien:</b> Native Dekodierung über {@link AudioSystem} und PCM-Sample-Auswertung</li>
  *     <li><b>MP3-Dateien:</b> Reine plattformunabhängige Java-Dekodierung via JLayer (MPEG Layer III)</li>
  * </ul>
- * Liefert normalisierte Peak-Amplituden (0.0f bis 1.0f) für hochauflösende DAW-Wellenformdarstellung.
+ * Liefert normalisierte Peak- und RMS-Amplituden (0.0f bis 1.0f) mit Dynamikspreizung für
+ * hochauflösende DAW-Wellenformdarstellung.
  * </p>
  */
 public class AudioAnalysisService {
@@ -35,6 +39,24 @@ public class AudioAnalysisService {
 
     /** Standardanzahl von Wellenform-Punkten für die gerenderte Hüllkurve. */
     public static final int DEFAULT_WAVEFORM_POINTS = 1000;
+
+    /** Hintergrund-Executor für nicht blockierende Audioanalysen. */
+    private static final ExecutorService ANALYSIS_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
+        Thread t = new Thread(r, "Audio-Analysis-Worker");
+        t.setDaemon(true);
+        return t;
+    });
+
+    /**
+     * Startet eine asynchrone Audioanalyse auf einem Hintergrund-Daemon-Thread,
+     * sodass der JavaFX Application Thread niemals blockiert wird.
+     *
+     * @param audioFile die zu analysierende Datei
+     * @return {@link CompletableFuture} mit dem Analyseergebnis
+     */
+    public CompletableFuture<AudioAnalysisResult> analyzeAsync(File audioFile) {
+        return CompletableFuture.supplyAsync(() -> analyze(audioFile), ANALYSIS_EXECUTOR);
+    }
 
     /**
      * Analysiert eine Audiodatei (WAV oder MP3) und liefert Dauer sowie Wellenform-Peaks.
@@ -102,17 +124,22 @@ public class AudioAnalysisService {
                 while ((bytesRead = ais.read(buffer)) != -1) {
                     int samplesInChunk = bytesRead / 2;
                     float chunkPeak = 0.0f;
+                    double sumSq = 0.0;
 
                     for (int i = 0; i < samplesInChunk; i++) {
                         int byteIdx = i * 2;
                         short sample = (short) ((buffer[byteIdx] & 0xFF) | (buffer[byteIdx + 1] << 8));
                         float normalized = Math.abs(sample) / 32768.0f;
+                        sumSq += normalized * normalized;
                         if (normalized > chunkPeak) {
                             chunkPeak = normalized;
                         }
                     }
 
-                    peaks.add(chunkPeak);
+                    float rms = (float) Math.sqrt(sumSq / Math.max(1, samplesInChunk));
+                    // 35% Peak für Transienten-Spikes, 65% RMS für Lautstärke-Dynamik
+                    float combined = (0.35f * chunkPeak) + (0.65f * rms);
+                    peaks.add(combined);
                     totalFramesRead += (bytesRead / (channels * 2));
                 }
 
@@ -165,14 +192,18 @@ public class AudioAnalysisService {
                         short[] buffer = output.getBuffer();
                         int len = output.getBufferLength();
                         float maxPeak = 0.0f;
+                        double sumSq = 0.0;
 
                         for (int i = 0; i < len; i++) {
                             float absVal = Math.abs(buffer[i]) / 32768.0f;
+                            sumSq += absVal * absVal;
                             if (absVal > maxPeak) {
                                 maxPeak = absVal;
                             }
                         }
-                        framePeaks.add(maxPeak);
+                        float rms = (float) Math.sqrt(sumSq / Math.max(1, len));
+                        float combined = (0.35f * maxPeak) + (0.65f * rms);
+                        framePeaks.add(combined);
                     }
                 } catch (Exception ignored) {
                     // Einzelner Frame nicht dekodierbar -> überspringen
@@ -201,7 +232,8 @@ public class AudioAnalysisService {
 
     /**
      * Reduziert oder interpoliert eine Reihe von Peak-Werten auf eine Zielanzahl von Punkten.
-     * Nutzt Peak-Detection (Maximum pro Block), damit keine akustischen Transienten verloren gehen.
+     * Nutzt Peak- und RMS-Detection mit anschließender Dynamikspreizung (Power-Curve),
+     * damit leise Passagen schmal abfallen und laute Hits/Spikes dynamisch hervortreten.
      *
      * @param original     originale Peak-Werte
      * @param targetPoints Zielanzahl an Punkten
@@ -211,25 +243,52 @@ public class AudioAnalysisService {
         if (original == null || original.length == 0 || targetPoints <= 0) {
             return new float[0];
         }
+
+        float[] raw;
         if (original.length <= targetPoints) {
-            float[] copy = new float[original.length];
-            System.arraycopy(original, 0, copy, 0, original.length);
-            return copy;
+            raw = new float[original.length];
+            System.arraycopy(original, 0, raw, 0, original.length);
+        } else {
+            raw = new float[targetPoints];
+            double step = (double) original.length / targetPoints;
+
+            for (int i = 0; i < targetPoints; i++) {
+                int start = (int) (i * step);
+                int end = (int) Math.min(original.length, (i + 1) * step);
+                float max = 0.0f;
+                double sum = 0.0;
+                int count = 0;
+                for (int j = start; j < end; j++) {
+                    float val = original[j];
+                    sum += val;
+                    count++;
+                    if (val > max) {
+                        max = val;
+                    }
+                }
+                float avg = count > 0 ? (float) (sum / count) : 0.0f;
+                // Mix aus Spitzenwert und Block-Durchschnitt
+                raw[i] = (0.4f * max) + (0.6f * avg);
+            }
         }
 
-        float[] result = new float[targetPoints];
-        double step = (double) original.length / targetPoints;
-
-        for (int i = 0; i < targetPoints; i++) {
-            int start = (int) (i * step);
-            int end = (int) Math.min(original.length, (i + 1) * step);
-            float max = 0.0f;
-            for (int j = start; j < end; j++) {
-                if (original[j] > max) {
-                    max = original[j];
-                }
+        // Dynamik-Spreizung (Dynamic Range Expansion)
+        float globalMax = 0.0f;
+        for (float v : raw) {
+            if (v > globalMax) {
+                globalMax = v;
             }
-            result[i] = max;
+        }
+
+        float[] result = new float[raw.length];
+        if (globalMax > 0.001f) {
+            for (int i = 0; i < raw.length; i++) {
+                float norm = Math.min(1.0f, raw[i] / globalMax);
+                // Exponent 1.35 lässt Täler subtil absinken und Spikes kräftig hervortreten
+                result[i] = (float) Math.pow(norm, 1.35);
+            }
+        } else {
+            System.arraycopy(raw, 0, result, 0, raw.length);
         }
 
         return result;
