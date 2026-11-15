@@ -134,6 +134,9 @@ public class TimelineGridView extends Pane {
         });
 
         setOnMouseReleased(e -> {
+            if (draggingClipTrack != null) {
+                service.resyncTrackImmediate(draggingClipTrack.getId());
+            }
             isDraggingPlayhead = false;
             draggingClipTrack = null;
             updateCursorForPosition(e.getX(), e.getY());

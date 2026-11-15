@@ -108,4 +108,31 @@ class AudioPlaybackServiceTest {
         assertThat(service.isPlaying()).isFalse();
         assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
     }
+
+    @Test
+    @DisplayName("Sollte einzelne Spur bei Verschiebung während Wiedergabe sofort oder debounced resyncen")
+    void shouldResyncSingleTrackWhenMovedDuringPlayback() {
+        AudioPlaybackService service = new AudioPlaybackService();
+
+        de.exit.jdmx.core.model.TimelineTrack track1 = new de.exit.jdmx.core.model.TimelineTrack("t1", "Track 1");
+        track1.setSongName("track1.mp3");
+        track1.setSongFile(new File("track1.mp3"));
+        track1.setDurationMs(60_000L);
+        track1.setStartTimeMs(0L);
+
+        service.playTimeline(List.of(track1), 5000L);
+        assertThat(service.isPlaying()).isTrue();
+
+        // Spur wird nach hinten verschoben (z.B. Startzeit 10.000 ms, Timeline ist bei 5.000 ms -> außerhalb)
+        track1.setStartTimeMs(10_000L);
+        assertThatCode(() -> service.resyncTrackImmediate(track1, 5000L)).doesNotThrowAnyException();
+
+        // Spur wird wieder nach vorne verschoben (Startzeit 2.000 ms, Timeline ist bei 5.000 ms -> innerhalb mit Offset 3.000 ms)
+        track1.setStartTimeMs(2_000L);
+        assertThatCode(() -> service.resyncTrackDebounced(track1, 5000L)).doesNotThrowAnyException();
+        assertThatCode(() -> service.resyncTrackImmediate(track1, 5000L)).doesNotThrowAnyException();
+
+        service.stop();
+        assertThat(service.isPlaying()).isFalse();
+    }
 }

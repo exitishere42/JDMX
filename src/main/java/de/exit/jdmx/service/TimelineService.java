@@ -406,10 +406,26 @@ public class TimelineService {
         if (trackOpt.isPresent()) {
             TimelineTrack track = trackOpt.get();
             track.setStartTimeMs(startTimeMs);
+            if (playing.get()) {
+                audioPlaybackService.resyncTrackDebounced(track, currentPositionMs.get());
+            }
             notifyChange();
             return true;
         }
         return false;
+    }
+
+    /**
+     * Führt eine sofortige Audiosynchronisation einer einzelnen Spur zur aktuellen
+     * Playhead-Position durch (z. B. beim Loslassen der Maus nach dem Clip-Drag).
+     *
+     * @param trackId ID der Zielspur
+     */
+    public void resyncTrackImmediate(String trackId) {
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent() && playing.get()) {
+            audioPlaybackService.resyncTrackImmediate(trackOpt.get(), currentPositionMs.get());
+        }
     }
 
     /**

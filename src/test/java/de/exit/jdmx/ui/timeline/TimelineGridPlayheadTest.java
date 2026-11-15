@@ -110,4 +110,47 @@ class TimelineGridPlayheadTest {
 
         assertThat(service.getCurrentPositionMs()).isEqualTo(5000L);
     }
+
+    @Test
+    @DisplayName("Sollte beim Loslassen eines gedraggten Clips resyncTrackImmediate aufrufen")
+    void shouldResyncTrackImmediateOnClipRelease() {
+        TimelineService service = new TimelineService();
+        de.exit.jdmx.core.model.TimelineTrack track1 = service.getTracks().get(0);
+        track1.setSongName("test.mp3");
+        track1.setDurationMs(30_000L);
+        track1.setStartTimeMs(0L);
+
+        TimelineGridView grid = new TimelineGridView(service);
+
+        // Klick auf Clip
+        javafx.scene.input.MouseEvent clipPress = new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_PRESSED,
+                50.0, 20.0, 50.0, 20.0,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        grid.fireEvent(clipPress);
+
+        // Drag Clip um 100px
+        javafx.scene.input.MouseEvent clipDrag = new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_DRAGGED,
+                150.0, 20.0, 150.0, 20.0,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        grid.fireEvent(clipDrag);
+        assertThat(track1.getStartTimeMs()).isGreaterThan(0L);
+
+        // Release Clip
+        javafx.scene.input.MouseEvent clipRelease = new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_RELEASED,
+                150.0, 20.0, 150.0, 20.0,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, false, false, false, false, false, false, null
+        );
+        grid.fireEvent(clipRelease);
+
+        // Track-Startzeit bleibt gespeichert
+        assertThat(track1.getStartTimeMs()).isGreaterThan(0L);
+    }
 }

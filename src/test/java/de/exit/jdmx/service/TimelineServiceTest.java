@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -138,5 +139,29 @@ class TimelineServiceTest {
         // Ungültige Track-ID
         boolean notFound = service.setTrackStartTimeMs("unknown-id", 5000L);
         assertThat(notFound).isFalse();
+    }
+
+    @Test
+    @DisplayName("Sollte resyncTrackImmediate aufrufen und bei Verschiebung während Wiedergabe Audio resynchronisieren")
+    void shouldResyncAudioWhenTrackMovedDuringPlayback() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track1 = service.getTracks().get(0);
+        track1.setSongName("test.mp3");
+        track1.setDurationMs(60_000L);
+        track1.setStartTimeMs(0L);
+
+        // Simulation von Wiedergabe
+        service.startPlayback();
+        assertThat(service.isPlaying()).isTrue();
+
+        // Startzeit wird während Wiedergabe verschoben
+        service.setTrackStartTimeMs(track1.getId(), 5000L);
+        assertThat(track1.getStartTimeMs()).isEqualTo(5000L);
+
+        // Sofortiger Resync (z.B. bei Mouse-Release)
+        assertThatCode(() -> service.resyncTrackImmediate(track1.getId())).doesNotThrowAnyException();
+
+        service.stopPlayback();
+        assertThat(service.isPlaying()).isFalse();
     }
 }

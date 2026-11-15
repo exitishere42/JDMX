@@ -17,6 +17,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,6 +49,12 @@ public class AudioPlaybackService implements AutoCloseable {
     private volatile double volume = 1.0;
 
     private final Map<String, TrackAudioChannel> activeChannels = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService syncScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "AudioPlayback-ResyncDebounce");
+        t.setDaemon(true);
+        return t;
+    });
+    private final Map<String, ScheduledFuture<?>> pendingResyncs = new ConcurrentHashMap<>();
     private volatile List<TimelineTrack> currentTracks = Collections.emptyList();
     private volatile File currentFile;
 
@@ -277,6 +287,52 @@ public class AudioPlaybackService implements AutoCloseable {
     }
 
     /**
+     * Resynchronisiert sofort eine einzelne Spur bei Positionsverschiebung während der Wiedergabe.
+     * Bricht eventuell geplante Debounce-Synchronisationen für diese Spur ab.
+     *
+     * @param track              Die verschobene Spur
+     * @param timelinePositionMs Aktuelle Timeline-Position in Millisekunden
+     */
+    public synchronized void resyncTrackImmediate(TimelineTrack track, long timelinePositionMs) {
+        if (!playing.get() || track == null) {
+            return;
+        }
+        ScheduledFuture<?> future = pendingResyncs.remove(track.getId());
+        if (future != null) {
+            future.cancel(false);
+        }
+
+        long generation = sessionGeneration.get();
+        TrackAudioChannel oldCh = activeChannels.remove(track.getId());
+        if (oldCh != null) {
+            oldCh.stop();
+        }
+        syncTrackChannel(track, timelinePositionMs, generation);
+    }
+
+    /**
+     * Resynchronisiert eine einzelne Spur verzögert (debounced um 80 ms), um während kontinuierlicher
+     * Mausbewegungen (Drag) ein Überlasten der Audio-Linien und Stottern zu verhindern.
+     *
+     * @param track              Die verschobene Spur
+     * @param timelinePositionMs Aktuelle Timeline-Position in Millisekunden
+     */
+    public synchronized void resyncTrackDebounced(TimelineTrack track, long timelinePositionMs) {
+        if (!playing.get() || track == null) {
+            return;
+        }
+        ScheduledFuture<?> existing = pendingResyncs.get(track.getId());
+        if (existing != null && !existing.isDone()) {
+            existing.cancel(false);
+        }
+
+        ScheduledFuture<?> next = syncScheduler.schedule(() -> {
+            resyncTrackImmediate(track, currentPositionMs.get());
+        }, 80, TimeUnit.MILLISECONDS);
+        pendingResyncs.put(track.getId(), next);
+    }
+
+    /**
      * Startet die Wiedergabe einer einzelnen Audiodatei ab der gewünschten Millisekunden-Position.
      * (Abwärtskompatible Methode für Einzelaufrufe).
      *
@@ -355,6 +411,12 @@ public class AudioPlaybackService implements AutoCloseable {
     }
 
     private synchronized void closeAllChannels() {
+        for (ScheduledFuture<?> f : pendingResyncs.values()) {
+            if (f != null) {
+                f.cancel(false);
+            }
+        }
+        pendingResyncs.clear();
         for (TrackAudioChannel channel : activeChannels.values()) {
             try {
                 channel.stop();
@@ -411,5 +473,6 @@ public class AudioPlaybackService implements AutoCloseable {
     @Override
     public void close() {
         stop();
+        syncScheduler.shutdownNow();
     }
 }
