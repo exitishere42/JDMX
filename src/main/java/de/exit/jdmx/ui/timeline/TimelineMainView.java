@@ -128,8 +128,8 @@ public class TimelineMainView extends VBox {
         gridScrollPane.getStyleClass().addAll("timeline-grid-scroll", "edge-to-edge");
         gridScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         gridScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        gridScrollPane.setFitToWidth(true);
-        gridScrollPane.setFitToHeight(true);
+        gridScrollPane.setFitToWidth(false);
+        gridScrollPane.setFitToHeight(false);
         HBox.setHgrow(gridScrollPane, Priority.ALWAYS);
         VBox.setVgrow(gridScrollPane, Priority.ALWAYS);
 

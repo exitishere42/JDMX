@@ -55,23 +55,18 @@ public class TimelineGridView extends Pane {
         this.canvas = new Canvas();
         getChildren().add(canvas);
 
-        canvas.widthProperty().bind(widthProperty());
-        canvas.heightProperty().bind(heightProperty());
-
         updateGridDimensions();
 
-        widthProperty().addListener((obs, oldW, newW) -> drawGrid());
-        heightProperty().addListener((obs, oldH, newH) -> drawGrid());
-
         service.addChangeListener(() -> {
-            if (getScene() != null && !javafx.application.Platform.isFxApplicationThread()) {
-                javafx.application.Platform.runLater(() -> {
-                    updateGridDimensions();
-                    drawGrid();
-                });
-            } else {
+            Runnable action = () -> {
                 updateGridDimensions();
+                requestLayout();
                 drawGrid();
+            };
+            if (javafx.application.Platform.isFxApplicationThread()) {
+                action.run();
+            } else {
+                javafx.application.Platform.runLater(action);
             }
         });
 
@@ -90,6 +85,18 @@ public class TimelineGridView extends Pane {
         // Kontextmenü & Drag & Drop für Audio-Songs aus dem Explorer auf Spuren
         setupContextMenu();
         setupDragAndDrop();
+    }
+
+    @Override
+    protected void layoutChildren() {
+        super.layoutChildren();
+        double w = Math.max(1.0, getWidth());
+        double h = Math.max(1.0, getHeight());
+        if (canvas.getWidth() != w || canvas.getHeight() != h) {
+            canvas.setWidth(w);
+            canvas.setHeight(h);
+        }
+        drawGrid();
     }
 
     private void setupContextMenu() {
@@ -179,7 +186,7 @@ public class TimelineGridView extends Pane {
             }
             currentY += h;
         }
-        return tracks.isEmpty() ? -1 : tracks.size() - 1;
+        return -1; // Freie Fläche unterhalb der Spuren -> Neue Spur anlegen!
     }
 
     /**
@@ -209,63 +216,50 @@ public class TimelineGridView extends Pane {
     public void updateGridDimensions() {
         long maxDurationMs = service.getMaxTimelineDurationMs();
         double targetWidth = Math.max(1200.0, millisToX(maxDurationMs) + (BAR_WIDTH * 8));
-        if (getPrefWidth() != targetWidth) {
-            setMinWidth(targetWidth);
-            setPrefWidth(targetWidth);
-        }
+        double targetHeight = Math.max(600.0, (service.getTracks().size() * 48.0) + 300.0);
+        setMinWidth(targetWidth);
+        setPrefWidth(targetWidth);
+        setMinHeight(targetHeight);
+        setPrefHeight(targetHeight);
     }
 
     /**
      * Zeichnet das Playlist-Raster, die Song-Clips und die Timeline-Linie auf die Canvas.
      */
     public void drawGrid() {
-        double w = getWidth();
-        double h = getHeight();
+        double w = Math.max(getWidth(), canvas.getWidth());
+        double h = Math.max(getHeight(), canvas.getHeight());
         if (w <= 0 || h <= 0) return;
 
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, w, h);
 
         List<TimelineTrack> tracks = service.getTracks();
-        double currentY = 0;
+        double totalTracksHeight = tracks.size() * 48.0;
+        double gridHeight = Math.max(h, totalTracksHeight);
 
-        // 1. Horizontale Spuren und Hintergründe zeichnen
+        // 1. Hintergrund für gesamte Fläche
+        gc.setFill(Color.web("#101010"));
+        gc.fillRect(0, 0, w, h);
+
+        // 2. Horizontale Spuren und Hintergrund-Streifen
+        double currentY = 0;
         for (int i = 0; i < tracks.size(); i++) {
             TimelineTrack track = tracks.get(i);
             double trackH = track.getHeight();
 
-            // Alternierende Zeilenfarbe
             if (i % 2 == 0) {
                 gc.setFill(Color.web("#141414"));
             } else {
                 gc.setFill(Color.web("#171717"));
             }
             gc.fillRect(0, currentY, w, trackH);
-
-            // Song-Clip zeichnen, falls dieser Spur ein Song zugewiesen ist
-            if (track.hasSong()) {
-                drawSongClip(gc, track, currentY, trackH, w);
-            }
-
-            // Horizontale Trennlinie unten
-            gc.setStroke(Color.web("#222222"));
-            gc.setLineWidth(1.0);
-            gc.strokeLine(0, currentY + trackH - 0.5, w, currentY + trackH - 0.5);
-
             currentY += trackH;
         }
 
-        // Restfläche unterhalb der Spuren
-        if (currentY < h) {
-            gc.setFill(Color.web("#101010"));
-            gc.fillRect(0, currentY, w, h - currentY);
-        }
-
-        // 2. Vertikale Takt- und Beat-Rasterlinien zeichnen
-        double gridHeight = Math.max(h, currentY);
+        // 3. Vertikale Takt- und Beat-Rasterlinien zeichnen (Bars & Beats)
         for (double x = 0; x < w; x += BEAT_WIDTH) {
             boolean isBarLine = Math.abs(x % BAR_WIDTH) < 0.1;
-
             if (isBarLine) {
                 gc.setStroke(Color.web("#2A2A2A"));
                 gc.setLineWidth(1.0);
@@ -277,7 +271,29 @@ public class TimelineGridView extends Pane {
             }
         }
 
-        // 3. Timeline-Linie (Playhead) zeichnen
+        // 4. Horizontale Trennlinien zwischen den Spuren
+        currentY = 0;
+        for (int i = 0; i < tracks.size(); i++) {
+            TimelineTrack track = tracks.get(i);
+            double trackH = track.getHeight();
+            gc.setStroke(Color.web("#252525"));
+            gc.setLineWidth(1.0);
+            gc.strokeLine(0, currentY + trackH - 0.5, w, currentY + trackH - 0.5);
+            currentY += trackH;
+        }
+
+        // 5. Song-Clips AUF das Raster zeichnen (Vordergrund)
+        currentY = 0;
+        for (int i = 0; i < tracks.size(); i++) {
+            TimelineTrack track = tracks.get(i);
+            double trackH = track.getHeight();
+            if (track.hasSong()) {
+                drawSongClip(gc, track, currentY, trackH, w);
+            }
+            currentY += trackH;
+        }
+
+        // 6. Timeline-Linie (Playhead) ganz oben zeichnen
         drawPlayhead(gc, gridHeight);
     }
 
