@@ -75,11 +75,57 @@ public class TimelineGridView extends Pane {
         });
 
         // Klick und Drag zum Scrubben (Versetzen der Timeline-Linie)
-        setOnMousePressed(e -> handleSeek(e.getX()));
-        setOnMouseDragged(e -> handleSeek(e.getX()));
+        setOnMousePressed(e -> {
+            if (e.isPrimaryButtonDown()) {
+                handleSeek(e.getX());
+            }
+        });
+        setOnMouseDragged(e -> {
+            if (e.isPrimaryButtonDown()) {
+                handleSeek(e.getX());
+            }
+        });
 
-        // Drag & Drop für Audio-Songs aus dem Explorer auf Spuren
+        // Kontextmenü & Drag & Drop für Audio-Songs aus dem Explorer auf Spuren
+        setupContextMenu();
         setupDragAndDrop();
+    }
+
+    private void setupContextMenu() {
+        javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
+
+        javafx.scene.control.MenuItem itemAssign = new javafx.scene.control.MenuItem("Song zuweisen...");
+        javafx.scene.control.MenuItem itemAddTrack = new javafx.scene.control.MenuItem("Track hinzufügen");
+
+        contextMenu.getItems().addAll(itemAssign, itemAddTrack);
+
+        setOnContextMenuRequested(e -> {
+            int trackIdx = getTrackIndexAtY(e.getY());
+            List<TimelineTrack> tracks = service.getTracks();
+            if (trackIdx >= 0 && trackIdx < tracks.size()) {
+                TimelineTrack targetTrack = tracks.get(trackIdx);
+                itemAssign.setText("Song zuweisen zu '" + targetTrack.getName() + "'...");
+                itemAssign.setOnAction(ev -> handleAssignSongViaChooser(targetTrack));
+            } else {
+                itemAssign.setText("Song zuweisen...");
+                itemAssign.setOnAction(ev -> {
+                    TimelineTrack newTrack = service.addTrack();
+                    handleAssignSongViaChooser(newTrack);
+                });
+            }
+            itemAddTrack.setOnAction(ev -> service.addTrack());
+            contextMenu.show(this, e.getScreenX(), e.getScreenY());
+        });
+    }
+
+    private void handleAssignSongViaChooser(TimelineTrack targetTrack) {
+        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Song für " + targetTrack.getName() + " auswählen");
+        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Audiodateien (*.mp3, *.wav)", "*.mp3", "*.wav"));
+        File chosen = chooser.showOpenDialog(getScene() != null ? getScene().getWindow() : null);
+        if (chosen != null) {
+            service.assignSongToTrack(targetTrack.getId(), chosen);
+        }
     }
 
     private void handleSeek(double x) {
@@ -90,7 +136,8 @@ public class TimelineGridView extends Pane {
     private void setupDragAndDrop() {
         setOnDragOver(e -> {
             Dragboard db = e.getDragboard();
-            if (db.hasFiles() || db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT) || db.hasString()) {
+            Optional<File> audioOpt = TimelineDragHelper.extractAudioFile(db, service);
+            if (audioOpt.isPresent()) {
                 e.acceptTransferModes(TransferMode.COPY_OR_MOVE);
             }
             e.consume();
@@ -98,27 +145,19 @@ public class TimelineGridView extends Pane {
 
         setOnDragDropped(e -> {
             Dragboard db = e.getDragboard();
-            File targetFile = null;
+            Optional<File> audioOpt = TimelineDragHelper.extractAudioFile(db, service);
 
-            if (db.hasFiles() && !db.getFiles().isEmpty()) {
-                targetFile = db.getFiles().get(0);
-            } else {
-                String draggedText = (String) (db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                        ? db.getContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)
-                        : db.getString());
-                if (draggedText != null) {
-                    String songName = db.hasString() ? db.getString() : draggedText;
-                    Optional<File> songOpt = service.findSongFileByName(songName);
-                    targetFile = songOpt.orElseGet(() -> new File(songName));
-                }
-            }
-
-            if (targetFile != null) {
+            if (audioOpt.isPresent()) {
+                File targetFile = audioOpt.get();
                 int trackIdx = getTrackIndexAtY(e.getY());
                 List<TimelineTrack> tracks = service.getTracks();
                 if (trackIdx >= 0 && trackIdx < tracks.size()) {
                     TimelineTrack targetTrack = tracks.get(trackIdx);
                     service.assignSongToTrack(targetTrack.getId(), targetFile);
+                    e.setDropCompleted(true);
+                } else {
+                    TimelineTrack newTrack = service.addTrack();
+                    service.assignSongToTrack(newTrack.getId(), targetFile);
                     e.setDropCompleted(true);
                 }
             }

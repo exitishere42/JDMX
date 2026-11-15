@@ -69,6 +69,7 @@ class TimelineServiceSongAssignmentTest {
 
         assertThat(service.findSongFileByName("song1.mp3")).contains(song1);
         assertThat(service.findSongFileByName("song2.wav")).contains(song2);
+        assertThat(service.findSongFileByName("song-song1.mp3")).contains(song1);
         assertThat(service.findSongFileByName("unbekannt.mp3")).isEmpty();
     }
 }

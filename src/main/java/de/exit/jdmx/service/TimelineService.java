@@ -242,16 +242,53 @@ public class TimelineService {
     }
 
     /**
+     * Entfernt eine importierte Song-Datei aus dem Explorer.
+     *
+     * @param songFile die zu entfernende Datei
+     * @return {@code true}, wenn die Datei vorhanden war und entfernt wurde
+     */
+    public boolean removeSong(File songFile) {
+        if (songFile == null) return false;
+        boolean removed = importedSongs.remove(songFile);
+        if (removed) {
+            notifyChange();
+        }
+        return removed;
+    }
+
+    /**
      * Sucht eine importierte Song-Datei anhand ihres Dateinamens.
      *
      * @param songName Name der gesuchten Datei (z. B. "showtanz.mp3")
      * @return Optional mit der Datei, falls gefunden
      */
     public Optional<File> findSongFileByName(String songName) {
-        if (songName == null) return Optional.empty();
-        return importedSongs.stream()
-                .filter(f -> f.getName().equalsIgnoreCase(songName))
+        if (songName == null || songName.isBlank()) return Optional.empty();
+        String target = songName.trim();
+        Optional<File> direct = importedSongs.stream()
+                .filter(f -> f.getName().equalsIgnoreCase(target))
                 .findFirst();
+        if (direct.isPresent()) {
+            return direct;
+        }
+
+        if (target.startsWith("song-")) {
+            String clean = target.substring(5).trim();
+            Optional<File> stripped = importedSongs.stream()
+                    .filter(f -> f.getName().equalsIgnoreCase(clean))
+                    .findFirst();
+            if (stripped.isPresent()) {
+                return stripped;
+            }
+        }
+
+        // Falls es sich um einen Pfad zu einer existierenden Datei handelt:
+        File checkFile = new File(target);
+        if (checkFile.exists() && checkFile.isFile()) {
+            return Optional.of(checkFile);
+        }
+
+        return Optional.empty();
     }
 
     /**

@@ -82,4 +82,15 @@ class TimelineTrackHeaderBoxTest {
         assertThat(box.getTxtRename()).isNotNull();
         assertThat(box.getTxtRename().getText()).isEqualTo("Track 1");
     }
+
+    @Test
+    @DisplayName("Sollte feste Mindest- und Vorzugsbreite von mindestens 160px besitzen")
+    void shouldHaveStableMinimumWidth() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track = service.getTracks().get(0);
+        TimelineTrackHeaderBox box = new TimelineTrackHeaderBox(track, service);
+
+        assertThat(box.getMinWidth()).isGreaterThanOrEqualTo(160.0);
+        assertThat(box.getPrefWidth()).isGreaterThanOrEqualTo(160.0);
+    }
 }

@@ -99,4 +99,22 @@ class ShowTimelineExplorerViewTest {
         assertThat(songsFolder).isNotNull();
         assertThat(songsFolder.getChildren()).anyMatch(child -> child.getValue().getName().equals("fanfare.mp3"));
     }
+
+    @Test
+    @DisplayName("Sollte Song bei Doppel-Aktivierung auf den Track der Timeline legen")
+    void shouldAssignSongToTrackOnDirectAction() {
+        TimelineService service = new TimelineService();
+        ShowTimelineExplorerView view = new ShowTimelineExplorerView(service);
+
+        File songFile = new File("rcv_garde.mp3");
+        service.importSong(songFile);
+
+        ExplorerItem item = view.getSongsFolderItem().getChildren().get(0).getValue();
+        assertThat(item.getSongFile()).isEqualTo(songFile);
+
+        boolean assigned = view.assignSongToTimeline(item, null);
+        assertThat(assigned).isTrue();
+        assertThat(service.getTracks().get(0).hasSong()).isTrue();
+        assertThat(service.getTracks().get(0).getSongFile()).isEqualTo(songFile);
+    }
 }

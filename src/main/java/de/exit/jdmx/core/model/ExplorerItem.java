@@ -20,6 +20,7 @@ public class ExplorerItem {
     private final String iconName;
     private final Color color;
     private FixtureInstance fixtureInstance;
+    private java.io.File songFile;
     private final List<String> memberFixtureIds = new ArrayList<>();
 
     /**
@@ -63,6 +64,24 @@ public class ExplorerItem {
 
     public void setFixtureInstance(FixtureInstance fixtureInstance) {
         this.fixtureInstance = fixtureInstance;
+    }
+
+    /**
+     * Liefert die verknüpfte Audio-Songdatei (für Elemente des Typs {@link ExplorerItemType#SONG}).
+     *
+     * @return die Audiodatei oder {@code null}
+     */
+    public java.io.File getSongFile() {
+        return songFile;
+    }
+
+    /**
+     * Setzt die verknüpfte Audio-Songdatei.
+     *
+     * @param songFile die Audiodatei
+     */
+    public void setSongFile(java.io.File songFile) {
+        this.songFile = songFile;
     }
 
     public String getId() {

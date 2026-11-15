@@ -83,4 +83,14 @@ class TimelineMainViewTest {
         assertThat(TimelineMainView.formatTime(1500L)).isEqualTo("00:01.500");
         assertThat(TimelineMainView.formatTime(65432L)).isEqualTo("01:05.432");
     }
+
+    @Test
+    @DisplayName("Sollte linke Track-Header-Leiste mit stabiler Mindestbreite von mindestens 160px layouten")
+    void shouldMaintainStableHeaderWidth() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        assertThat(view.getTracksScrollPane().getMinWidth()).isGreaterThanOrEqualTo(160.0);
+        assertThat(view.getTracksScrollPane().getPrefWidth()).isGreaterThanOrEqualTo(160.0);
+    }
 }

@@ -136,7 +136,7 @@ public class ShowTimelineExplorerView extends VBox {
         this.treeView = new TreeView<>(rootItem);
         treeView.setShowRoot(false);
         treeView.getStyleClass().add("project-explorer-tree");
-        treeView.setCellFactory(tv -> new TimelineExplorerTreeCell());
+        treeView.setCellFactory(tv -> new TimelineExplorerTreeCell(this));
         VBox.setVgrow(treeView, Priority.ALWAYS);
 
         buildTree();
@@ -144,6 +144,9 @@ public class ShowTimelineExplorerView extends VBox {
         // StackPane für Umschaltung zwischen Inspektor und TreeView
         this.contentStack = new StackPane(treeView, inspectorView);
         VBox.setVgrow(contentStack, Priority.ALWAYS);
+
+        // Externes Drag & Drop für Audiodateien direkt in den Explorer
+        setupExternalDragAndDrop();
 
         // Auf Änderungen im TimelineService lauschen (z. B. importierte Songs)
         timelineService.addChangeListener(() -> {
@@ -206,11 +209,71 @@ public class ShowTimelineExplorerView extends VBox {
                     "music",
                     StudioTheme.COLOR_ICON_TIMELINE
             );
+            songItem.setSongFile(song);
             LucideIcon songIcon = new LucideIcon("music", ITEM_ICON_SIZE, StudioTheme.COLOR_ICON_TIMELINE);
             songsFolderItem.getChildren().add(new TreeItem<>(songItem, songIcon));
         }
 
         rootItem.getChildren().setAll(songsFolderItem);
+    }
+
+    private void setupExternalDragAndDrop() {
+        setOnDragOver(e -> {
+            java.util.Optional<File> fileOpt = TimelineDragHelper.extractAudioFile(e.getDragboard(), timelineService);
+            if (fileOpt.isPresent()) {
+                e.acceptTransferModes(javafx.scene.input.TransferMode.COPY_OR_MOVE);
+            }
+            e.consume();
+        });
+
+        setOnDragDropped(e -> {
+            java.util.List<File> files = TimelineDragHelper.extractAudioFiles(e.getDragboard(), timelineService);
+            if (!files.isEmpty()) {
+                for (File f : files) {
+                    timelineService.importSong(f);
+                }
+                e.setDropCompleted(true);
+            }
+            e.consume();
+        });
+    }
+
+    /**
+     * Weist ein Song-ExplorerItem einer Spur der Timeline zu.
+     * Falls {@code trackId} {@code null} ist, wird bevorzugt die erste leere Spur gewählt oder Spur 0.
+     *
+     * @param item    das Song-Item
+     * @param trackId Zielspur-ID oder {@code null} für automatische Wahl
+     * @return {@code true}, wenn erfolgreich zugewiesen
+     */
+    public boolean assignSongToTimeline(ExplorerItem item, String trackId) {
+        if (item == null) return false;
+        File songFile = item.getSongFile();
+        if (songFile == null) {
+            java.util.Optional<File> opt = timelineService.findSongFileByName(item.getName());
+            if (opt.isPresent()) {
+                songFile = opt.get();
+            }
+        }
+        if (songFile == null) return false;
+
+        java.util.List<de.exit.jdmx.core.model.TimelineTrack> tracks = timelineService.getTracks();
+        if (tracks.isEmpty()) {
+            de.exit.jdmx.core.model.TimelineTrack newTrack = timelineService.addTrack();
+            return timelineService.assignSongToTrack(newTrack.getId(), songFile);
+        }
+
+        if (trackId != null) {
+            return timelineService.assignSongToTrack(trackId, songFile);
+        }
+
+        // Erste Spur ohne Song suchen, sonst Spur 0
+        de.exit.jdmx.core.model.TimelineTrack target = tracks.stream()
+                .filter(t -> !t.hasSong())
+                .findFirst()
+                .orElse(tracks.get(0));
+
+        return timelineService.assignSongToTrack(target.getId(), songFile);
     }
 
     /**
@@ -343,16 +406,23 @@ public class ShowTimelineExplorerView extends VBox {
     }
 
     /**
-     * TreeCell für den Timeline Explorer mit korrekter Disclosure-Node Zentrierung
-     * und nativer Drag & Drop Unterstützung für Songs.
+     * TreeCell für den Timeline Explorer mit korrekter Disclosure-Node Zentrierung,
+     * nativer Drag & Drop Unterstützung für Songs, Doppelklick-Zuweisung und Kontextmenü.
      */
     public static class TimelineExplorerTreeCell extends javafx.scene.control.TreeCell<ExplorerItem> {
 
+        private final ShowTimelineExplorerView parentView;
         private javafx.scene.Node defaultDisclosureNode;
 
         public TimelineExplorerTreeCell() {
+            this(null);
+        }
+
+        public TimelineExplorerTreeCell(ShowTimelineExplorerView parentView) {
+            this.parentView = parentView;
             setupDragAndDrop();
             setupClickHandler();
+            setupContextMenu();
         }
 
         private void setupDragAndDrop() {
@@ -361,10 +431,22 @@ public class ShowTimelineExplorerView extends VBox {
                 ExplorerItem item = getItem();
                 if (item.isStandardFolder() || item.getType() == ExplorerItemType.FOLDER) return;
 
+                File songFile = item.getSongFile();
+                if (songFile == null && parentView != null) {
+                    songFile = parentView.getTimelineService().findSongFileByName(item.getName()).orElse(null);
+                }
+
                 javafx.scene.input.Dragboard db = startDragAndDrop(javafx.scene.input.TransferMode.COPY_OR_MOVE);
                 javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
                 content.put(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT, item.getId());
                 content.putString(item.getName());
+
+                if (songFile != null && songFile.exists()) {
+                    content.putFiles(java.util.List.of(songFile));
+                    content.putUrl(songFile.toURI().toString());
+                    content.putString(songFile.getAbsolutePath());
+                }
+
                 db.setContent(content);
                 event.consume();
             });
@@ -374,9 +456,58 @@ public class ShowTimelineExplorerView extends VBox {
             setOnMouseClicked(event -> {
                 if (isEmpty() || getItem() == null) return;
                 TreeItem<ExplorerItem> ti = getTreeItem();
-                if (ti != null && !ti.getChildren().isEmpty() && event.getClickCount() == 1) {
+                if (ti == null) return;
+
+                if (!ti.getChildren().isEmpty() && event.getClickCount() == 1) {
                     ti.setExpanded(!ti.isExpanded());
                     event.consume();
+                } else if (event.getClickCount() == 2 && getItem().getType() == ExplorerItemType.SONG) {
+                    if (parentView != null) {
+                        parentView.assignSongToTimeline(getItem(), null);
+                        event.consume();
+                    }
+                }
+            });
+        }
+
+        private void setupContextMenu() {
+            javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
+
+            javafx.scene.control.MenuItem itemAssign = new javafx.scene.control.MenuItem("In Timeline auf Spur 1 legen");
+            itemAssign.setOnAction(e -> {
+                if (parentView != null && getItem() != null) {
+                    parentView.assignSongToTimeline(getItem(), null);
+                }
+            });
+
+            javafx.scene.control.MenuItem itemNewTrack = new javafx.scene.control.MenuItem("Auf neuer Spur einfügen");
+            itemNewTrack.setOnAction(e -> {
+                if (parentView != null && getItem() != null) {
+                    de.exit.jdmx.core.model.TimelineTrack newTrack = parentView.getTimelineService().addTrack();
+                    parentView.assignSongToTimeline(getItem(), newTrack.getId());
+                }
+            });
+
+            javafx.scene.control.MenuItem itemRemove = new javafx.scene.control.MenuItem("Aus Explorer entfernen");
+            itemRemove.setOnAction(e -> {
+                if (parentView != null && getItem() != null) {
+                    File file = getItem().getSongFile();
+                    if (file == null) {
+                        file = parentView.getTimelineService().findSongFileByName(getItem().getName()).orElse(null);
+                    }
+                    if (file != null) {
+                        parentView.getTimelineService().removeSong(file);
+                    }
+                }
+            });
+
+            contextMenu.getItems().addAll(itemAssign, itemNewTrack, new javafx.scene.control.SeparatorMenuItem(), itemRemove);
+
+            setOnContextMenuRequested(e -> {
+                if (!isEmpty() && getItem() != null && getItem().getType() == ExplorerItemType.SONG) {
+                    contextMenu.show(this, e.getScreenX(), e.getScreenY());
+                } else {
+                    contextMenu.hide();
                 }
             });
         }

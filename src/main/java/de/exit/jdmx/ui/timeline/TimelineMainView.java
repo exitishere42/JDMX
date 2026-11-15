@@ -34,6 +34,9 @@ import java.util.Objects;
  */
 public class TimelineMainView extends VBox {
 
+    /** Feste Breite der linken Track-Header-Leiste in Pixeln (verhindert Zusammenstauchen). */
+    public static final double HEADER_PANE_WIDTH = 160.0;
+
     private final TimelineService service;
     private final List<TimelineTrackHeaderBox> trackBoxes = new ArrayList<>();
 
@@ -98,16 +101,23 @@ public class TimelineMainView extends VBox {
         btnAddTrack.getStyleClass().add("timeline-track-add-btn");
         btnAddTrack.setGraphic(new LucideIcon("plus", 11, StudioTheme.COLOR_ICON_TIMELINE));
         btnAddTrack.setTooltip(new Tooltip("Track hinzufügen"));
+        btnAddTrack.setMaxWidth(Double.MAX_VALUE);
         btnAddTrack.setOnAction(e -> service.addTrack());
 
         VBox leftHeadersPane = new VBox(0, trackBoxesContainer, btnAddTrack);
         leftHeadersPane.getStyleClass().add("timeline-left-headers-pane");
+        leftHeadersPane.setMinWidth(HEADER_PANE_WIDTH);
+        leftHeadersPane.setPrefWidth(HEADER_PANE_WIDTH);
+        leftHeadersPane.setMaxWidth(HEADER_PANE_WIDTH);
 
         this.tracksScrollPane = new ScrollPane(leftHeadersPane);
         tracksScrollPane.getStyleClass().addAll("timeline-tracks-scroll", "edge-to-edge");
         tracksScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         tracksScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         tracksScrollPane.setFitToWidth(true);
+        tracksScrollPane.setMinWidth(HEADER_PANE_WIDTH);
+        tracksScrollPane.setPrefWidth(HEADER_PANE_WIDTH);
+        tracksScrollPane.setMaxWidth(HEADER_PANE_WIDTH);
 
         // 3. Rechtes Timeline-Grid
         this.timelineGridView = new TimelineGridView(service);
@@ -257,6 +267,24 @@ public class TimelineMainView extends VBox {
      */
     public Label getLblTimeDisplay() {
         return lblTimeDisplay;
+    }
+
+    /**
+     * Liefert die ScrollPane der linken Track-Header-Leiste.
+     *
+     * @return die {@link ScrollPane} für Tracks
+     */
+    public ScrollPane getTracksScrollPane() {
+        return tracksScrollPane;
+    }
+
+    /**
+     * Liefert die ScrollPane des rechten Timeline-Grid.
+     *
+     * @return die {@link ScrollPane} für das Grid
+     */
+    public ScrollPane getGridScrollPane() {
+        return gridScrollPane;
     }
 
     /**
