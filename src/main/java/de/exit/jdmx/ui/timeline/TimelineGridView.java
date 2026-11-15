@@ -4,6 +4,7 @@ import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
+import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ContextMenu;
@@ -57,6 +58,11 @@ public class TimelineGridView extends Pane {
     private final Canvas canvas;
     private ScrollPane attachedScrollPane;
 
+    private boolean isDraggingPlayhead = false;
+    private TimelineTrack draggingClipTrack = null;
+    private double dragStartMouseX = 0;
+    private long dragStartClipTimeMs = 0;
+
     /**
      * Erstellt die Grid-Ansicht für die gegebene TimelineService-Instanz.
      *
@@ -85,17 +91,55 @@ public class TimelineGridView extends Pane {
             }
         });
 
-        // Klick und Drag zum Scrubben (Versetzen der Timeline-Linie)
+        // Interaktionssteuerung: Playhead-Dreieck (Scrubbing) ODER Lieder verschieben (Clip-Drag)
         setOnMousePressed(e -> {
-            if (e.isPrimaryButtonDown()) {
+            if (!e.isPrimaryButtonDown()) return;
+
+            double playheadContentX = millisToX(service.getCurrentPositionMs());
+            // Prüfen ob Klick auf das obere Playhead-Dreieck erfolgte (y <= 24px und im Radius von 16px um den Playhead)
+            if (e.getY() <= 24.0 && Math.abs(e.getX() - playheadContentX) <= 16.0) {
+                isDraggingPlayhead = true;
                 handleSeek(e.getX());
+                return;
             }
+
+            // Prüfen ob Klick auf einen Song-Clip erfolgte
+            TimelineTrack hitTrack = findClipTrackAt(e.getX(), e.getY());
+            if (hitTrack != null) {
+                draggingClipTrack = hitTrack;
+                dragStartMouseX = e.getX();
+                dragStartClipTimeMs = hitTrack.getStartTimeMs();
+                setCursor(Cursor.MOVE);
+                return;
+            }
+
+            // Klick auf freie Fläche: Keine unabsichtliche Verschiebung
+            isDraggingPlayhead = false;
+            draggingClipTrack = null;
         });
+
         setOnMouseDragged(e -> {
-            if (e.isPrimaryButtonDown()) {
+            if (!e.isPrimaryButtonDown()) return;
+
+            if (isDraggingPlayhead) {
                 handleSeek(e.getX());
+            } else if (draggingClipTrack != null) {
+                double deltaPx = e.getX() - dragStartMouseX;
+                long deltaMs = Math.round((deltaPx / PIXELS_PER_SECOND) * 1000.0);
+                long newStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
+                service.setTrackStartTimeMs(draggingClipTrack.getId(), newStartMs);
+                updateGridDimensions();
+                redraw();
             }
         });
+
+        setOnMouseReleased(e -> {
+            isDraggingPlayhead = false;
+            draggingClipTrack = null;
+            updateCursorForPosition(e.getX(), e.getY());
+        });
+
+        setOnMouseMoved(e -> updateCursorForPosition(e.getX(), e.getY()));
 
         // Kontextmenü & Drag & Drop für Audio-Songs aus dem Explorer auf Spuren
         setupContextMenu();
@@ -257,6 +301,49 @@ public class TimelineGridView extends Pane {
     }
 
     /**
+     * Ermittelt die passende Mauszeigerform an der angegebenen Position.
+     * Zeigt Resize-Cursor über dem Playhead-Dreieck, Hand-Cursor über Clips und Standardzeiger auf Freiflächen.
+     */
+    private void updateCursorForPosition(double x, double y) {
+        double playheadContentX = millisToX(service.getCurrentPositionMs());
+        if (y <= 24.0 && Math.abs(x - playheadContentX) <= 16.0) {
+            setCursor(Cursor.H_RESIZE);
+        } else if (findClipTrackAt(x, y) != null) {
+            setCursor(Cursor.HAND);
+        } else {
+            setCursor(Cursor.DEFAULT);
+        }
+    }
+
+    /**
+     * Ermittelt, ob sich an den angegebenen Koordinaten ein Song-Clip befindet.
+     *
+     * @param x X-Koordinate in Content-Pixeln
+     * @param y Y-Koordinate in Content-Pixeln
+     * @return gefundener {@link TimelineTrack} oder {@code null}
+     */
+    public TimelineTrack findClipTrackAt(double x, double y) {
+        List<TimelineTrack> tracks = service.getTracks();
+        double currentY = 0;
+        for (TimelineTrack track : tracks) {
+            double h = track.getHeight();
+            if (y >= currentY && y < currentY + h) {
+                if (track.hasSong()) {
+                    double clipStartX = millisToX(track.getStartTimeMs());
+                    long dur = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
+                    double clipW = Math.max(80.0, millisToX(dur));
+                    if (x >= clipStartX && x <= clipStartX + clipW) {
+                        return track;
+                    }
+                }
+                return null;
+            }
+            currentY += h;
+        }
+        return null;
+    }
+
+    /**
      * Rechnet einen Zeitstempel in Millisekunden in eine horizontale X-Pixelposition um.
      *
      * @param ms Zeitstempel in Millisekunden
@@ -391,7 +478,7 @@ public class TimelineGridView extends Pane {
      */
     private void drawSongClip(GraphicsContext gc, TimelineTrack track, double screenY, double h, double scrollX, double viewW) {
         long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
-        double clipStartX = millisToX(0) - scrollX;
+        double clipStartX = millisToX(track.getStartTimeMs()) - scrollX;
         double clipW = Math.max(80.0, millisToX(durationMs));
         double clipH = h - 6;
         double clipY = screenY + 3;
@@ -463,12 +550,16 @@ public class TimelineGridView extends Pane {
             gc.strokeLine(Math.max(clipStartX + 8, 0), waveCenterY, Math.min(clipStartX + clipW - 8, viewW), waveCenterY);
         }
 
-        // Song-Titel Header mit Formatierung der Laufzeit
+        // Song-Titel Header mit Formatierung der Laufzeit und optionalem Startversatz
         gc.setFill(Color.web("#F3F4F6"));
         String durationStr = formatDuration(durationMs);
+        String label = track.getSongName() + " (" + durationStr + ")";
+        if (track.getStartTimeMs() > 0) {
+            label += " @" + formatDuration(track.getStartTimeMs());
+        }
         double textX = Math.max(clipStartX + 12, 12);
         if (textX < viewW - 20) {
-            gc.fillText(track.getSongName() + " (" + durationStr + ")", textX, clipY + 14);
+            gc.fillText(label, textX, clipY + 14);
         }
     }
 
@@ -495,11 +586,14 @@ public class TimelineGridView extends Pane {
         gc.setLineWidth(2.0);
         gc.strokeLine(playheadScreenX, 0, playheadScreenX, viewH);
 
-        // Oberer Pfeil-Indikator (Playhead-Kopf)
+        // Oberer Pfeil-Indikator (Playhead-Kopf / Greifdreieck)
         gc.setFill(Color.web("#FB923C"));
-        double[] xPoints = {playheadScreenX - 6, playheadScreenX + 6, playheadScreenX};
-        double[] yPoints = {0, 0, 9};
+        double[] xPoints = {playheadScreenX - 8, playheadScreenX + 8, playheadScreenX};
+        double[] yPoints = {0, 0, 12};
         gc.fillPolygon(xPoints, yPoints, 3);
+        gc.setStroke(Color.web("#C2410C"));
+        gc.setLineWidth(1.0);
+        gc.strokePolygon(xPoints, yPoints, 3);
     }
 
     /**

@@ -101,4 +101,42 @@ class TimelineServiceTest {
         assertThat(removed).isTrue();
         assertThat(service.getTracks()).hasSize(1);
     }
+
+    @Test
+    @DisplayName("Sollte maximale Gesamtlaufzeit unter Berücksichtigung von Clip-Offsets (startTimeMs) berechnen")
+    void shouldCalculateMaxTimelineDurationWithOffsets() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track1 = service.getTracks().get(0);
+        track1.setSongName("track1.mp3");
+        track1.setDurationMs(60_000L);
+        track1.setStartTimeMs(0L);
+
+        assertThat(service.getMaxTimelineDurationMs()).isEqualTo(60_000L);
+
+        TimelineTrack track2 = service.addTrack("Track 2");
+        track2.setSongName("track2.mp3");
+        track2.setDurationMs(40_000L);
+        track2.setStartTimeMs(30_000L); // Endet bei 70.000 ms
+
+        assertThat(service.getMaxTimelineDurationMs()).isEqualTo(70_000L);
+    }
+
+    @Test
+    @DisplayName("Sollte Startzeit (startTimeMs) einer Spur verschieben und Listener benachrichtigen")
+    void shouldSetTrackStartTimeMsAndNotifyListeners() {
+        TimelineService service = new TimelineService();
+        String trackId = service.getTracks().get(0).getId();
+
+        AtomicInteger changeEvents = new AtomicInteger();
+        service.addChangeListener(changeEvents::incrementAndGet);
+
+        boolean updated = service.setTrackStartTimeMs(trackId, 12_500L);
+        assertThat(updated).isTrue();
+        assertThat(service.findTrackById(trackId).get().getStartTimeMs()).isEqualTo(12_500L);
+        assertThat(changeEvents.get()).isEqualTo(1);
+
+        // Ungültige Track-ID
+        boolean notFound = service.setTrackStartTimeMs("unknown-id", 5000L);
+        assertThat(notFound).isFalse();
+    }
 }

@@ -58,6 +58,9 @@ public class TimelineMainView extends VBox {
     private final ScrollPane tracksScrollPane;
     private final ScrollPane gridScrollPane;
 
+    private Boolean lastPlayVisualState = null;
+    private String lastTrackSignature = "";
+
     /**
      * Erstellt die Hauptansicht der Show-Timeline.
      *
@@ -220,25 +223,58 @@ public class TimelineMainView extends VBox {
 
     /**
      * Aktualisiert die Trackboxen, die Zeitanzeige und den Play-Button-Status.
+     * Nutzt Caching, um unnötige Layout-Invalidierungen und Cursor-Flackern während des Playbacks zu verhindern.
      */
     public void updateFromService() {
-        rebuildTrackBoxes();
+        String currentSig = computeTrackSignature();
+        if (!currentSig.equals(lastTrackSignature)) {
+            lastTrackSignature = currentSig;
+            rebuildTrackBoxes();
+        }
+
         long curPos = service.getCurrentPositionMs();
         long maxDuration = service.getMaxTimelineDurationMs();
         boolean hasSong = service.getTracks().stream().anyMatch(TimelineTrack::hasSong);
-        if (hasSong || maxDuration > 60_000L) {
-            lblTimeDisplay.setText(formatTime(curPos) + " / " + formatTime(maxDuration));
-        } else {
-            lblTimeDisplay.setText(formatTime(curPos));
+        String formatted = (hasSong || maxDuration > 60_000L)
+                ? formatTime(curPos) + " / " + formatTime(maxDuration)
+                : formatTime(curPos);
+
+        if (!formatted.equals(lblTimeDisplay.getText())) {
+            lblTimeDisplay.setText(formatted);
         }
+
         updatePlayButtonVisual();
     }
 
     /**
-     * Aktualisiert das Icon und Styling des Play-Buttons.
+     * Berechnet eine Signatur der aktuellen Spurenkonfiguration zur Vermeidung redundanter Rebuilds.
+     *
+     * @return Track-Signatur-String
+     */
+    private String computeTrackSignature() {
+        StringBuilder sb = new StringBuilder();
+        for (TimelineTrack t : service.getTracks()) {
+            sb.append(t.getId()).append(':')
+              .append(t.getName()).append(':')
+              .append(t.getSongName()).append(':')
+              .append(t.getStartTimeMs()).append(':')
+              .append(t.isMuted()).append(';');
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Aktualisiert das Icon und Styling des Play-Buttons nur bei echtem Statuswechsel.
+     * Verhindert das 40-FPS-Austauschen von SVG-Nodes und damit das Zittern des Mauszeigers.
      */
     public void updatePlayButtonVisual() {
-        if (service.isPlaying()) {
+        boolean playing = service.isPlaying();
+        if (lastPlayVisualState != null && lastPlayVisualState == playing) {
+            return;
+        }
+        lastPlayVisualState = playing;
+
+        if (playing) {
             btnPlay.setGraphic(new LucideIcon("pause", 13, StudioTheme.COLOR_ICON_TIMELINE));
             if (!btnPlay.getStyleClass().contains("active")) {
                 btnPlay.getStyleClass().add("active");

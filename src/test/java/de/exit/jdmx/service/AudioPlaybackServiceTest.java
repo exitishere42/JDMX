@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -73,6 +74,38 @@ class AudioPlaybackServiceTest {
 
         // Negative Positionen müssen auf 0 geklemmt werden
         service.seek(-500L);
+        assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("Sollte Timeline mit mehreren Spuren parallel wiedergeben und stoppen")
+    void shouldSupportMultitrackTimelinePlayback() {
+        AudioPlaybackService service = new AudioPlaybackService();
+
+        de.exit.jdmx.core.model.TimelineTrack track1 = new de.exit.jdmx.core.model.TimelineTrack("t1", "Track 1");
+        track1.setSongName("track1.mp3");
+        track1.setSongFile(new File("track1.mp3"));
+        track1.setDurationMs(60_000L);
+        track1.setStartTimeMs(0L);
+
+        de.exit.jdmx.core.model.TimelineTrack track2 = new de.exit.jdmx.core.model.TimelineTrack("t2", "Track 2");
+        track2.setSongName("track2.mp3");
+        track2.setSongFile(new File("track2.mp3"));
+        track2.setDurationMs(45_000L);
+        track2.setStartTimeMs(15_000L);
+
+        // Sollte robust starten selbst wenn Mock-Dateien auf Platte nicht existieren
+        assertThatCode(() -> service.playTimeline(List.of(track1, track2), 5000L)).doesNotThrowAnyException();
+        assertThat(service.isPlaying()).isTrue();
+        assertThat(service.getCurrentPositionMs()).isEqualTo(5000L);
+
+        // Tick bei 20.000 ms -> track2 Startfenster erreicht
+        assertThatCode(() -> service.onTimelineTick(20_000L)).doesNotThrowAnyException();
+        assertThat(service.getCurrentPositionMs()).isEqualTo(20_000L);
+
+        // Stop -> alles bereinigt
+        service.stop();
+        assertThat(service.isPlaying()).isFalse();
         assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
     }
 }

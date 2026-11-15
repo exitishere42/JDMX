@@ -36,6 +36,9 @@ public class TimelineTrack {
     /** Zugeordnete Song-Datei, oder {@code null}. */
     private java.io.File songFile;
 
+    /** Startzeitpunkt des Clips auf der Timeline in Millisekunden (Standard: 0 ms). */
+    private long startTimeMs = 0L;
+
     /** Gesamtlaufzeit des Songs in Millisekunden (0 wenn kein Song zugewiesen). */
     private long durationMs = 0L;
 
@@ -197,6 +200,25 @@ public class TimelineTrack {
      */
     public long getDurationMs() {
         return durationMs;
+    }
+
+    /**
+     * Liefert den Startzeitpunkt des Clips auf der Timeline in Millisekunden.
+     *
+     * @return Startzeit in Millisekunden (>= 0)
+     */
+    public long getStartTimeMs() {
+        return startTimeMs;
+    }
+
+    /**
+     * Setzt den Startzeitpunkt des Clips auf der Timeline in Millisekunden.
+     * Negative Werte werden automatisch auf 0 begrenzt.
+     *
+     * @param startTimeMs Startzeit in Millisekunden
+     */
+    public void setStartTimeMs(long startTimeMs) {
+        this.startTimeMs = Math.max(0L, startTimeMs);
     }
 
     /**

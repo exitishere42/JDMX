@@ -62,6 +62,19 @@ class TimelineTrackTest {
     }
 
     @Test
+    @DisplayName("Sollte Startzeit (startTimeMs) verwalten und negative Werte auf 0 begrenzen")
+    void shouldManageStartTimeMs() {
+        TimelineTrack track = new TimelineTrack("track-1", "Track 1");
+        assertThat(track.getStartTimeMs()).isEqualTo(0L);
+
+        track.setStartTimeMs(12500L);
+        assertThat(track.getStartTimeMs()).isEqualTo(12500L);
+
+        track.setStartTimeMs(-1000L);
+        assertThat(track.getStartTimeMs()).isEqualTo(0L);
+    }
+
+    @Test
     @DisplayName("Sollte equals und hashCode basierend auf ID vergleichen")
     void shouldCompareEqualsAndHashCodeById() {
         TimelineTrack track1 = new TimelineTrack("track-1", "Track 1");

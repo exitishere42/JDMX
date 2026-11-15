@@ -191,6 +191,9 @@ public class TimelineService {
         TimelineTrack track = findTrackById(trackId)
                 .orElseThrow(() -> new NoSuchElementException("Track not found: " + trackId));
         boolean newStatus = track.toggleMute();
+        if (playing.get()) {
+            audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
+        }
         notifyChange();
         return newStatus;
     }
@@ -206,6 +209,9 @@ public class TimelineService {
         Optional<TimelineTrack> trackOpt = findTrackById(trackId);
         if (trackOpt.isPresent()) {
             trackOpt.get().setMuted(muted);
+            if (playing.get()) {
+                audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
+            }
             notifyChange();
             return true;
         }
@@ -370,18 +376,40 @@ public class TimelineService {
 
     /**
      * Liefert die maximale Gesamtlaufzeit der Timeline in Millisekunden.
-     * Ermittelt die längste Spur mit zugewiesenem Song oder liefert standardmäßig 60.000 ms (1 Minute).
+     * Ermittelt das späteste Clip-Ende (startTimeMs + durationMs) aller Spuren
+     * oder liefert standardmäßig 60.000 ms (1 Minute).
      *
      * @return maximale Laufzeit in ms
      */
     public long getMaxTimelineDurationMs() {
-        long maxSongDuration = 0L;
+        long maxEndMs = 0L;
         for (TimelineTrack t : tracks) {
-            if (t.hasSong() && t.getDurationMs() > maxSongDuration) {
-                maxSongDuration = t.getDurationMs();
+            if (t.hasSong()) {
+                long trackEnd = t.getStartTimeMs() + t.getDurationMs();
+                if (trackEnd > maxEndMs) {
+                    maxEndMs = trackEnd;
+                }
             }
         }
-        return maxSongDuration > 0 ? maxSongDuration : 60_000L;
+        return maxEndMs > 0 ? maxEndMs : 60_000L;
+    }
+
+    /**
+     * Verschiebt die Startzeit eines Clips (Songs) auf der angegebenen Spur.
+     *
+     * @param trackId     ID der Zielspur
+     * @param startTimeMs Neuer Startzeitpunkt in Millisekunden (>= 0)
+     * @return {@code true}, wenn die Spur gefunden und aktualisiert wurde
+     */
+    public boolean setTrackStartTimeMs(String trackId, long startTimeMs) {
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            TimelineTrack track = trackOpt.get();
+            track.setStartTimeMs(startTimeMs);
+            notifyChange();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -431,16 +459,13 @@ public class TimelineService {
     }
 
     /**
-     * Startet die Wiedergabe der Timeline ab der aktuellen Position.
+     * Startet die parallele Multitrack-Wiedergabe der Timeline ab der aktuellen Position.
      */
     public synchronized void startPlayback() {
         if (playing.compareAndSet(false, true)) {
             lastTickNanos = System.nanoTime();
             startPlaybackTimer();
-            File songToPlay = resolveActiveSongFile();
-            if (songToPlay != null && songToPlay.exists()) {
-                audioPlaybackService.play(songToPlay, currentPositionMs.get());
-            }
+            audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
             notifyChange();
         }
     }
@@ -522,6 +547,7 @@ public class TimelineService {
             long deltaMs = elapsedNanos / 1_000_000L;
             if (deltaMs > 0) {
                 long newPos = currentPositionMs.addAndGet(deltaMs);
+                audioPlaybackService.onTimelineTick(newPos);
                 long maxDuration = getMaxTimelineDurationMs();
                 if (maxDuration > 0 && newPos >= maxDuration) {
                     currentPositionMs.set(maxDuration);

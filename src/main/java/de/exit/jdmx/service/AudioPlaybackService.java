@@ -1,6 +1,7 @@
 package de.exit.jdmx.service;
 
 import de.exit.jdmx.core.log.AppLogger;
+import de.exit.jdmx.core.model.TimelineTrack;
 import javazoom.jl.player.advanced.AdvancedPlayer;
 
 import javax.sound.sampled.AudioInputStream;
@@ -11,19 +12,25 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Service für die auditive Wiedergabe von Audio-Songs (MP3 und WAV) über die Systemsoundkarte.
+ * Service für die parallele Multitrack-Wiedergabe von Audio-Songs (MP3 und WAV) über die Systemsoundkarte.
  * <p>
  * Unterstützt:
  * <ul>
- *     <li><b>MP3:</b> Reine, native Java-Dekodierung und Wiedergabe über JLayer {@link AdvancedPlayer}</li>
+ *     <li><b>Multitrack Audio:</b> Gleichzeitiges Abspielen beliebig vieler paralleler Audiospuren</li>
+ *     <li><b>Zeitversatz (startTimeMs):</b> Dynamischer Start jedes Songs zum exakten Timeline-Zeitpunkt</li>
+ *     <li><b>MP3:</b> Reine, native Java-Dekodierung und parallele Wiedergabe über JLayer {@link AdvancedPlayer}</li>
  *     <li><b>WAV:</b> Hardwarebeschleunigte PCM-Wiedergabe über Java Sound {@link Clip}</li>
- *     <li>Unterbrechungsfreies Pausieren, Stoppen und Scrubben (Seek) zu beliebigen Millisekunden</li>
- *     <li>Plattformübergreifend stabil auf Windows (WASAPI / DirectSound) und Linux (ALSA / PipeWire / PulseAudio)</li>
+ *     <li>Unterbrechungsfreies Pausieren, Stoppen und nahtloses Scrubben (Seek) zu beliebigen Millisekunden</li>
+ *     <li>Plattformübergreifend stabil auf Windows und Linux (PipeWire / ALSA / PulseAudio)</li>
  * </ul>
  * </p>
  */
@@ -37,11 +44,151 @@ public class AudioPlaybackService implements AutoCloseable {
     private final AtomicLong sessionGeneration = new AtomicLong(0L);
     private volatile double volume = 1.0;
 
+    private final Map<String, TrackAudioChannel> activeChannels = new ConcurrentHashMap<>();
+    private volatile List<TimelineTrack> currentTracks = Collections.emptyList();
     private volatile File currentFile;
-    private volatile Thread playbackThread;
-    private volatile AdvancedPlayer mp3Player;
-    private volatile Clip wavClip;
-    private volatile InputStream currentStream;
+
+    /**
+     * Repräsentiert einen einzelnen Audio-Wiedergabekanal für eine Spur.
+     */
+    private static class TrackAudioChannel {
+        private final String trackId;
+        private final File audioFile;
+        private final long startTimeMs;
+        private final long durationMs;
+        private final AtomicBoolean active = new AtomicBoolean(false);
+
+        private volatile AdvancedPlayer mp3Player;
+        private volatile Clip wavClip;
+        private volatile InputStream stream;
+        private volatile Thread thread;
+
+        TrackAudioChannel(String trackId, File audioFile, long startTimeMs, long durationMs) {
+            this.trackId = trackId;
+            this.audioFile = audioFile;
+            this.startTimeMs = startTimeMs;
+            this.durationMs = durationMs;
+        }
+
+        boolean isPlaying() {
+            return active.get();
+        }
+
+        void start(long offsetWithinClipMs, long generation, AtomicLong sessionGen, double currentVolume) {
+            stop();
+            if (audioFile == null || !audioFile.exists() || !audioFile.isFile() || audioFile.length() == 0) {
+                return;
+            }
+            active.set(true);
+
+            String name = audioFile.getName().toLowerCase();
+            AppLogger.info("[AUDIO-PLAYBACK] Track '%s': Starte '%s' ab Clip-Offset %d ms (Gen=%d)",
+                    trackId, audioFile.getName(), offsetWithinClipMs, generation);
+
+            if (name.endsWith(".wav")) {
+                playWav(offsetWithinClipMs, generation, sessionGen, currentVolume);
+            } else {
+                playMp3(offsetWithinClipMs, generation, sessionGen);
+            }
+        }
+
+        private void playWav(long offsetMs, long generation, AtomicLong sessionGen, double currentVolume) {
+            try {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(audioFile);
+                Clip clip = AudioSystem.getClip();
+                clip.open(ais);
+                applyVolume(clip, currentVolume);
+                clip.setMicrosecondPosition(offsetMs * 1000L);
+                clip.start();
+                this.wavClip = clip;
+
+                thread = new Thread(() -> {
+                    try {
+                        while (active.get() && sessionGen.get() == generation && wavClip != null && wavClip.isRunning()) {
+                            Thread.sleep(50);
+                        }
+                    } catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        active.set(false);
+                    }
+                }, "WAV-Channel-" + trackId);
+                thread.setDaemon(true);
+                thread.start();
+            } catch (Exception e) {
+                AppLogger.error("[AUDIO-PLAYBACK] Fehler beim Abspielen von WAV (Track %s): %s", trackId, e.getMessage());
+                active.set(false);
+            }
+        }
+
+        private void playMp3(long offsetMs, long generation, AtomicLong sessionGen) {
+            int startFrame = (int) Math.round(offsetMs / MP3_MS_PER_FRAME);
+
+            thread = new Thread(() -> {
+                try (InputStream in = new BufferedInputStream(new FileInputStream(audioFile))) {
+                    if (sessionGen.get() != generation || !active.get()) {
+                        return;
+                    }
+                    this.stream = in;
+                    AdvancedPlayer player = new AdvancedPlayer(in);
+                    this.mp3Player = player;
+
+                    player.play(startFrame, Integer.MAX_VALUE);
+                } catch (Exception e) {
+                    if (active.get() && sessionGen.get() == generation) {
+                        AppLogger.warn("[AUDIO-PLAYBACK] MP3-Track '%s' beendet oder unterbrochen: %s", trackId, e.getMessage());
+                    }
+                } finally {
+                    active.set(false);
+                }
+            }, "MP3-Channel-" + trackId);
+            thread.setDaemon(true);
+            thread.start();
+        }
+
+        void stop() {
+            active.set(false);
+            if (wavClip != null) {
+                try {
+                    wavClip.stop();
+                    wavClip.close();
+                } catch (Exception ignored) {}
+                wavClip = null;
+            }
+            if (mp3Player != null) {
+                try {
+                    mp3Player.close();
+                } catch (Exception ignored) {}
+                mp3Player = null;
+            }
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (Exception ignored) {}
+                stream = null;
+            }
+            if (thread != null && thread.isAlive()) {
+                thread.interrupt();
+                thread = null;
+            }
+        }
+
+        private void applyVolume(Clip clip, double vol) {
+            try {
+                if (clip != null && clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                    FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                    float min = gainControl.getMinimum();
+                    float max = gainControl.getMaximum();
+                    if (vol <= 0.0) {
+                        gainControl.setValue(min);
+                    } else {
+                        float gain = (float) (Math.log10(vol) * 20.0);
+                        gainControl.setValue(Math.max(min, Math.min(max, gain)));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+    }
 
     /**
      * Erstellt einen neuen {@link AudioPlaybackService}.
@@ -51,14 +198,94 @@ public class AudioPlaybackService implements AutoCloseable {
     }
 
     /**
-     * Startet die Wiedergabe der angegebenen Audiodatei ab der gewünschten Millisekunden-Position.
+     * Startet die parallele Multitrack-Wiedergabe aller ungemuteten Spuren ab der Timeline-Position.
+     *
+     * @param tracks             Liste der Spuren in der Timeline
+     * @param timelinePositionMs Abspielposition der Timeline in Millisekunden
+     */
+    public synchronized void playTimeline(List<TimelineTrack> tracks, long timelinePositionMs) {
+        long generation = sessionGeneration.incrementAndGet();
+        this.currentTracks = tracks != null ? new ArrayList<>(tracks) : Collections.emptyList();
+        long safeStartMs = Math.max(0L, timelinePositionMs);
+        this.currentPositionMs.set(safeStartMs);
+        this.playing.set(true);
+
+        closeAllChannels();
+
+        if (tracks == null || tracks.isEmpty()) {
+            return;
+        }
+
+        for (TimelineTrack track : tracks) {
+            syncTrackChannel(track, safeStartMs, generation);
+        }
+    }
+
+    /**
+     * Aktualisiert den Status aller Spuren während der laufenden Timeline-Uhr.
+     * Startet versetzte Songs automatisch, sobald deren Startzeit erreicht wird.
+     *
+     * @param timelinePositionMs Aktuelle Abspielposition in Millisekunden
+     */
+    public void onTimelineTick(long timelinePositionMs) {
+        if (!playing.get()) return;
+        this.currentPositionMs.set(timelinePositionMs);
+        long generation = sessionGeneration.get();
+
+        for (TimelineTrack track : currentTracks) {
+            if (track.isMuted() || !track.hasSong()) {
+                TrackAudioChannel ch = activeChannels.remove(track.getId());
+                if (ch != null) {
+                    ch.stop();
+                }
+                continue;
+            }
+
+            long startMs = track.getStartTimeMs();
+            long durMs = track.getDurationMs() > 0 ? track.getDurationMs() : Long.MAX_VALUE;
+            long endMs = startMs + durMs;
+
+            TrackAudioChannel ch = activeChannels.get(track.getId());
+            if (ch == null || !ch.isPlaying()) {
+                if (timelinePositionMs >= startMs && timelinePositionMs < endMs) {
+                    syncTrackChannel(track, timelinePositionMs, generation);
+                }
+            } else {
+                if (timelinePositionMs >= endMs) {
+                    activeChannels.remove(track.getId());
+                    ch.stop();
+                }
+            }
+        }
+    }
+
+    private synchronized void syncTrackChannel(TimelineTrack track, long timelinePositionMs, long generation) {
+        if (track.isMuted() || !track.hasSong() || track.getSongFile() == null || !track.getSongFile().exists()) {
+            return;
+        }
+
+        long startMs = track.getStartTimeMs();
+        long durMs = track.getDurationMs() > 0 ? track.getDurationMs() : Long.MAX_VALUE;
+        long endMs = startMs + durMs;
+
+        if (timelinePositionMs >= startMs && timelinePositionMs < endMs) {
+            long offsetWithinClip = timelinePositionMs - startMs;
+            TrackAudioChannel channel = new TrackAudioChannel(track.getId(), track.getSongFile(), startMs, durMs);
+            activeChannels.put(track.getId(), channel);
+            channel.start(offsetWithinClip, generation, sessionGeneration, volume);
+        }
+    }
+
+    /**
+     * Startet die Wiedergabe einer einzelnen Audiodatei ab der gewünschten Millisekunden-Position.
+     * (Abwärtskompatible Methode für Einzelaufrufe).
      *
      * @param audioFile       die abzuspielende Datei (MP3 oder WAV)
      * @param startPositionMs Startposition in Millisekunden (>= 0)
      */
     public synchronized void play(File audioFile, long startPositionMs) {
         long generation = sessionGeneration.incrementAndGet();
-        closeCurrentMedia();
+        closeAllChannels();
 
         if (audioFile == null || !audioFile.exists() || !audioFile.isFile() || audioFile.length() == 0) {
             AppLogger.warn("[AUDIO-PLAYBACK] Wiedergabe abgebrochen: Datei ist ungültig oder existiert nicht (%s)", audioFile);
@@ -71,120 +298,36 @@ public class AudioPlaybackService implements AutoCloseable {
         this.currentPositionMs.set(safeStartMs);
         this.playing.set(true);
 
-        String name = audioFile.getName().toLowerCase();
-        AppLogger.info("[AUDIO-PLAYBACK] Starte Wiedergabe von '%s' ab Position %d ms (Gen=%d)",
-                audioFile.getName(), safeStartMs, generation);
-
-        if (name.endsWith(".wav")) {
-            playWav(audioFile, safeStartMs, generation);
-        } else {
-            playMp3(audioFile, safeStartMs, generation);
-        }
-    }
-
-    private void playWav(File file, long startMs, long generation) {
-        try {
-            AudioInputStream ais = AudioSystem.getAudioInputStream(file);
-            wavClip = AudioSystem.getClip();
-            wavClip.open(ais);
-            applyVolumeToClip(wavClip);
-            wavClip.setMicrosecondPosition(startMs * 1000L);
-            wavClip.start();
-
-            playbackThread = new Thread(() -> {
-                try {
-                    while (playing.get() && sessionGeneration.get() == generation && wavClip != null && wavClip.isRunning()) {
-                        currentPositionMs.set(wavClip.getMicrosecondPosition() / 1000L);
-                        Thread.sleep(25);
-                    }
-                } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    if (sessionGeneration.get() == generation) {
-                        playing.set(false);
-                    }
-                }
-            }, "WAV-Playback-Monitor");
-            playbackThread.setDaemon(true);
-            playbackThread.start();
-        } catch (Exception e) {
-            AppLogger.error("[AUDIO-PLAYBACK] Fehler beim Abspielen der WAV-Datei '%s': %s", file.getName(), e.getMessage());
-            if (sessionGeneration.get() == generation) {
-                playing.set(false);
-            }
-        }
-    }
-
-    private void playMp3(File file, long startMs, long generation) {
-        int startFrame = (int) Math.round(startMs / MP3_MS_PER_FRAME);
-
-        playbackThread = new Thread(() -> {
-            try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
-                if (sessionGeneration.get() != generation) {
-                    return;
-                }
-                this.currentStream = in;
-                AdvancedPlayer player = new AdvancedPlayer(in);
-                this.mp3Player = player;
-
-                long startTime = System.currentTimeMillis();
-                long baseMs = startMs;
-
-                // Separater Thread zur kontinuierlichen Positionsaktualisierung
-                Thread posTracker = new Thread(() -> {
-                    while (playing.get() && sessionGeneration.get() == generation && mp3Player != null) {
-                        long elapsed = System.currentTimeMillis() - startTime;
-                        currentPositionMs.set(baseMs + elapsed);
-                        try {
-                            Thread.sleep(25);
-                        } catch (InterruptedException e) {
-                            break;
-                        }
-                    }
-                }, "MP3-Position-Tracker");
-                posTracker.setDaemon(true);
-                posTracker.start();
-
-                player.play(startFrame, Integer.MAX_VALUE);
-            } catch (Exception e) {
-                if (playing.get() && sessionGeneration.get() == generation) {
-                    AppLogger.warn("[AUDIO-PLAYBACK] MP3-Wiedergabe beendet oder unterbrochen: %s", e.getMessage());
-                }
-            } finally {
-                if (sessionGeneration.get() == generation) {
-                    playing.set(false);
-                }
-            }
-        }, "MP3-Playback-Worker");
-        playbackThread.setDaemon(true);
-        playbackThread.start();
+        TrackAudioChannel singleChannel = new TrackAudioChannel("single", audioFile, 0L, Long.MAX_VALUE);
+        activeChannels.put("single", singleChannel);
+        singleChannel.start(safeStartMs, generation, sessionGeneration, volume);
     }
 
     /**
-     * Pausiert die aktuelle Wiedergabe und speichert die aktuelle Position.
+     * Pausiert die aktuelle Wiedergabe aller Spuren und speichert die aktuelle Position.
      */
     public synchronized void pause() {
         sessionGeneration.incrementAndGet();
         if (!playing.get()) return;
         playing.set(false);
-        closeCurrentMedia();
+        closeAllChannels();
         AppLogger.info("[AUDIO-PLAYBACK] Wiedergabe pausiert bei %d ms.", currentPositionMs.get());
     }
 
     /**
-     * Stoppt die aktuelle Wiedergabe vollständig und setzt die Position auf 0 zurück.
+     * Stoppt die aktuelle Wiedergabe aller Spuren vollständig und setzt die Position auf 0 zurück.
      */
     public synchronized void stop() {
         sessionGeneration.incrementAndGet();
         playing.set(false);
-        closeCurrentMedia();
+        closeAllChannels();
         currentPositionMs.set(0L);
         AppLogger.info("[AUDIO-PLAYBACK] Wiedergabe vollständig gestoppt.");
     }
 
     /**
      * Setzt die Position des Players in Millisekunden.
-     * Wenn gerade abgespielt wird, wird die Wiedergabe an der neuen Position nahtlos fortgesetzt.
+     * Wenn gerade abgespielt wird, wird die Multitrack-Wiedergabe an der neuen Position nahtlos fortgesetzt.
      *
      * @param targetMs Zielposition in ms
      */
@@ -192,8 +335,12 @@ public class AudioPlaybackService implements AutoCloseable {
         long safeMs = Math.max(0L, targetMs);
         currentPositionMs.set(safeMs);
 
-        if (playing.get() && currentFile != null && currentFile.exists()) {
-            play(currentFile, safeMs);
+        if (playing.get()) {
+            if (!currentTracks.isEmpty()) {
+                playTimeline(currentTracks, safeMs);
+            } else if (currentFile != null && currentFile.exists()) {
+                play(currentFile, safeMs);
+            }
         }
     }
 
@@ -207,33 +354,13 @@ public class AudioPlaybackService implements AutoCloseable {
         setPosition(targetMs);
     }
 
-    private void closeCurrentMedia() {
-        if (wavClip != null) {
+    private synchronized void closeAllChannels() {
+        for (TrackAudioChannel channel : activeChannels.values()) {
             try {
-                wavClip.stop();
-                wavClip.close();
+                channel.stop();
             } catch (Exception ignored) {}
-            wavClip = null;
         }
-
-        if (mp3Player != null) {
-            try {
-                mp3Player.close();
-            } catch (Exception ignored) {}
-            mp3Player = null;
-        }
-
-        if (currentStream != null) {
-            try {
-                currentStream.close();
-            } catch (Exception ignored) {}
-            currentStream = null;
-        }
-
-        if (playbackThread != null && playbackThread.isAlive()) {
-            playbackThread.interrupt();
-            playbackThread = null;
-        }
+        activeChannels.clear();
     }
 
     /**
@@ -261,9 +388,6 @@ public class AudioPlaybackService implements AutoCloseable {
      */
     public void setVolume(double volume) {
         this.volume = Math.max(0.0, Math.min(1.0, volume));
-        if (wavClip != null) {
-            applyVolumeToClip(wavClip);
-        }
     }
 
     /**
@@ -275,20 +399,13 @@ public class AudioPlaybackService implements AutoCloseable {
         return volume;
     }
 
-    private void applyVolumeToClip(Clip clip) {
-        try {
-            if (clip != null && clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-                FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-                float min = gainControl.getMinimum();
-                float max = gainControl.getMaximum();
-                if (volume <= 0.0) {
-                    gainControl.setValue(min);
-                } else {
-                    float gain = (float) (Math.log10(volume) * 20.0);
-                    gainControl.setValue(Math.max(min, Math.min(max, gain)));
-                }
-            }
-        } catch (Exception ignored) {}
+    /**
+     * Liefert die Datei des Einzel-Wiedergabemodus oder {@code null}.
+     *
+     * @return aktuelle Datei
+     */
+    public File getCurrentFile() {
+        return currentFile;
     }
 
     @Override
