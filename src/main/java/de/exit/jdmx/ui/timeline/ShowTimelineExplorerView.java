@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.timeline;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
 import de.exit.jdmx.service.TimelineService;
@@ -219,8 +220,7 @@ public class ShowTimelineExplorerView extends VBox {
 
     private void setupExternalDragAndDrop() {
         setOnDragOver(e -> {
-            java.util.Optional<File> fileOpt = TimelineDragHelper.extractAudioFile(e.getDragboard(), timelineService);
-            if (fileOpt.isPresent()) {
+            if (TimelineDragHelper.canAcceptDrag(e.getDragboard())) {
                 e.acceptTransferModes(javafx.scene.input.TransferMode.COPY_OR_MOVE);
             }
             e.consume();
@@ -230,9 +230,12 @@ public class ShowTimelineExplorerView extends VBox {
             java.util.List<File> files = TimelineDragHelper.extractAudioFiles(e.getDragboard(), timelineService);
             if (!files.isEmpty()) {
                 for (File f : files) {
+                    AppLogger.info("[TIMELINE-EXPLORER] Externe Audiodatei via DND importiert: %s", f.getAbsolutePath());
                     timelineService.importSong(f);
                 }
                 e.setDropCompleted(true);
+            } else {
+                AppLogger.warn("[TIMELINE-EXPLORER] Externes DND fehlgeschlagen: Keine gültigen Audiodateien im Dragboard.");
             }
             e.consume();
         });
@@ -248,6 +251,8 @@ public class ShowTimelineExplorerView extends VBox {
      */
     public boolean assignSongToTimeline(ExplorerItem item, String trackId) {
         if (item == null) return false;
+        AppLogger.info("[TIMELINE-EXPLORER] assignSongToTimeline: item='%s', trackId='%s'", item.getName(), trackId);
+
         File songFile = item.getSongFile();
         if (songFile == null) {
             java.util.Optional<File> opt = timelineService.findSongFileByName(item.getName());
@@ -255,7 +260,10 @@ public class ShowTimelineExplorerView extends VBox {
                 songFile = opt.get();
             }
         }
-        if (songFile == null) return false;
+        if (songFile == null) {
+            AppLogger.warn("[TIMELINE-EXPLORER] Zuweisung fehlgeschlagen: Keine physische Datei für '%s' gefunden.", item.getName());
+            return false;
+        }
 
         java.util.List<de.exit.jdmx.core.model.TimelineTrack> tracks = timelineService.getTracks();
         if (tracks.isEmpty()) {
@@ -443,8 +451,13 @@ public class ShowTimelineExplorerView extends VBox {
 
                 if (songFile != null && songFile.exists()) {
                     content.putFiles(java.util.List.of(songFile));
-                    content.putUrl(songFile.toURI().toString());
+                    try {
+                        content.putUrl(songFile.toURI().toString());
+                    } catch (Exception ignored) {}
                     content.putString(songFile.getAbsolutePath());
+                    AppLogger.info("[TIMELINE-EXPLORER] Drag gestartet für Song: %s (%s)", item.getName(), songFile.getAbsolutePath());
+                } else {
+                    AppLogger.info("[TIMELINE-EXPLORER] Drag gestartet für Item: %s", item.getName());
                 }
 
                 db.setContent(content);
@@ -463,6 +476,7 @@ public class ShowTimelineExplorerView extends VBox {
                     event.consume();
                 } else if (event.getClickCount() == 2 && getItem().getType() == ExplorerItemType.SONG) {
                     if (parentView != null) {
+                        AppLogger.info("[TIMELINE-EXPLORER] Doppelklick auf Song '%s' -> Zuweisung...", getItem().getName());
                         parentView.assignSongToTimeline(getItem(), null);
                         event.consume();
                     }

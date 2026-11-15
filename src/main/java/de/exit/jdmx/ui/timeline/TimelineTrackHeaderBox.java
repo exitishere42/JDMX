@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.timeline;
 
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
@@ -175,8 +176,7 @@ public class TimelineTrackHeaderBox extends HBox {
     private void setupDragAndDrop() {
         setOnDragOver(e -> {
             javafx.scene.input.Dragboard db = e.getDragboard();
-            java.util.Optional<java.io.File> audioOpt = TimelineDragHelper.extractAudioFile(db, service);
-            if (audioOpt.isPresent()) {
+            if (TimelineDragHelper.canAcceptDrag(db)) {
                 e.acceptTransferModes(javafx.scene.input.TransferMode.COPY_OR_MOVE);
                 if (!getStyleClass().contains("timeline-track-drop-target")) {
                     getStyleClass().add("timeline-track-drop-target");
@@ -197,10 +197,13 @@ public class TimelineTrackHeaderBox extends HBox {
 
             if (audioOpt.isPresent()) {
                 java.io.File targetFile = audioOpt.get();
+                AppLogger.info("[TIMELINE-TRACK] Drop auf Track Header '%s': %s", track.getName(), targetFile.getName());
                 service.assignSongToTrack(track.getId(), targetFile);
                 lblName.setText(track.getName());
                 Tooltip.install(lblName, new Tooltip(track.getName()));
                 e.setDropCompleted(true);
+            } else {
+                AppLogger.warn("[TIMELINE-TRACK] Drop auf Track Header '%s' ignoriert (keine gültige Audiodatei)", track.getName());
             }
             e.consume();
         });

@@ -1,5 +1,6 @@
 package de.exit.jdmx.service;
 
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
 
 import java.io.File;
@@ -225,6 +226,7 @@ public class TimelineService {
      */
     public void importSong(File songFile) {
         Objects.requireNonNull(songFile, "songFile must not be null");
+        AppLogger.info("[TIMELINE] Song importiert: %s (%d Bytes)", songFile.getAbsolutePath(), songFile.length());
         if (!importedSongs.contains(songFile)) {
             importedSongs.add(songFile);
         }
@@ -251,6 +253,7 @@ public class TimelineService {
         if (songFile == null) return false;
         boolean removed = importedSongs.remove(songFile);
         if (removed) {
+            AppLogger.info("[TIMELINE] Song aus Explorer entfernt: %s", songFile.getName());
             notifyChange();
         }
         return removed;
@@ -302,6 +305,9 @@ public class TimelineService {
      */
     public boolean assignSongToTrack(String trackId, File songFile) {
         Objects.requireNonNull(songFile, "songFile must not be null");
+        AppLogger.info("[TIMELINE] assignSongToTrack: trackId='%s', file='%s' (exists=%s, len=%d)",
+                trackId, songFile.getAbsolutePath(), songFile.exists(), songFile.length());
+
         Optional<TimelineTrack> trackOpt = findTrackById(trackId);
         if (trackOpt.isPresent()) {
             TimelineTrack track = trackOpt.get();
@@ -329,8 +335,12 @@ public class TimelineService {
             }
             this.activeSongFile = songFile;
             notifyChange();
+            AppLogger.info("[TIMELINE] Song '%s' erfolgreich Track '%s' ('%s') zugewiesen (Dauer=%d ms, Waveform=%d Peaks).",
+                    songFile.getName(), track.getId(), track.getName(), track.getDurationMs(),
+                    track.hasWaveform() ? track.getWaveformData().length : 0);
             return true;
         }
+        AppLogger.warn("[TIMELINE] Zuweisung fehlgeschlagen: Track mit ID '%s' nicht gefunden.", trackId);
         return false;
     }
 

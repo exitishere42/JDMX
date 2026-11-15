@@ -141,4 +141,34 @@ class TimelineDragHelperTest {
 
         assertThat(extracted).isEmpty();
     }
+
+    @Test
+    @DisplayName("Sollte canAcceptDrag true liefern bei hasFiles (selbst wenn getFiles null ist wie unter Linux GTK dragOver)")
+    void shouldAcceptDragWhenHasFilesIsTrueEvenIfGetFilesIsNull() {
+        Dragboard db = mock(Dragboard.class);
+        when(db.hasFiles()).thenReturn(true);
+        when(db.getFiles()).thenReturn(null);
+
+        assertThat(TimelineDragHelper.canAcceptDrag(db)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte canAcceptDrag true liefern bei hasUrl, hasString oder ExplorerItem-Format")
+    void shouldAcceptDragForOtherPayloadTypes() {
+        Dragboard dbUrl = mock(Dragboard.class);
+        when(dbUrl.hasUrl()).thenReturn(true);
+        assertThat(TimelineDragHelper.canAcceptDrag(dbUrl)).isTrue();
+
+        Dragboard dbStr = mock(Dragboard.class);
+        when(dbStr.hasString()).thenReturn(true);
+        assertThat(TimelineDragHelper.canAcceptDrag(dbStr)).isTrue();
+
+        Dragboard dbCustom = mock(Dragboard.class);
+        when(dbCustom.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT)).thenReturn(true);
+        assertThat(TimelineDragHelper.canAcceptDrag(dbCustom)).isTrue();
+
+        Dragboard dbEmpty = mock(Dragboard.class);
+        assertThat(TimelineDragHelper.canAcceptDrag(dbEmpty)).isFalse();
+        assertThat(TimelineDragHelper.canAcceptDrag(null)).isFalse();
+    }
 }

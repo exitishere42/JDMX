@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.timeline;
 
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.ui.stage.ProjectExplorerView;
@@ -136,8 +137,7 @@ public class TimelineGridView extends Pane {
     private void setupDragAndDrop() {
         setOnDragOver(e -> {
             Dragboard db = e.getDragboard();
-            Optional<File> audioOpt = TimelineDragHelper.extractAudioFile(db, service);
-            if (audioOpt.isPresent()) {
+            if (TimelineDragHelper.canAcceptDrag(db)) {
                 e.acceptTransferModes(TransferMode.COPY_OR_MOVE);
             }
             e.consume();
@@ -153,13 +153,17 @@ public class TimelineGridView extends Pane {
                 List<TimelineTrack> tracks = service.getTracks();
                 if (trackIdx >= 0 && trackIdx < tracks.size()) {
                     TimelineTrack targetTrack = tracks.get(trackIdx);
+                    AppLogger.info("[TIMELINE-GRID] Drop auf Track %d ('%s'): %s", trackIdx, targetTrack.getName(), targetFile.getName());
                     service.assignSongToTrack(targetTrack.getId(), targetFile);
                     e.setDropCompleted(true);
                 } else {
                     TimelineTrack newTrack = service.addTrack();
+                    AppLogger.info("[TIMELINE-GRID] Drop auf neue Spur ('%s'): %s", newTrack.getName(), targetFile.getName());
                     service.assignSongToTrack(newTrack.getId(), targetFile);
                     e.setDropCompleted(true);
                 }
+            } else {
+                AppLogger.warn("[TIMELINE-GRID] Drop fehlgeschlagen: Keine gültige Audiodatei im Dragboard.");
             }
             e.consume();
         });

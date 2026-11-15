@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.timeline;
 
+import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.ui.stage.ProjectExplorerView;
 import javafx.scene.input.Dragboard;
@@ -27,6 +28,29 @@ public final class TimelineDragHelper {
 
     private TimelineDragHelper() {
         // Hilfsklasse
+    }
+
+    /**
+     * Prüft, ob ein Dragboard potenziell Audiodaten enthält, ohne während {@code DRAG_OVER}
+     * auf die Dateninhalte zuzugreifen.
+     * <p>
+     * <b>Kritisch für Linux/GTK:</b> Unter Linux GTK (Mutter/GNOME/Wayland/X11) liefert
+     * {@link Dragboard#getFiles()} oder {@link Dragboard#getString()} während des
+     * {@code DRAG_OVER}-Ereignisses {@code null}, da das Xdnd/GTK-Protokoll Daten-Payloads
+     * erst bei {@code DRAG_DROPPED} überträgt. Ein Zugriff auf die Dateiliste während
+     * {@code DRAG_OVER} führt dazu, dass {@code acceptTransferModes} fälschlicherweise
+     * nicht aufgerufen und der Drop vom Betriebssystem blockiert wird.
+     * </p>
+     *
+     * @param db das Dragboard
+     * @return {@code true}, wenn das Dragboard Dateilisten, URLs, Strings oder Explorer-Items enthält
+     */
+    public static boolean canAcceptDrag(Dragboard db) {
+        if (db == null) return false;
+        return db.hasFiles()
+                || db.hasUrl()
+                || db.hasString()
+                || db.hasContent(ProjectExplorerView.EXPLORER_ITEM_FORMAT);
     }
 
     /**
@@ -75,6 +99,7 @@ public final class TimelineDragHelper {
                 }
             }
             if (!result.isEmpty()) {
+                AppLogger.info("[TIMELINE-DND] %d Datei(en) via db.getFiles() erkannt.", result.size());
                 return Collections.unmodifiableList(result);
             }
         }
@@ -84,6 +109,7 @@ public final class TimelineDragHelper {
             File parsedUrl = parseFileUri(db.getUrl());
             if (parsedUrl != null && parsedUrl.exists() && isSupportedAudioFile(parsedUrl)) {
                 result.add(parsedUrl);
+                AppLogger.info("[TIMELINE-DND] Datei via db.getUrl() erkannt: %s", parsedUrl.getAbsolutePath());
                 return Collections.unmodifiableList(result);
             }
         }
@@ -93,6 +119,7 @@ public final class TimelineDragHelper {
             String raw = db.getString().trim();
             List<File> fromString = parseStringContent(raw, service);
             if (!fromString.isEmpty()) {
+                AppLogger.info("[TIMELINE-DND] %d Datei(en) via db.getString() erkannt.", fromString.size());
                 return Collections.unmodifiableList(fromString);
             }
         }
@@ -103,6 +130,7 @@ public final class TimelineDragHelper {
             if (content instanceof String strId) {
                 List<File> fromId = parseStringContent(strId, service);
                 if (!fromId.isEmpty()) {
+                    AppLogger.info("[TIMELINE-DND] %d Datei(en) via EXPLORER_ITEM_FORMAT erkannt.", fromId.size());
                     return Collections.unmodifiableList(fromId);
                 }
             }
