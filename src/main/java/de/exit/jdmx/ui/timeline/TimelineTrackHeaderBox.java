@@ -74,11 +74,13 @@ public class TimelineTrackHeaderBox extends HBox {
         });
 
         // 2. Name-Label
-        this.lblName = new Label(track.getName());
+        String displayTitle = track.hasSong() ? track.getSongName() : track.getName();
+        this.lblName = new Label(displayTitle);
         lblName.getStyleClass().add("timeline-track-name-lbl");
         lblName.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
         lblName.setEllipsisString("...");
-        Tooltip nameTip = new Tooltip(track.getName());
+        String fullTip = track.hasSong() ? track.getName() + " (" + track.getSongName() + ")" : track.getName();
+        Tooltip nameTip = new Tooltip(fullTip);
         Tooltip.install(lblName, nameTip);
         HBox.setHgrow(lblName, Priority.ALWAYS);
         lblName.setMaxWidth(Double.MAX_VALUE);

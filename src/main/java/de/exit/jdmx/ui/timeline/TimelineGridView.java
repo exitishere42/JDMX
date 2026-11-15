@@ -3,13 +3,17 @@ package de.exit.jdmx.ui.timeline;
 import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
-import de.exit.jdmx.ui.stage.ProjectExplorerView;
+import javafx.application.Platform;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 
 import java.io.File;
 import java.util.List;
@@ -23,10 +27,16 @@ import java.util.Optional;
  * <ul>
  *     <li>Horizontale Spur-Trennlinien exakt passend zur Höhe der linken Track-Boxen</li>
  *     <li>Vertikale Taktraster-Linien (Bars & Beats)</li>
- *     <li>Song-Clips und Audio-Blöcke auf Spuren mit zugewiesenem Song</li>
- *     <li>Die dynamische <b>Timeline-Linie (Playhead)</b>, die exakt anzeigt, wo sich die Wiedergabe befindet</li>
+ *     <li>Song-Clips und Audio-Blöcke auf Spuren mit zugewiesenem Song und echter Wellenform</li>
+ *     <li>Die dynamische <b>Timeline-Linie (Playhead)</b> mit Abspielanzeige</li>
  * </ul>
  * Ermöglicht Scrubbing per Mausklick sowie Drag & Drop von Songs aus dem Explorer direkt auf Spuren.
+ * </p>
+ * <p>
+ * <b>Hardware-Texture-Sicherheit:</b>
+ * Die interne {@link Canvas} wird strikt auf den sichtbaren Viewport-Bereich (z. B. 1920x800)
+ * begrenzt und virtuell mit dem Scrollbalken mitgeführt. Dadurch wird das Überschreiten der
+ * maximalen OpenGL/GPU-Texturgröße (16384px auf HiDPI-Displays) zuverlässig verhindert.
  * </p>
  */
 public class TimelineGridView extends Pane {
@@ -40,8 +50,12 @@ public class TimelineGridView extends Pane {
     /** Zeitmaßstab: Anzahl Pixel pro Sekunde (48px = 1 Sekunde). */
     public static final double PIXELS_PER_SECOND = 48.0;
 
+    /** Maximale sichere Canvas-Breite für GPU-Texturen (verhindert HiDPI 16384px Überlauf). */
+    public static final double MAX_CANVAS_SAFE_DIM = 4096.0;
+
     private final TimelineService service;
     private final Canvas canvas;
+    private ScrollPane attachedScrollPane;
 
     /**
      * Erstellt die Grid-Ansicht für die gegebene TimelineService-Instanz.
@@ -52,7 +66,7 @@ public class TimelineGridView extends Pane {
         this.service = Objects.requireNonNull(service, "service must not be null");
         getStyleClass().add("timeline-grid-view");
 
-        this.canvas = new Canvas();
+        this.canvas = new Canvas(1200, 600);
         getChildren().add(canvas);
 
         updateGridDimensions();
@@ -61,12 +75,12 @@ public class TimelineGridView extends Pane {
             Runnable action = () -> {
                 updateGridDimensions();
                 requestLayout();
-                drawGrid();
+                redraw();
             };
-            if (javafx.application.Platform.isFxApplicationThread()) {
+            if (Platform.isFxApplicationThread() || getScene() == null) {
                 action.run();
             } else {
-                javafx.application.Platform.runLater(action);
+                Platform.runLater(action);
             }
         });
 
@@ -87,23 +101,69 @@ public class TimelineGridView extends Pane {
         setupDragAndDrop();
     }
 
+    /**
+     * Verknüpft das umschließende {@link ScrollPane}, um die Canvas auf den sichtbaren Viewport
+     * zu begrenzen und GPU-Textur-Überläufe auf HiDPI-Displays zu verhindern.
+     *
+     * @param scrollPane das umschließende ScrollPane
+     */
+    public void attachScrollPane(ScrollPane scrollPane) {
+        this.attachedScrollPane = scrollPane;
+        if (scrollPane != null) {
+            scrollPane.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> redraw());
+            scrollPane.hvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
+            scrollPane.vvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
+        }
+        redraw();
+    }
+
     @Override
     protected void layoutChildren() {
         super.layoutChildren();
-        double w = Math.max(1.0, getWidth());
-        double h = Math.max(1.0, getHeight());
-        if (canvas.getWidth() != w || canvas.getHeight() != h) {
-            canvas.setWidth(w);
-            canvas.setHeight(h);
+        redraw();
+    }
+
+    /**
+     * Berechnet die Viewport-Koordinaten und aktualisiert die Canvas-Position und -Zeichnung.
+     */
+    public void redraw() {
+        double totalW = Math.max(1200.0, getPrefWidth());
+        double totalH = Math.max(600.0, getPrefHeight());
+
+        double viewW;
+        double viewH;
+        double scrollX = 0;
+        double scrollY = 0;
+
+        if (attachedScrollPane != null && attachedScrollPane.getViewportBounds() != null) {
+            viewW = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, attachedScrollPane.getViewportBounds().getWidth()));
+            viewH = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, attachedScrollPane.getViewportBounds().getHeight()));
+            double maxScrollX = Math.max(0.0, totalW - viewW);
+            double maxScrollY = Math.max(0.0, totalH - viewH);
+            scrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
+            scrollY = maxScrollY * Math.max(0.0, Math.min(1.0, attachedScrollPane.getVvalue()));
+        } else {
+            viewW = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, getWidth() > 0 ? getWidth() : totalW));
+            viewH = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, getHeight() > 0 ? getHeight() : totalH));
         }
-        drawGrid();
+
+        // Canvas an der sichtbaren Position im Pane verankern
+        canvas.setLayoutX(scrollX);
+        canvas.setLayoutY(scrollY);
+
+        if (canvas.getWidth() != viewW || canvas.getHeight() != viewH) {
+            canvas.setWidth(viewW);
+            canvas.setHeight(viewH);
+        }
+
+        drawGrid(scrollX, scrollY, viewW, viewH, totalW, totalH);
     }
 
     private void setupContextMenu() {
-        javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
+        ContextMenu contextMenu = new ContextMenu();
 
-        javafx.scene.control.MenuItem itemAssign = new javafx.scene.control.MenuItem("Song zuweisen...");
-        javafx.scene.control.MenuItem itemAddTrack = new javafx.scene.control.MenuItem("Track hinzufügen");
+        MenuItem itemAssign = new MenuItem("Song zuweisen...");
+        MenuItem itemAddTrack = new MenuItem("Track hinzufügen");
 
         contextMenu.getItems().addAll(itemAssign, itemAddTrack);
 
@@ -127,9 +187,9 @@ public class TimelineGridView extends Pane {
     }
 
     private void handleAssignSongViaChooser(TimelineTrack targetTrack) {
-        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        FileChooser chooser = new FileChooser();
         chooser.setTitle("Song für " + targetTrack.getName() + " auswählen");
-        chooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Audiodateien (*.mp3, *.wav)", "*.mp3", "*.wav"));
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Audiodateien (*.mp3, *.wav)", "*.mp3", "*.wav"));
         File chosen = chooser.showOpenDialog(getScene() != null ? getScene().getWindow() : null);
         if (chosen != null) {
             service.assignSongToTrack(targetTrack.getId(), chosen);
@@ -224,50 +284,66 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Zeichnet das Playlist-Raster, die Song-Clips und die Timeline-Linie auf die Canvas.
+     * Abwärtskompatible Methode: Zeichnet das Playlist-Raster.
      */
     public void drawGrid() {
-        double w = Math.max(getWidth(), canvas.getWidth());
-        double h = Math.max(getHeight(), canvas.getHeight());
-        if (w <= 0 || h <= 0) return;
+        redraw();
+    }
+
+    /**
+     * Zeichnet das Playlist-Raster, die Song-Clips und die Timeline-Linie im sichtbaren Viewport.
+     *
+     * @param scrollX  horizontale Scroll-Position
+     * @param scrollY  vertikale Scroll-Position
+     * @param viewW    sichtbare Viewport-Breite
+     * @param viewH    sichtbare Viewport-Höhe
+     * @param totalW   Gesamtbreite des Rasters
+     * @param totalH   Gesamthöhe des Rasters
+     */
+    private void drawGrid(double scrollX, double scrollY, double viewW, double viewH, double totalW, double totalH) {
+        if (viewW <= 0 || viewH <= 0) return;
 
         GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, w, h);
+        gc.clearRect(0, 0, viewW, viewH);
 
         List<TimelineTrack> tracks = service.getTracks();
-        double totalTracksHeight = tracks.size() * 48.0;
-        double gridHeight = Math.max(h, totalTracksHeight);
 
-        // 1. Hintergrund für gesamte Fläche
+        // 1. Hintergrund für die gesamte sichtbare Fläche
         gc.setFill(Color.web("#101010"));
-        gc.fillRect(0, 0, w, h);
+        gc.fillRect(0, 0, viewW, viewH);
 
         // 2. Horizontale Spuren und Hintergrund-Streifen
         double currentY = 0;
         for (int i = 0; i < tracks.size(); i++) {
             TimelineTrack track = tracks.get(i);
             double trackH = track.getHeight();
+            double screenY = currentY - scrollY;
 
-            if (i % 2 == 0) {
-                gc.setFill(Color.web("#141414"));
-            } else {
-                gc.setFill(Color.web("#171717"));
+            if (screenY + trackH > 0 && screenY < viewH) {
+                if (i % 2 == 0) {
+                    gc.setFill(Color.web("#141414"));
+                } else {
+                    gc.setFill(Color.web("#171717"));
+                }
+                gc.fillRect(0, screenY, viewW, trackH);
             }
-            gc.fillRect(0, currentY, w, trackH);
             currentY += trackH;
         }
 
-        // 3. Vertikale Takt- und Beat-Rasterlinien zeichnen (Bars & Beats)
-        for (double x = 0; x < w; x += BEAT_WIDTH) {
+        // 3. Vertikale Takt- und Beat-Rasterlinien (nur für sichtbaren X-Bereich)
+        double startX = Math.floor(scrollX / BEAT_WIDTH) * BEAT_WIDTH;
+        double endX = scrollX + viewW;
+        for (double x = startX; x <= endX; x += BEAT_WIDTH) {
+            double screenX = x - scrollX;
             boolean isBarLine = Math.abs(x % BAR_WIDTH) < 0.1;
             if (isBarLine) {
                 gc.setStroke(Color.web("#2A2A2A"));
                 gc.setLineWidth(1.0);
-                gc.strokeLine(x + 0.5, 0, x + 0.5, gridHeight);
+                gc.strokeLine(screenX + 0.5, 0, screenX + 0.5, viewH);
             } else {
                 gc.setStroke(Color.web("#1B1B1B"));
                 gc.setLineWidth(0.5);
-                gc.strokeLine(x + 0.5, 0, x + 0.5, gridHeight);
+                gc.strokeLine(screenX + 0.5, 0, screenX + 0.5, viewH);
             }
         }
 
@@ -276,9 +352,13 @@ public class TimelineGridView extends Pane {
         for (int i = 0; i < tracks.size(); i++) {
             TimelineTrack track = tracks.get(i);
             double trackH = track.getHeight();
-            gc.setStroke(Color.web("#252525"));
-            gc.setLineWidth(1.0);
-            gc.strokeLine(0, currentY + trackH - 0.5, w, currentY + trackH - 0.5);
+            double screenY = currentY - scrollY;
+
+            if (screenY + trackH > 0 && screenY < viewH) {
+                gc.setStroke(Color.web("#252525"));
+                gc.setLineWidth(1.0);
+                gc.strokeLine(0, screenY + trackH - 0.5, viewW, screenY + trackH - 0.5);
+            }
             currentY += trackH;
         }
 
@@ -287,33 +367,40 @@ public class TimelineGridView extends Pane {
         for (int i = 0; i < tracks.size(); i++) {
             TimelineTrack track = tracks.get(i);
             double trackH = track.getHeight();
-            if (track.hasSong()) {
-                drawSongClip(gc, track, currentY, trackH, w);
+            double screenY = currentY - scrollY;
+
+            if (track.hasSong() && screenY + trackH > 0 && screenY < viewH) {
+                drawSongClip(gc, track, screenY, trackH, scrollX, viewW);
             }
             currentY += trackH;
         }
 
         // 6. Timeline-Linie (Playhead) ganz oben zeichnen
-        drawPlayhead(gc, gridHeight);
+        drawPlayhead(gc, scrollX, viewW, viewH);
     }
 
     /**
      * Zeichnet einen Song-Clip Block auf einer Spur mit realer Länge und echter Wellenform.
      */
-    private void drawSongClip(GraphicsContext gc, TimelineTrack track, double y, double h, double maxW) {
-        double clipX = 0;
+    private void drawSongClip(GraphicsContext gc, TimelineTrack track, double screenY, double h, double scrollX, double viewW) {
         long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
+        double clipStartX = millisToX(0) - scrollX;
         double clipW = Math.max(80.0, millisToX(durationMs));
         double clipH = h - 6;
-        double clipY = y + 3;
+        double clipY = screenY + 3;
+
+        // Nur zeichnen, wenn zumindest teilweise im sichtbaren Viewport
+        if (clipStartX + clipW < 0 || clipStartX > viewW) {
+            return;
+        }
 
         // Clip-Karten-Hintergrund (smaragdgrün/teal Studio-Theme)
         gc.setFill(Color.web("#064E3B"));
-        gc.fillRoundRect(clipX + 2, clipY, clipW, clipH, 6, 6);
+        gc.fillRoundRect(clipStartX + 2, clipY, clipW, clipH, 6, 6);
 
         gc.setStroke(Color.web("#10B981"));
         gc.setLineWidth(1.0);
-        gc.strokeRoundRect(clipX + 2, clipY, clipW, clipH, 6, 6);
+        gc.strokeRoundRect(clipStartX + 2, clipY, clipW, clipH, 6, 6);
 
         // Echte Wellenform zeichnen
         float[] waveform = track.getWaveformData();
@@ -324,8 +411,11 @@ public class TimelineGridView extends Pane {
             double maxAmpH = (clipH / 2.0) - 5.0;
 
             double stepPx = 2.0;
-            for (double wx = clipX + 4; wx < clipX + clipW - 4; wx += stepPx) {
-                double progress = (wx - clipX) / clipW;
+            double drawStartX = Math.max(clipStartX + 4, 0);
+            double drawEndX = Math.min(clipStartX + clipW - 4, viewW);
+
+            for (double wx = drawStartX; wx < drawEndX; wx += stepPx) {
+                double progress = (wx - clipStartX) / clipW;
                 int sampleIdx = (int) (progress * (waveform.length - 1));
                 float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
                 double ampHeight = Math.max(1.0, amp * maxAmpH);
@@ -336,13 +426,16 @@ public class TimelineGridView extends Pane {
             gc.setStroke(Color.web("#059669"));
             gc.setLineWidth(1.0);
             double waveCenterY = clipY + (clipH / 2.0);
-            gc.strokeLine(clipX + 8, waveCenterY, clipX + clipW - 8, waveCenterY);
+            gc.strokeLine(Math.max(clipStartX + 8, 0), waveCenterY, Math.min(clipStartX + clipW - 8, viewW), waveCenterY);
         }
 
         // Song-Titel Header mit Formatierung der Laufzeit
         gc.setFill(Color.web("#F3F4F6"));
         String durationStr = formatDuration(durationMs);
-        gc.fillText(track.getSongName() + " (" + durationStr + ")", clipX + 12, clipY + 14);
+        double textX = Math.max(clipStartX + 12, 12);
+        if (textX < viewW - 20) {
+            gc.fillText(track.getSongName() + " (" + durationStr + ")", textX, clipY + 14);
+        }
     }
 
     private String formatDuration(long ms) {
@@ -355,17 +448,22 @@ public class TimelineGridView extends Pane {
     /**
      * Zeichnet die vertikale Timeline-Linie (Playhead) mit Kopfanzeiger.
      */
-    private void drawPlayhead(GraphicsContext gc, double height) {
-        double playheadX = Math.round(millisToX(service.getCurrentPositionMs()));
+    private void drawPlayhead(GraphicsContext gc, double scrollX, double viewW, double viewH) {
+        double playheadContentX = millisToX(service.getCurrentPositionMs());
+        double playheadScreenX = Math.round(playheadContentX - scrollX);
+
+        if (playheadScreenX < -10 || playheadScreenX > viewW + 10) {
+            return;
+        }
 
         // Vertikale Linie (warm orange / amber für optimale Sichtbarkeit)
         gc.setStroke(Color.web("#FB923C"));
         gc.setLineWidth(2.0);
-        gc.strokeLine(playheadX, 0, playheadX, height);
+        gc.strokeLine(playheadScreenX, 0, playheadScreenX, viewH);
 
         // Oberer Pfeil-Indikator (Playhead-Kopf)
         gc.setFill(Color.web("#FB923C"));
-        double[] xPoints = {playheadX - 6, playheadX + 6, playheadX};
+        double[] xPoints = {playheadScreenX - 6, playheadScreenX + 6, playheadScreenX};
         double[] yPoints = {0, 0, 9};
         gc.fillPolygon(xPoints, yPoints, 3);
     }

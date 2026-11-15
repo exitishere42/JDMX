@@ -58,12 +58,15 @@ public class TimelineService {
     /** Audioanalyse-Service für Laufzeit- und Wellenform-Berechnungen. */
     private final AudioAnalysisService audioAnalysisService;
 
+    /** Audio-Wiedergabeservice für echte Soundausgabe (MP3 / WAV). */
+    private final AudioPlaybackService audioPlaybackService;
+
     /**
      * Erstellt einen neuen {@link TimelineService} und initialisiert diesen standardmäßig
      * mit einer ersten Spur ("Track 1").
      */
     public TimelineService() {
-        this(new AudioAnalysisService());
+        this(new AudioAnalysisService(), new AudioPlaybackService());
     }
 
     /**
@@ -72,7 +75,19 @@ public class TimelineService {
      * @param audioAnalysisService der Audioanalyse-Dienst (darf nicht {@code null} sein)
      */
     public TimelineService(AudioAnalysisService audioAnalysisService) {
+        this(audioAnalysisService, new AudioPlaybackService());
+    }
+
+    /**
+     * Erstellt einen neuen {@link TimelineService} mit injiziertem {@link AudioAnalysisService}
+     * und {@link AudioPlaybackService}.
+     *
+     * @param audioAnalysisService der Audioanalyse-Dienst (darf nicht {@code null} sein)
+     * @param audioPlaybackService der Audio-Wiedergabedienst (darf nicht {@code null} sein)
+     */
+    public TimelineService(AudioAnalysisService audioAnalysisService, AudioPlaybackService audioPlaybackService) {
         this.audioAnalysisService = Objects.requireNonNull(audioAnalysisService, "audioAnalysisService must not be null");
+        this.audioPlaybackService = Objects.requireNonNull(audioPlaybackService, "audioPlaybackService must not be null");
         initDefaultTrack();
     }
 
@@ -397,7 +412,11 @@ public class TimelineService {
      * @param positionMs Position in Millisekunden (>= 0)
      */
     public void setPositionMs(long positionMs) {
-        currentPositionMs.set(Math.max(0L, positionMs));
+        long safeMs = Math.max(0L, positionMs);
+        currentPositionMs.set(safeMs);
+        if (playing.get()) {
+            audioPlaybackService.seek(safeMs);
+        }
         notifyChange();
     }
 
@@ -408,6 +427,9 @@ public class TimelineService {
         if (playing.compareAndSet(false, true)) {
             lastTickNanos = System.nanoTime();
             startPlaybackTimer();
+            if (activeSongFile != null && activeSongFile.exists()) {
+                audioPlaybackService.play(activeSongFile, currentPositionMs.get());
+            }
             notifyChange();
         }
     }
@@ -418,6 +440,7 @@ public class TimelineService {
     public synchronized void pausePlayback() {
         if (playing.compareAndSet(true, false)) {
             stopPlaybackTimer();
+            audioPlaybackService.pause();
             notifyChange();
         }
     }
@@ -428,8 +451,18 @@ public class TimelineService {
     public synchronized void stopPlayback() {
         playing.set(false);
         stopPlaybackTimer();
+        audioPlaybackService.stop();
         currentPositionMs.set(0L);
         notifyChange();
+    }
+
+    /**
+     * Liefert den Audio-Wiedergabedienst.
+     *
+     * @return der {@link AudioPlaybackService}
+     */
+    public AudioPlaybackService getAudioPlaybackService() {
+        return audioPlaybackService;
     }
 
     private void startPlaybackTimer() {
@@ -498,8 +531,8 @@ public class TimelineService {
         for (Runnable listener : changeListeners) {
             try {
                 listener.run();
-            } catch (Exception e) {
-                // Einzelne Listener-Fehler fangen
+            } catch (Throwable t) {
+                AppLogger.error("[TIMELINE] Fehler in Change-Listener: %s", t.getMessage());
             }
         }
     }

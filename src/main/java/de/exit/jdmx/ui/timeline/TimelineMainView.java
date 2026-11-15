@@ -133,6 +133,9 @@ public class TimelineMainView extends VBox {
         HBox.setHgrow(gridScrollPane, Priority.ALWAYS);
         VBox.setVgrow(gridScrollPane, Priority.ALWAYS);
 
+        // Hardware-Texture-Sicherheit: Viewport-Anbindung an das Grid
+        timelineGridView.attachScrollPane(gridScrollPane);
+
         // Vertikales Scrollen beider Bereiche synchronisieren
         tracksScrollPane.vvalueProperty().bindBidirectional(gridScrollPane.vvalueProperty());
 
@@ -148,10 +151,10 @@ public class TimelineMainView extends VBox {
 
         // Auf Änderungen im Service lauschen
         service.addChangeListener(() -> {
-            if (getScene() != null && !Platform.isFxApplicationThread()) {
-                Platform.runLater(this::updateFromService);
-            } else {
+            if (Platform.isFxApplicationThread() || getScene() == null) {
                 updateFromService();
+            } else {
+                Platform.runLater(this::updateFromService);
             }
         });
     }

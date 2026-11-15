@@ -142,6 +142,15 @@ public final class AppLogger {
     }
 
     /**
+     * Schreibt einen formatierten Fehler in die Log-Datei.
+     */
+    public static void error(String format, Object... args) {
+        init();
+        String msg = (args != null && args.length > 0) ? String.format(format, args) : format;
+        LOGGER.log(Level.SEVERE, msg);
+    }
+
+    /**
      * Schreibt einen Fehler samt Stacktrace in die Log-Datei.
      */
     public static void error(String message, Throwable t) {

@@ -93,4 +93,15 @@ class TimelineMainViewTest {
         assertThat(view.getTracksScrollPane().getMinWidth()).isGreaterThanOrEqualTo(160.0);
         assertThat(view.getTracksScrollPane().getPrefWidth()).isGreaterThanOrEqualTo(160.0);
     }
+
+    @Test
+    @DisplayName("Sollte TrackBox und TimeDisplay aktualisieren, wenn Song zugewiesen wird")
+    void shouldUpdateTrackBoxAndTimeDisplayWhenSongAssigned() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+        java.io.File dummySong = new java.io.File("test.mp3");
+        service.assignSongToTrack(service.getTracks().get(0).getId(), dummySong);
+        assertThat(view.getTrackBoxes().get(0).getTrack().getName()).isEqualTo("test.mp3");
+        assertThat(view.getLblTimeDisplay().getText()).contains(" / ");
+    }
 }
