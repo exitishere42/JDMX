@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JDMX – Entwickler-Portal & Dokumentation</title>
+    <style>
+        :root {
+            --bg-base: #121212;
+            --bg-surface: #1E1E1E;
+            --bg-elevated: #282828;
+            --accent-primary: #FB923C;
+            --accent-hover: #F97316;
+            --text-main: #FFFFFF;
+            --text-muted: #A1A1AA;
+            --border-color: #2E2E2E;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .badge {
+            display: inline-block;
+            background-color: rgba(251, 146, 60, 0.15);
+            color: var(--accent-primary);
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 15px;
+            border: 1px solid rgba(251, 146, 60, 0.3);
+        }
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 17px;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+            gap: 24px;
+            margin-bottom: 50px;
+        }
+        .card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            text-decoration: none;
+            color: inherit;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+        }
+        .card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+        .card-link {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card:hover .card-link {
+            color: var(--accent-hover);
+        }
+        .stats-bar {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .stat-item h4 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+        .stat-item span {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="badge">Autonome Entwickler-Dokumentation</div>
+            <h1>JDMX Wissensportal & Architektur</h1>
+            <p class="subtitle">Alles, was du brauchst, um den Quellcode von JDMX jederzeit ohne externe Hilfe oder KI vollständig zu verstehen, zu warten und weiterzuentwickeln.</p>
+        </header>
+
+        <div class="grid">
+            <a href="ONBOARDING.md" class="card">
+                <div>
+                    <h3>🚀 Onboarding & Setup</h3>
+                    <p>Schnellanleitung zur Einrichtung in IntelliJ IDEA / VS Code, die wichtigsten Maven-Befehle und die 3 goldenen Architektur-Regeln.</p>
+                </div>
+                <div class="card-link">ONBOARDING.md öffnen &rarr;</div>
+            </a>
+
+            <a href="CODE_MAP.md" class="card">
+                <div>
+                    <h3>🗺️ Code-Landkarte</h3>
+                    <p>Der 10-Sekunden Schnellfinder („Wo finde ich was?“) und eine vollständige Übersicht aller 95 Java-Klassen auf Deutsch.</p>
+                </div>
+                <div class="card-link">CODE_MAP.md öffnen &rarr;</div>
+            </a>
+
+            <a href="ARCHITECTURE.md" class="card">
+                <div>
+                    <h3>⚙️ Architektur & Signalflüsse</h3>
+                    <p>Tiefen-Dokumentation mit Mermaid-Diagrammen: 40Hz DMX-Loop, Art-Net UDP, HTP/LTP-Merging, JLayer-Multitrack-Audio und H2-Datenbank.</p>
+                </div>
+                <div class="card-link">ARCHITECTURE.md öffnen &rarr;</div>
+            </a>
+
+            <a href="HOWTO.md" class="card">
+                <div>
+                    <h3>📖 Entwickler-Kochbuch</h3>
+                    <p>Praktische Schritt-für-Schritt Rezepte: Neue Buttons einbauen, Tastaturkürzel registrieren, DMX-Fehler beheben und Unit-Tests schreiben.</p>
+                </div>
+                <div class="card-link">HOWTO.md öffnen &rarr;</div>
+            </a>
+
+            <a href="../target/reports/apidocs/index.html" class="card">
+                <div>
+                    <h3>📚 JavaDoc API-Website</h3>
+                    <p>Das interaktive HTML-Klassenportal mit Live-Suche, Methoden-Parametern und Vererbungsbäumen direkt aus dem Code.</p>
+                </div>
+                <div class="card-link">JavaDoc Website öffnen &rarr;</div>
+            </a>
+
+            <a href="../jdmx-spec.md" class="card">
+                <div>
+                    <h3>📋 Master-Spezifikation</h3>
+                    <p>Der lebendige Anforderungskatalog (Living Requirements), die Roadmap und die komplette Änderungshistorie aller Releases.</p>
+                </div>
+                <div class="card-link">jdmx-spec.md öffnen &rarr;</div>
+            </a>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <h4>23.008</h4>
+                <span>Produktiv-Code (Java)</span>
+            </div>
+            <div class="stat-item">
+                <h4>370</h4>
+                <span>Unit-Tests (100% Grün)</span>
+            </div>
+            <div class="stat-item">
+                <h4>95</h4>
+                <span>Java-Klassen</span>
+            </div>
+            <div class="stat-item">
+                <h4>40 Hz</h4>
+                <span>DMX-Frame-Rate</span>
+            </div>
+            <div class="stat-item">
+                <h4>100%</h4>
+                <span>Offline-Fähig</span>
+            </div>
+        </div>
+
+        <footer>
+            JDMX – Java DMX Lighting Controller &bull; de.exit.jdmx &bull; Java 21 LTS & OpenJFX 21
+        </footer>
+    </div>
+</body>
+</html>

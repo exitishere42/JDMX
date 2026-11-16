@@ -153,7 +153,21 @@ mvn clean test
 mvn clean package
 ```
 
-The standalone executable fat JAR will be generated at `target/jdmx-1.20.5-all.jar`.
+The standalone executable fat JAR will be generated at `target/jdmx-*-all.jar`.
+
+---
+
+## Developer Documentation & Architecture
+
+Comprehensive documentation is provided in the [`docs/`](./docs) directory to enable full understanding, maintenance, and development of JDMX without external dependencies:
+
+- **[Developer Portal (`docs/index.html`)](./docs/index.html)**: Standalone offline documentation dashboard.
+- **[Onboarding & Setup (`docs/ONBOARDING.md`)](./docs/ONBOARDING.md)**: Quick start guide, build commands, and core architectural rules.
+- **[Code Map & File Directory (`docs/CODE_MAP.md`)](./docs/CODE_MAP.md)**: Complete file index and quick finder for all 95 Java classes.
+- **[Architecture & Signal Flows (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)**: In-depth technical guide with sequence diagrams covering DMX timing, Art-Net UDP, multitrack audio, and database persistence.
+- **[Developer Cookbook (`docs/HOWTO.md`)](./docs/HOWTO.md)**: Step-by-step guides for UI buttons, shortcuts, unit testing, and troubleshooting.
+- **[Living Requirements (`jdmx-spec.md`)](./jdmx-spec.md)**: Functional specifications and historical changelog.
+- **Interactive JavaDoc**: Generate the full HTML API website anytime via `mvn javadoc:javadoc`.
 
 ---
 
