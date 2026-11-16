@@ -3,222 +3,1317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JDMX – Entwickler-Portal & Dokumentation</title>
+    <title>JDMX Entwickler-Wiki & Technische Dokumentation</title>
     <style>
         :root {
-            --bg-base: #121212;
-            --bg-surface: #1E1E1E;
-            --bg-elevated: #282828;
-            --accent-primary: #FB923C;
-            --accent-hover: #F97316;
-            --text-main: #FFFFFF;
-            --text-muted: #A1A1AA;
-            --border-color: #2E2E2E;
+            --bg-body: #0d1117;
+            --bg-sidebar: #161b22;
+            --bg-card: #1c2128;
+            --bg-code: #21262d;
+            --border: #30363d;
+            --border-hover: #8b949e;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --text-heading: #f0f6fc;
+            --accent: #58a6ff;
+            --accent-hover: #79c0ff;
+            --accent-dim: rgba(88, 166, 255, 0.15);
+            --callout-info-bg: rgba(56, 139, 253, 0.1);
+            --callout-info-border: #388bfd;
+            --callout-warn-bg: rgba(210, 153, 34, 0.1);
+            --callout-warn-border: #d29922;
+            --callout-success-bg: rgba(46, 160, 67, 0.1);
+            --callout-success-border: #2ea043;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-base);
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
             color: var(--text-main);
             line-height: 1.6;
-            padding: 40px 20px;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
         }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        header {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-        .badge {
-            display: inline-block;
-            background-color: rgba(251, 146, 60, 0.15);
-            color: var(--accent-primary);
-            padding: 4px 12px;
-            border-radius: 9999px;
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 15px;
-            border: 1px solid rgba(251, 146, 60, 0.3);
-        }
-        h1 {
-            font-size: 36px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: 12px;
-        }
-        p.subtitle {
-            color: var(--text-muted);
-            font-size: 17px;
-            max-width: 650px;
-            margin: 0 auto;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-            gap: 24px;
-            margin-bottom: 50px;
-        }
-        .card {
-            background-color: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+        /* ------------------ SIDEBAR ------------------ */
+        #sidebar {
+            width: 300px;
+            min-width: 300px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            height: 100%;
+        }
+
+        .sidebar-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
             justify-content: space-between;
-            text-decoration: none;
-            color: inherit;
         }
-        .card:hover {
-            transform: translateY(-4px);
-            border-color: var(--accent-primary);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-        }
-        .card h3 {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-main);
-            margin-bottom: 10px;
+
+        .wiki-logo-group {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        .card p {
-            color: var(--text-muted);
+
+        .wiki-logo {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #fb923c, #ea580c);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
             font-size: 14px;
-            margin-bottom: 20px;
-            flex-grow: 1;
+            color: #fff;
         }
-        .card-link {
-            color: var(--accent-primary);
+
+        .wiki-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-heading);
+            letter-spacing: -0.01em;
+        }
+
+        .wiki-version {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            background-color: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .search-box {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-input {
+            width: 100%;
+            background-color: var(--bg-body);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-dim);
+        }
+
+        .sidebar-nav {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 16px 12px;
+        }
+
+        .nav-section {
+            margin-bottom: 20px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding: 6px 10px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 6px 10px;
+            font-size: 13px;
+            color: var(--text-main);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.15s ease, color 0.15s ease;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            background-color: var(--bg-card);
+            color: var(--text-heading);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent-dim);
+            color: var(--accent);
+            border-left-color: var(--accent);
             font-weight: 600;
-            font-size: 14px;
-            display: inline-flex;
+        }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .sidebar-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ------------------ MAIN WRAPPER ------------------ */
+        #content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        #topbar {
+            height: 52px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            background-color: var(--bg-body);
+        }
+
+        .breadcrumbs {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
             align-items: center;
             gap: 6px;
         }
-        .card:hover .card-link {
-            color: var(--accent-hover);
+
+        .breadcrumbs span {
+            color: var(--text-main);
+            font-weight: 600;
         }
-        .stats-bar {
-            background-color: var(--bg-surface);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
+
+        .top-links {
             display: flex;
-            justify-content: space-around;
-            text-align: center;
-            flex-wrap: wrap;
-            gap: 20px;
+            gap: 16px;
+            font-size: 13px;
         }
-        .stat-item h4 {
+
+        .top-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.15s;
+        }
+
+        .top-link:hover {
+            color: var(--text-heading);
+        }
+
+        /* Content Area */
+        #main-scroll {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 36px 48px 80px 48px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .content-container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        /* ------------------ ARTICLE TYPOGRAPHY ------------------ */
+        .wiki-article {
+            display: none;
+        }
+
+        .wiki-article.active {
+            display: block;
+            animation: fadeIn 0.15s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
             font-size: 28px;
             font-weight: 700;
-            color: var(--accent-primary);
+            color: var(--text-heading);
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
         }
-        .stat-item span {
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-heading);
+            margin-top: 36px;
+            margin-bottom: 14px;
+            letter-spacing: -0.01em;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-heading);
+            margin-top: 24px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 14.5px;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+
+        ul, ol {
+            margin-bottom: 18px;
+            padding-left: 24px;
+            font-size: 14.5px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 32px 0;
+        }
+
+        /* Inline & Block Code */
+        code {
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            background-color: var(--bg-code);
+            border: 1px solid var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #f0883e;
+        }
+
+        pre {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0 24px 0;
+            position: relative;
+        }
+
+        pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            color: var(--text-main);
             font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
             color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            border-radius: 4px;
+            font-size: 11px;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: all 0.15s;
         }
-        footer {
+
+        .copy-btn:hover {
+            color: var(--text-heading);
+            border-color: var(--border-hover);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0 28px 0;
+            font-size: 13.5px;
+        }
+
+        th, td {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--bg-card);
+            color: var(--text-heading);
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) td {
+            background-color: rgba(255, 255, 255, 0.015);
+        }
+
+        /* Callouts / Alerts */
+        .callout {
+            border-left: 4px solid var(--border);
+            border-radius: 0 6px 6px 0;
+            padding: 14px 18px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .callout.info {
+            background-color: var(--callout-info-bg);
+            border-left-color: var(--callout-info-border);
+        }
+
+        .callout.warn {
+            background-color: var(--callout-warn-bg);
+            border-left-color: var(--callout-warn-border);
+        }
+
+        .callout.success {
+            background-color: var(--callout-success-bg);
+            border-left-color: var(--callout-success-border);
+        }
+
+        .callout strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-heading);
+        }
+
+        /* Diagram / ASCII Box */
+        .flow-box {
+            background-color: #12161c;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 18px;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            color: #a0aec0;
+            white-space: pre;
+            overflow-x: auto;
+            margin: 18px 0;
+            line-height: 1.45;
+        }
+
+        .flow-box span.hl {
+            color: #63b3ed;
+            font-weight: bold;
+        }
+        .flow-box span.arrow {
+            color: #ed8936;
+        }
+
+        /* No search results */
+        #no-results {
+            display: none;
+            padding: 40px;
             text-align: center;
-            margin-top: 60px;
-            font-size: 13px;
             color: var(--text-muted);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="badge">Autonome Entwickler-Dokumentation</div>
-            <h1>JDMX Wissensportal & Architektur</h1>
-            <p class="subtitle">Alles, was du brauchst, um den Quellcode von JDMX jederzeit ohne externe Hilfe oder KI vollständig zu verstehen, zu warten und weiterzuentwickeln.</p>
+
+    <!-- ----------------- SIDEBAR ----------------- -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="wiki-logo-group">
+                <div class="wiki-logo">J</div>
+                <div class="wiki-title">JDMX Wiki</div>
+            </div>
+            <div class="wiki-version">v1.20.10</div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="search-input" class="search-input" placeholder="Im Wiki suchen... (z. B. Audio, DMX, TDD)">
+        </div>
+
+        <nav class="sidebar-nav" id="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Einführung</div>
+                <a class="nav-item active" data-target="art-overview">Übersicht & Philosophie</a>
+                <a class="nav-item" data-target="art-onboarding">Schnelleinstieg & Setup</a>
+                <a class="nav-item" data-target="art-rules">Die 3 Architektur-Regeln</a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Architektur & Technik</div>
+                <a class="nav-item" data-target="art-arch-dmx">DMX-Timing & 40Hz Loop</a>
+                <a class="nav-item" data-target="art-arch-htpltp">HTP / LTP & 16-Bit Pan/Tilt</a>
+                <a class="nav-item" data-target="art-arch-artnet">Art-Net UDP (Port 6454)</a>
+                <a class="nav-item" data-target="art-arch-audio">Multitrack-Audio & JLayer</a>
+                <a class="nav-item" data-target="art-arch-db">H2-Datenbank & Persistenz</a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Code-Landkarte (95 Klassen)</div>
+                <a class="nav-item" data-target="art-map-finder">10-Sekunden Schnellfinder</a>
+                <a class="nav-item" data-target="art-map-core">Core-Schicht (`core.*`)</a>
+                <a class="nav-item" data-target="art-map-service">Service-Schicht (`service.*`)</a>
+                <a class="nav-item" data-target="art-map-timeline">Show-Timeline (`ui.timeline`)</a>
+                <a class="nav-item" data-target="art-map-stage">Stage & LightDesk (`ui.stage/desk`)</a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Entwickler-Kochbuch (How-To)</div>
+                <a class="nav-item" data-target="art-howto-button">Neuen Button einbauen</a>
+                <a class="nav-item" data-target="art-howto-shortcut">Tastaturkürzel registrieren</a>
+                <a class="nav-item" data-target="art-howto-tdd">Unit-Test schreiben (TDD)</a>
+                <a class="nav-item" data-target="art-howto-dmx-debug">DMX-Fehlerdiagnose</a>
+                <a class="nav-item" data-target="art-howto-audio-debug">Audio-Fehlerdiagnose</a>
+                <a class="nav-item" data-target="art-howto-release">Build & AppImage Release</a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Externe API-Referenzen</div>
+                <a class="nav-item" href="../target/reports/apidocs/index.html" target="_blank">JavaDoc Website ↗</a>
+                <a class="nav-item" href="../jdmx-spec.md" target="_blank">Master-Spezifikation ↗</a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span>Offline-Dokumentation</span>
+            <a href="https://github.com/exitishere42/JDMX" target="_blank">GitHub Repo</a>
+        </div>
+    </aside>
+
+    <!-- ----------------- MAIN WRAPPER ----------------- -->
+    <div id="content-wrapper">
+        <header id="topbar">
+            <div class="breadcrumbs" id="breadcrumbs">
+                JDMX Wiki &gt; <span id="current-crumb">Übersicht & Philosophie</span>
+            </div>
+            <div class="top-links">
+                <a href="../target/reports/apidocs/index.html" target="_blank" class="top-link">JavaDoc</a>
+                <a href="../jdmx-spec.md" target="_blank" class="top-link">Spezifikation</a>
+                <a href="https://github.com/exitishere42/JDMX/releases/latest" target="_blank" class="top-link">Releases</a>
+            </div>
         </header>
 
-        <div class="grid">
-            <a href="ONBOARDING.md" class="card">
-                <div>
-                    <h3>🚀 Onboarding & Setup</h3>
-                    <p>Schnellanleitung zur Einrichtung in IntelliJ IDEA / VS Code, die wichtigsten Maven-Befehle und die 3 goldenen Architektur-Regeln.</p>
-                </div>
-                <div class="card-link">ONBOARDING.md öffnen &rarr;</div>
-            </a>
+        <div id="main-scroll">
+            <div class="content-container">
 
-            <a href="CODE_MAP.md" class="card">
-                <div>
-                    <h3>🗺️ Code-Landkarte</h3>
-                    <p>Der 10-Sekunden Schnellfinder („Wo finde ich was?“) und eine vollständige Übersicht aller 95 Java-Klassen auf Deutsch.</p>
+                <div id="no-results">
+                    <h3>Keine Suchtreffer gefunden</h3>
+                    <p>Versuche es mit einem anderen Begriff wie <code>DMX</code>, <code>Audio</code>, <code>Timeline</code> oder <code>TDD</code>.</p>
                 </div>
-                <div class="card-link">CODE_MAP.md öffnen &rarr;</div>
-            </a>
 
-            <a href="ARCHITECTURE.md" class="card">
-                <div>
-                    <h3>⚙️ Architektur & Signalflüsse</h3>
-                    <p>Tiefen-Dokumentation mit Mermaid-Diagrammen: 40Hz DMX-Loop, Art-Net UDP, HTP/LTP-Merging, JLayer-Multitrack-Audio und H2-Datenbank.</p>
-                </div>
-                <div class="card-link">ARCHITECTURE.md öffnen &rarr;</div>
-            </a>
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 1: ÜBERSICHT & PHILOSOPHIE                        -->
+                <!-- ========================================================= -->
+                <article id="art-overview" class="wiki-article active">
+                    <h1>JDMX – Entwickler-Wiki & Technische Dokumentation</h1>
+                    <p>Willkommen im offiziellen technischen Wiki von <strong>JDMX</strong> (Java DMX Controller). Dieses Wiki dient als zentrales Nachschlagewerk, damit jede Person – auch ohne KI oder externe Werkzeuge – das gesamte System in wenigen Minuten verstehen, warten, Fehler beheben und neue Funktionen einbauen kann.</p>
 
-            <a href="HOWTO.md" class="card">
-                <div>
-                    <h3>📖 Entwickler-Kochbuch</h3>
-                    <p>Praktische Schritt-für-Schritt Rezepte: Neue Buttons einbauen, Tastaturkürzel registrieren, DMX-Fehler beheben und Unit-Tests schreiben.</p>
-                </div>
-                <div class="card-link">HOWTO.md öffnen &rarr;</div>
-            </a>
+                    <div class="callout info">
+                        <strong>Autonome Dokumentation</strong>
+                        Alle Inhalte dieses Wikis liegen lokal auf deiner Festplatte und funktionieren zu 100 % offline. Es gibt keine externen Server-Abhängigkeiten.
+                    </div>
 
-            <a href="../target/reports/apidocs/index.html" class="card">
-                <div>
-                    <h3>📚 JavaDoc API-Website</h3>
-                    <p>Das interaktive HTML-Klassenportal mit Live-Suche, Methoden-Parametern und Vererbungsbäumen direkt aus dem Code.</p>
-                </div>
-                <div class="card-link">JavaDoc Website öffnen &rarr;</div>
-            </a>
+                    <h2>Das Gesamtsystem auf einen Blick</h2>
+                    <p>JDMX ist ein nativer, plattformübergreifender Desktop-DMX512-Lichtcontroller mit integrierter Show-Timeline (im FL-Studio-Stil), 2D-Bühnen-Visualisierung und hochpräziser Multitrack-Audiowiedergabe.</p>
 
-            <a href="../jdmx-spec.md" class="card">
-                <div>
-                    <h3>📋 Master-Spezifikation</h3>
-                    <p>Der lebendige Anforderungskatalog (Living Requirements), die Roadmap und die komplette Änderungshistorie aller Releases.</p>
-                </div>
-                <div class="card-link">jdmx-spec.md öffnen &rarr;</div>
-            </a>
+                    <div class="flow-box">
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           <span class="hl">JDMX GESAMTARCHITEKTUR</span>                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  <span class="hl">JavaFX Benutzeroberfläche (de.exit.jdmx.ui)</span>                                │
+│  ├── Tab 1: Stage & Fixtures (2D U-Traverse, Beams, Steuerungsdock)         │
+│  ├── Tab 2: LightDesk (512-Kanal Fader-Pult, Flash-Tasten, Zero-Lag Canvas) │
+│  ├── Tab 3: Button Matrix (3x16 Live-Trigger, Presets, Chaser)              │
+│  ├── Tab 4: Show-Timeline (FL Studio Playlist, Wellenform, Drag & Drop)     │
+│  └── Tab 5: Input / Output (Art-Net Routing, DMX2USB, MIDI Learn)           │
+├──────────────────────────────────────┬──────────────────────────────────────┤
+│  <span class="hl">Service Layer (de.exit.jdmx.service)</span>│  <span class="hl">Core Engine (de.exit.jdmx.core)</span>     │
+│  ├── TimelineService (25ms Master)   │  ├── DmxUniverse (512 Kanäle, HTP/LTP)│
+│  ├── AudioPlaybackService (JLayer)   │  ├── DmxEngine (Feste 40-Hz-Schleife) │
+│  ├── AudioAnalysisService (Peaks)    │  ├── ArtNetSender (UDP Port 6454)     │
+│  ├── DmxService & FixtureLibrary     │  └── DmxUsbDriver (jusb2dmx FTDI)     │
+│  └── ProjectStorageService (H2 DB)   │                                      │
+└──────────────────────────────────────┴──────────────────────────────────────┘
+                    </div>
+
+                    <h2>Kennzahlen des Projekts</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Kennzahl</th>
+                                <th>Wert</th>
+                                <th>Bedeutung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Java-Code gesamt</strong></td>
+                                <td>33.151 Zeilen in 180 Dateien</td>
+                                <td>23.008 Zeilen Produktivcode + 10.143 Zeilen Testcode</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Automatisierte Tests</strong></td>
+                                <td>370 Tests (100% bestanden)</td>
+                                <td>Sichert jede DMX-, Audio- und UI-Logik vor Regressionen ab</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DMX-Wiederholrate</strong></td>
+                                <td>40 Hz (alle 25 ms)</td>
+                                <td>Flimmerfreie Ausgabe über Art-Net UDP und USB-Interfaces</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Plattformen</strong></td>
+                                <td>Windows 10/11 & Linux</td>
+                                <td>Nativ kompatibel mit PipeWire, ALSA, PulseAudio und Wayland</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 2: ONBOARDING & SETUP                             -->
+                <!-- ========================================================= -->
+                <article id="art-onboarding" class="wiki-article">
+                    <h1>Schnelleinstieg & Entwickler-Setup</h1>
+                    <p>Um JDMX zu kompilieren, auszuführen und weiterzuentwickeln, benötigst du genau zwei installierte Werkzeuge auf deinem Rechner:</p>
+
+                    <h2>1. Voraussetzungen</h2>
+                    <ul>
+                        <li><strong>Java Development Kit (JDK) 21 LTS:</strong> Empfohlen ist Eclipse Adoptium Temurin 21 oder OpenJDK 21.</li>
+                        <li><strong>Apache Maven 3.8+:</strong> Das Standard-Build-Werkzeug für das gesamte Projekt.</li>
+                    </ul>
+
+                    <div class="callout info">
+                        <strong>Versionsprüfung im Terminal:</strong>
+                        <pre><code>java -version
+mvn -version</code></pre>
+                        Beide Befehle müssen fehlerfrei antworten und Version 21 bzw. Maven 3.8+ ausweisen.
+                    </div>
+
+                    <h2>2. Das Projekt in der IDE öffnen</h2>
+                    <h3>In IntelliJ IDEA (Empfohlen)</h3>
+                    <ol>
+                        <li>Wähle <code>File &rarr; Open...</code></li>
+                        <li>Navigiere in den Projektordner (wo die <code>pom.xml</code> liegt) und öffne ihn als Projekt.</li>
+                        <li>IntelliJ lädt alle Abhängigkeiten automatisch aus dem lokalen Maven-Cache.</li>
+                        <li>Starte die Anwendung über <code>src/main/java/de/exit/jdmx/JdmxApplication.java</code>.</li>
+                    </ol>
+
+                    <h2>3. Die wichtigsten Terminal-Befehle</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Befehl</th>
+                                <th>Auswirkung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>mvn test</code></td>
+                                <td>Führt alle 370 Tests aus. Muss vor jedem Commit zu 100 % grün sein!</td>
+                            </tr>
+                            <tr>
+                                <td><code>mvn test -Dtest=TimelineServiceTest</code></td>
+                                <td>Führt nur die Tests einer einzelnen Klasse aus (ideal für schnelles Entwickeln).</td>
+                            </tr>
+                            <tr>
+                                <td><code>mvn package -DskipTests</code></td>
+                                <td>Baut die fertige All-in-One Fat-JAR unter <code>target/jdmx-&lt;version&gt;-all.jar</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>mvn javadoc:javadoc</code></td>
+                                <td>Generiert die vollständige HTML-JavaDoc Website unter <code>target/reports/apidocs/index.html</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>./build-appimage.sh</code></td>
+                                <td>Baut unter Linux oder WSL das eigenständige <code>jdmx-x86_64.AppImage</code>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 3: DIE 3 ARCHITEKTUR-REGELN                      -->
+                <!-- ========================================================= -->
+                <article id="art-rules" class="wiki-article">
+                    <h1>Die 3 goldenen Architektur-Regeln</h1>
+                    <p>Diese drei Regeln sind die wichtigste Leitplanke, damit JDMX auch über Jahre hinweg wartbar, fehlerfrei und modular bleibt:</p>
+
+                    <h2>Regel 1: 100 % MVC-Trennung (Keine Logik in JavaFX)</h2>
+                    <p>Die Benutzeroberfläche in <code>de.exit.jdmx.ui.*</code> visualisiert ausschließlich Daten und fängt Benutzerklicks ab. Sie führt <strong>niemals</strong> Berechnungen durch.</p>
+                    <ul>
+                        <li><strong>Verboten in UI-Klassen:</strong> DMX-Frame-Berechnungen, HTP/LTP-Mischlogik, direkte Audio-Dekodierung, Schreiben von Socket-Paketen.</li>
+                        <li><strong>Pflicht:</strong> Klicks oder Slider-Bewegungen rufen sofort eine Methode im entsprechenden Service auf (z. B. <code>dmxService.setChannel(...)</code> oder <code>timelineService.setTrackStartTimeMs(...)</code>).</li>
+                    </ul>
+
+                    <h2>Regel 2: Thread-Sicherheit & Platform.runLater()</h2>
+                    <p>In JDMX laufen mehrere Threads parallel:</p>
+                    <ul>
+                        <li><strong>JavaFX Application Thread:</strong> Zeichnet die Fenster und Komponenten (60 FPS).</li>
+                        <li><strong>DmxEngine Timer:</strong> Sendet stur alle 25 ms DMX-Pakete ins Netzwerk (40 Hz).</li>
+                        <li><strong>Audio Playback Threads:</strong> Dekodieren MP3/WAV-Streams im Hintergrund.</li>
+                    </ul>
+                    <div class="callout warn">
+                        <strong>Kritische Regel:</strong>
+                        Wenn ein Hintergrund-Thread Daten an die Oberfläche melden möchte, muss dies immer über <code>Platform.runLater(() -&gt; { ... })</code> synchronisiert werden, da JavaFX sonst eine <code>IllegalStateException</code> wirft!
+                    </div>
+
+                    <h2>Regel 3: Test-Driven Development (TDD)</h2>
+                    <p>Bevor neuer Produktivcode geschrieben wird, entsteht der Test:</p>
+                    <ol>
+                        <li>Schreibe den Unit-Test in <code>src/test/java/...</code> (Test schlägt fehl &rarr; Rot).</li>
+                        <li>Schreibe den Code im Service/Core, bis der Test durchläuft (&rarr; Grün).</li>
+                        <li>Führe <code>mvn test</code> aus, um sicherzustellen, dass keine bestehende Funktion beschädigt wurde.</li>
+                    </ol>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 4: DMX-TIMING & 40HZ LOOP                         -->
+                <!-- ========================================================= -->
+                <article id="art-arch-dmx" class="wiki-article">
+                    <h1>DMX-Timing & die 40-Hz-Schleife</h1>
+                    <p>DMX512 verlangt eine kontinuierliche, jitterfreie Signalübertragung. Bricht der Datenstrom ab, schalten viele Moving-Heads oder Dimmerpacks in den Notlauf oder gehen aus.</p>
+
+                    <h2>Der 25-Millisekunden-Loop (`DmxEngine.java`)</h2>
+                    <p>Die Klasse <code>DmxEngine</code> betreibt einen hochpräzisen Hintergrund-Timer (<code>ScheduledExecutorService</code>):</p>
+                    <div class="flow-box">
+┌────────────────────────────────────────────────────────┐
+│                   <span class="hl">DMX-ENGINE 40 HZ LOOP</span>                │
+│             (Läuft alle 25.0 ms ununterbrochen)        │
+├────────────────────────────────────────────────────────┤
+│ 1. <span class="arrow">&rarr;</span> Lese Snapshot aller 512 Kanäle aus DmxUniverse    │
+│ 2. <span class="arrow">&rarr;</span> Erzeuge Art-Net UDP-Paket (ArtNetPacketBuilder)   │
+│ 3. <span class="arrow">&rarr;</span> Sende Frame an Netzwerk-Socket (Port 6454)       │
+│ 4. <span class="arrow">&rarr;</span> Sende Frame an USB-DMX-Hardware (jusb2dmx FTDI)   │
+└────────────────────────────────────────────────────────┘
+                    </div>
+
+                    <div class="callout info">
+                        <strong>Unabhängigkeit von der Benutzeroberfläche:</strong>
+                        Selbst wenn die grafische Oberfläche bei aufwendigen Animationen kurzzeitig langsamer rendert, sendet die <code>DmxEngine</code> im Hintergrund mit exakten 40 Bildern pro Sekunde weiter.
+                    </div>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 5: HTP / LTP & 16-BIT PAN/TILT                    -->
+                <!-- ========================================================= -->
+                <article id="art-arch-htpltp" class="wiki-article">
+                    <h1>DMX-Mischregeln: HTP, LTP & 16-Bit Pan/Tilt</h1>
+                    <p>In <code>DmxUniverse.java</code> werden die DMX-Werte aller Kanäle (1–512) nach internationalen Lichtpult-Standards gemischt:</p>
+
+                    <h2>1. HTP (Highest Takes Precedence)</h2>
+                    <p>Gilt ausschließlich für <strong>Dimmer / Intensität</strong>. Wenn mehrere Szenen oder Fader gleichzeitig denselben Scheinwerfer ansteuern, gewinnt der höchste Wert:</p>
+                    <pre><code>int finalValue = Math.max(sceneValue, faderValue);</code></pre>
+
+                    <h2>2. LTP (Latest Takes Precedence)</h2>
+                    <p>Gilt für <strong>Pan, Tilt, Farbe (RGB/CMY), Gobo und Shutter</strong>. Hier gewinnt immer der zuletzt gesendete Steuerbefehl.</p>
+
+                    <div class="callout warn">
+                        <strong>Kritischer Schutz vor Wegdrehen:</strong>
+                        Der Grand Master und die Blackout-Taste dürfen <strong>niemals</strong> Pan- oder Tilt-Kanäle beeinflussen! Bei Blackout schließt sich nur der Dimmer/Shutter, die Moving-Heads bleiben punktgenau auf ihrer Position stehen.
+                    </div>
+
+                    <h2>3. 16-Bit Pan/Tilt Berechnung</h2>
+                    <p>Moving-Heads teilen ihre Winkelposition auf zwei DMX-Kanäle auf:</p>
+                    <ul>
+                        <li><strong>Coarse Byte (Grobkanal):</strong> Höchstwertiges Byte (MSB).</li>
+                        <li><strong>Fine Byte (Feinkanal):</strong> Niedrigstwertiges Byte (LSB).</li>
+                    </ul>
+                    <pre><code>// Normalisierter Wert (0.0 bis 1.0) in 16-Bit DMX umrechnen:
+int dmx16 = (int) Math.round(normalizedValue * 65535.0);
+int coarse = (dmx16 &gt;&gt; 8) &amp; 0xFF; // Höhere 8 Bit
+int fine   = dmx16 &amp; 0xFF;        // Niedrigere 8 Bit</code></pre>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 6: ART-NET UDP (PORT 6454)                        -->
+                <!-- ========================================================= -->
+                <article id="art-arch-artnet" class="wiki-article">
+                    <h1>Art-Net UDP Netzwerkprotokoll</h1>
+                    <p>Art-Net überträgt DMX-Daten als UDP-Broadcast oder Unicast über Standard-Netzwerkkabel (Ethernet / WLAN):</p>
+
+                    <h2>Spezifikations-Parameter</h2>
+                    <ul>
+                        <li><strong>Standard UDP-Port:</strong> <code>6454</code> (Hexadezimal: <code>0x1936</code>).</li>
+                        <li><strong>OpCode für DMX:</strong> <code>0x5000</code> (OpOutput / OpDmx).</li>
+                        <li><strong>Protokoll-Version:</strong> <code>14</code> (Hexadezimal: <code>0x0E</code>).</li>
+                        <li><strong>Paketgröße:</strong> Exakt 530 Bytes (18 Byte Header + 512 Byte DMX-Nutzdaten).</li>
+                    </ul>
+
+                    <h2>Paketaufbau (`ArtNetPacketBuilder.java`)</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Byte-Bereich</th>
+                                <th>Inhalt / Wert</th>
+                                <th>Bedeutung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0 – 7</td>
+                                <td><code>"Art-Net\0"</code></td>
+                                <td>8 Byte ASCII Identifikation</td>
+                            </tr>
+                            <tr>
+                                <td>8 – 9</td>
+                                <td><code>0x00, 0x50</code></td>
+                                <td>OpCode OpDmx (Little Endian)</td>
+                            </tr>
+                            <tr>
+                                <td>10 – 11</td>
+                                <td><code>0x00, 0x0E</code></td>
+                                <td>Art-Net Version 14 (Big Endian)</td>
+                            </tr>
+                            <tr>
+                                <td>12</td>
+                                <td><code>sequence</code></td>
+                                <td>Paketzähler (0–255) zur Erkennung verlorener Pakete</td>
+                            </tr>
+                            <tr>
+                                <td>13</td>
+                                <td><code>0x00</code></td>
+                                <td>Physical Port</td>
+                            </tr>
+                            <tr>
+                                <td>14 – 15</td>
+                                <td><code>universe</code></td>
+                                <td>Universums-Adresse (SubUni &amp; Net)</td>
+                            </tr>
+                            <tr>
+                                <td>16 – 17</td>
+                                <td><code>0x02, 0x00</code></td>
+                                <td>DMX-Datenlänge: 512 Bytes (Big Endian)</td>
+                            </tr>
+                            <tr>
+                                <td>18 – 529</td>
+                                <td><code>byte[512]</code></td>
+                                <td>Die 512 DMX-Kanalwerte des Universums</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 7: MULTITRACK AUDIO & JLAYER                      -->
+                <!-- ========================================================= -->
+                <article id="art-arch-audio" class="wiki-article">
+                    <h1>Multitrack-Audio-Engine & JLayer</h1>
+                    <p>Die Audio-Engine in <code>AudioPlaybackService.java</code> ermöglicht gleichzeitiges, spurunabhängiges Abspielen beliebig vieler paralleler MP3- und WAV-Audiodateien.</p>
+
+                    <h2>MP3-Seeking mit Frame-Genauigkeit</h2>
+                    <p>MP3-Dateien besitzen keine feste Millisekunden-Adressierung im Header. Ein MPEG-1 Layer-III Frame bei einer Abtastrate von 44.1 kHz umfasst exakt 1.152 Samples:</p>
+                    <pre><code>// 1152 Samples / 44100 Hz = ca. 26.122 Millisekunden pro Frame
+int startFrame = (int) Math.round(offsetMs / 26.122);
+mp3Player.play(startFrame, Integer.MAX_VALUE);</code></pre>
+                    <p>Der JLayer <code>AdvancedPlayer</code> überspringt beim Start blitzschnell alle vorherigen Frames und startet die Soundausgabe sofort an der exakten Position.</p>
+
+                    <h2>Live-Resync beim Verschieben von Clips</h2>
+                    <p>Wenn du einen Song-Clip während laufender Wiedergabe verschiebst:</p>
+                    <ol>
+                        <li>Während des Ziehens sorgt ein <strong>80-ms-Debounce-Timer</strong> dafür, dass die Audio-Linie nicht bei jedem einzelnen Mauspixel neu geöffnet wird (verhindert Sound-Stottern).</li>
+                        <li>Beim Loslassen der Maus (<code>onMouseReleased</code>) erfolgt ein <strong>Sofort-Resync (0 ms Latenz)</strong>:  
+                            Liegt die Playhead-Linie im verschobenen Song, springt der Ton sofort an die neue relative Stelle. Liegt der Clip vor oder hinter dem Playhead, stoppt oder startet der Kanal automatisch.</li>
+                    </ol>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 8: H2-DATENBANK & PERSISTENZ                      -->
+                <!-- ========================================================= -->
+                <article id="art-arch-db" class="wiki-article">
+                    <h1>H2-Datenbank & Show-Persistenz</h1>
+                    <p>JDMX speichert Show-Dateien und Konfigurationen relational und transaktionssicher:</p>
+
+                    <ul>
+                        <li><strong>Datenbank-Engine:</strong> Eingebettete <strong>H2 Database</strong> (Version 2.3+).</li>
+                        <li><strong>Connection-Pooling:</strong> <strong>HikariCP</strong> für extrem schnelle, thread-sichere Datenbankzugriffe.</li>
+                        <li><strong>Modi:</strong>
+                            <ul>
+                                <li><code>jdbc:h2:mem:...</code>: Fluchtige In-Memory-Datenbank für schnelle, isolierte Unit-Tests.</li>
+                                <li><code>jdbc:h2:file:...</code>: Dauerhafte Speicherung auf der Festplatte im Show-Projektordner.</li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <h2>Gespeicherte Relationen</h2>
+                    <p>Das Datenmodell umfasst <code>fixtures</code> (Geräte &amp; Adressen), <code>timeline_tracks</code> (Spuren, Songs &amp; Startzeit-Offsets), <code>chaser_steps</code> (Abläufe &amp; Zeiten) sowie globale Projekteinstellungen.</p>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 9: CODE-LANDKARTE SCHNELLFINDER                   -->
+                <!-- ========================================================= -->
+                <article id="art-map-finder" class="wiki-article">
+                    <h1>10-Sekunden Schnellfinder („Wo finde ich was?“)</h1>
+                    <p>Nutze diese Tabelle, wenn du ein bestimmtes Feature suchst oder ein Problem beheben willst:</p>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature / Bereich</th>
+                                <th>Zu bearbeitende Datei(en)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Show-Timeline:</strong> Play, Pause, Stopp, Leertaste, Zeitstempel</td>
+                                <td><code>de.exit.jdmx.ui.timeline.TimelineMainView</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Show-Timeline:</strong> Raster, Wellenform, Playhead-Dreieck, Clip-Drag</td>
+                                <td><code>de.exit.jdmx.ui.timeline.TimelineGridView</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Show-Timeline:</strong> Spuren-Boxen, Mute-Taste, Track hinzufügen</td>
+                                <td><code>de.exit.jdmx.ui.timeline.TimelineTrackHeaderBox</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Show-Timeline:</strong> Song-Explorer &amp; Datei-Import</td>
+                                <td><code>de.exit.jdmx.ui.timeline.ShowTimelineExplorerView</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Audio-Engine:</strong> Multitrack MP3/WAV, Lautstärke, Seeking</td>
+                                <td><code>de.exit.jdmx.service.AudioPlaybackService</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Audio-Analyse:</strong> Wellenform-Berechnung, Peak-Transienten</td>
+                                <td><code>de.exit.jdmx.service.AudioAnalysisService</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>DMX-Ausgabe:</strong> Art-Net UDP-Sender (Port 6454)</td>
+                                <td><code>de.exit.jdmx.core.artnet.ArtNetSender</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>DMX-Puffer:</strong> 512 Kanäle, Blackout, HTP/LTP-Merging</td>
+                                <td><code>de.exit.jdmx.core.dmx.DmxUniverse</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>2D Bühne:</strong> U-Traverse, Moving-Head-Lichtkegel, Beams</td>
+                                <td><code>de.exit.jdmx.ui.stage.StageCanvasView</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Steuerungsdock:</strong> Farbrad, 2D-XY-Pad, Dimmer</td>
+                                <td><code>de.exit.jdmx.ui.stage.DeviceControlDock</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>LightDesk:</strong> 512-Kanal Fader-Pult, Flash-Tasten</td>
+                                <td><code>de.exit.jdmx.ui.desk.LightDeskWorkspaceView</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Vektor-Icons:</strong> Lucide SVG-Vektorpfade &amp; Farben</td>
+                                <td><code>de.exit.jdmx.ui.icon.LucideIcon</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 10: CORE-SCHICHT                                  -->
+                <!-- ========================================================= -->
+                <article id="art-map-core" class="wiki-article">
+                    <h1>Core-Schicht (`de.exit.jdmx.core.*`)</h1>
+                    <p>Die Core-Schicht enthält fundamentale Protokolle, Datenstrukturen und Treiber:</p>
+
+                    <h3>`core.artnet` (Netzwerk-Output)</h3>
+                    <ul>
+                        <li><strong>`ArtNetSender`</strong>: Öffnet den UDP-Socket auf Port 6454 und versendet DMX-Frames an Unicast- oder Broadcast-Adressen.</li>
+                        <li><strong>`ArtNetPacketBuilder`</strong>: Serialisiert die 512 Byte DMX-Werte nach Art-Net 4 Spezifikation.</li>
+                    </ul>
+
+                    <h3>`core.dmx` (DMX-Puffer)</h3>
+                    <ul>
+                        <li><strong>`DmxUniverse`</strong>: Verwaltet das interne 512-Kanal-Array (Werte 0–255), wendet HTP für Dimmer und LTP für Bewegung/Farbe an und berechnet 16-Bit Pan/Tilt.</li>
+                    </ul>
+
+                    <h3>`core.model` (Datenmodelle)</h3>
+                    <ul>
+                        <li><strong>`TimelineTrack`</strong>: Datenklasse für eine Timeline-Spur (Name, zugewiesene Songdatei, Startzeit <code>startTimeMs</code>, Mute-Status).</li>
+                        <li><strong>`AudioAnalysisResult`</strong>: Speichert Song-Gesamtlaufzeit und normalisierte Hüllkurven-Peaks.</li>
+                        <li><strong>`FixtureDefinition` &amp; `FixtureInstance`</strong>: Repräsentiert Scheinwerfer-Profile und deren gepatchte Instanzen im Universum.</li>
+                    </ul>
+
+                    <h3>`core.log` (System-Logger)</h3>
+                    <ul>
+                        <li><strong>`AppLogger`</strong>: Zentraler Logger mit Dateiausgabe in <code>logs/jdmx.log</code> und Konsole.</li>
+                    </ul>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 11: SERVICE-SCHICHT                               -->
+                <!-- ========================================================= -->
+                <article id="art-map-service" class="wiki-article">
+                    <h1>Service-Schicht (`de.exit.jdmx.service.*`)</h1>
+                    <p>Hier liegt die gesamte Geschäftslogik. Die Services sind Singletons oder thread-sichere Komponenten:</p>
+
+                    <ul>
+                        <li><strong>`TimelineService`</strong>: Taktgeber der Show-Timeline (25ms Intervall), Spuren-Verwaltung, Playback-Status (Play/Pause/Stop), Seeking und Song-Import.</li>
+                        <li><strong>`AudioPlaybackService`</strong>: Parallele Multitrack-Voice-Engine. Dekodiert MP3s via JLayer und WAV via Java Sound. Verwaltet den verzögerungsfreien Live-Resync beim Verschieben von Clips.</li>
+                        <li><strong>`AudioAnalysisService`</strong>: Berechnet die Wellenform-Peaks im Hintergrund-Thread (verhindert UI-Lags beim Hereinziehen großer MP3s).</li>
+                        <li><strong>`DmxService`</strong>: Zentrale Schnittstelle für alle DMX-Kanaländerungen aus der UI zum DmxUniverse.</li>
+                        <li><strong>`ProjectStorageService`</strong>: Speichert Shows in der eingebetteten H2-Datenbank und lädt sie wieder ein.</li>
+                        <li><strong>`UpdateService`</strong>: Sucht nach GitHub-Releases und führt In-App-Updates durch.</li>
+                    </ul>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 12: SHOW-TIMELINE                                 -->
+                <!-- ========================================================= -->
+                <article id="art-map-timeline" class="wiki-article">
+                    <h1>Show-Timeline UI (`de.exit.jdmx.ui.timeline.*`)</h1>
+                    <p>Die Timeline ist im Stil moderner Digital Audio Workstations (FL Studio) aufgebaut:</p>
+
+                    <ul>
+                        <li><strong>`TimelineMainView`</strong>: Obere Transportleiste mit Play-, Pause- und Stopp-Buttons, Zeitanzeige (<code>mm:ss.SSS</code>) und Abfangen der Leertaste.</li>
+                        <li><strong>`TimelineGridView`</strong>: Das interaktive Canvas-Taktraster:
+                            <ul>
+                                <li>Zeittakt-Lineal oben (Sekunden- und Takt-Markierungen).</li>
+                                <li>Playhead-Linie mit orangefarbenem Dreieck (nur am Dreieck verschiebbar).</li>
+                                <li>Zeichnen der Song-Clips mit echten Wellenform-Peaks und Startzeit-Offsets.</li>
+                                <li>Horizontales Verschieben von Clips per Klick &amp; Drag mit <code>MOVE</code>-Cursor.</li>
+                            </ul>
+                        </li>
+                        <li><strong>`TimelineTrackHeaderBox`</strong>: Linke Spurenleiste mit runder Mute-LED, Inline-Umbenennung per Doppelklick und <code>[+]</code>-Button für neue Spuren.</li>
+                        <li><strong>`ShowTimelineExplorerView`</strong>: Rechte Seitenleiste mit Song-Explorer und Drag &amp; Drop-Quelle für das Grid.</li>
+                        <li><strong>`TimelineDragHelper`</strong>: Erkennt plattformübergreifend externe Audiodateien (Windows Explorer, Linux GNOME Nautilus <code>text/uri-list</code>).</li>
+                    </ul>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 13: STAGE & LIGHTDESK                             -->
+                <!-- ========================================================= -->
+                <article id="art-map-stage" class="wiki-article">
+                    <h1>Stage & LightDesk (`ui.stage` & `ui.desk`)</h1>
+
+                    <h3>Tab 1: Stage &amp; Fixtures (`ui.stage`)</h3>
+                    <ul>
+                        <li><strong>`StageCanvasView`</strong>: 2D-Bühne mit U-Traverse, Projektionswand und dynamisch gerenderten Lichtkegeln.</li>
+                        <li><strong>`DeviceControlDock`</strong>: Unteres 220px Steuerungsdock mit <code>IntensityModuleView</code> (Dimmer), <code>ColorModuleView</code> (Farbrad) und <code>PositionModuleView</code> (2D-XY-Pad für 16-Bit Pan/Tilt).</li>
+                        <li><strong>`ProjectExplorerView`</strong>: Rechte Seitenleiste für Geräte, Gruppen, Presets und Szenen.</li>
+                    </ul>
+
+                    <h3>Tab 2: LightDesk (`ui.desk`)</h3>
+                    <ul>
+                        <li><strong>`LightDeskWorkspaceView`</strong>: Virtuelles 512-Kanal Lichtmischpult.</li>
+                        <li><strong>`CanvasDeskView`</strong>: Rendert alle 512 Fader auf einem einzigen <code>Canvas</code>-Knoten (Zero-Lag und minimale CPU-Last).</li>
+                        <li><strong>`DeskScrollBar`</strong>: Eigener taktiler Schieberegler für geschmeidiges horizontales Scrollen.</li>
+                    </ul>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 14: HOW-TO BUTTON EINBAUEN                       -->
+                <!-- ========================================================= -->
+                <article id="art-howto-button" class="wiki-article">
+                    <h1>Rezept: Einen neuen Button in die Benutzeroberfläche einbauen</h1>
+                    <p>Schritt-für-Schritt-Anleitung am Beispiel eines neuen Buttons „Alle Spuren stummschalten“:</p>
+
+                    <h3>Schritt 1: Button in der View erstellen</h3>
+                    <p>In <code>TimelineMainView.java</code>:</p>
+                    <pre><code>Button btnQuickMute = new Button();
+btnQuickMute.getStyleClass().add("timeline-btn");
+btnQuickMute.setGraphic(new LucideIcon(LucideIcon.VOLUME_X, 16, Color.web("#EF4444")));
+btnQuickMute.setTooltip(new Tooltip("Alle Spuren stummschalten"));</code></pre>
+
+                    <h3>Schritt 2: Event mit dem Service verbinden</h3>
+                    <pre><code>btnQuickMute.setOnAction(e -&gt; {
+    // Rufe IMMER eine Service-Methode auf, schreibe keine Logik in die View!
+    timelineService.muteAllTracks();
+});</code></pre>
+
+                    <h3>Schritt 3: Die Methode im Service definieren</h3>
+                    <p>In <code>TimelineService.java</code>:</p>
+                    <pre><code>public void muteAllTracks() {
+    for (TimelineTrack track : tracks) {
+        track.setMuted(true);
+    }
+    notifyChange(); // Benachrichtigt UI und Audio-Engine über die Änderung
+}</code></pre>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 15: HOW-TO TASTATURKÜRZEL                         -->
+                <!-- ========================================================= -->
+                <article id="art-howto-shortcut" class="wiki-article">
+                    <h1>Rezept: Ein neues globales Tastaturkürzel registrieren</h1>
+                    <p>Angenommen, du möchtest, dass die Taste <code>B</code> jederzeit einen Blackout auslöst:</p>
+
+                    <h3>Schritt 1: Key-Event-Filter in `MainWindow.java`</h3>
+                    <pre><code>scene.addEventFilter(KeyEvent.KEY_PRESSED, e -&gt; {
+    // 1. Prüfen, ob der Benutzer gerade in einem Eingabefeld tippt:
+    Node focusOwner = scene.getFocusOwner();
+    if (focusOwner instanceof TextInputControl) {
+        return; // Normal weitertippen lassen!
+    }
+
+    // 2. Taste abfragen:
+    if (e.getCode() == KeyCode.B) {
+        dmxService.toggleBlackout();
+        e.consume(); // Verhindert weitere Weiterleitung des Events
+    }
+});</code></pre>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 16: HOW-TO TDD UNIT-TEST                          -->
+                <!-- ========================================================= -->
+                <article id="art-howto-tdd" class="wiki-article">
+                    <h1>Rezept: Einen Unit-Test schreiben (TDD-Workflow)</h1>
+                    <p>So sicherst du eine neue Funktion mit JUnit 5 und AssertJ sauber ab:</p>
+
+                    <ol>
+                        <li>Öffne <code>src/test/java/de/exit/jdmx/service/TimelineServiceTest.java</code>.</li>
+                        <li>Füge die Testmethode ein:
+                            <pre><code>@Test
+@DisplayName("Sollte alle Spuren auf einmal stummschalten")
+void shouldMuteAllTracks() {
+    TimelineService service = new TimelineService();
+    service.addTrack("Track 2");
+
+    // Ausführung
+    service.muteAllTracks();
+
+    // Überprüfung mit AssertJ
+    assertThat(service.getTracks())
+        .allMatch(TimelineTrack::isMuted);
+}</code></pre>
+                        </li>
+                        <li>Führe den Test im Terminal aus:
+                            <pre><code>mvn test -Dtest=TimelineServiceTest</code></pre>
+                        </li>
+                        <li>Wenn der Test rot ist: Implementiere die Funktion im Service, bis der Test grün wird!</li>
+                    </ol>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 17: HOW-TO DMX-FEHLERDIAGNOSE                     -->
+                <!-- ========================================================= -->
+                <article id="art-howto-dmx-debug" class="wiki-article">
+                    <h1>Fehlerdiagnose: „Kein DMX-Signal am Scheinwerfer“</h1>
+                    <p>Wenn Scheinwerfer nicht reagieren, gehe diese 4 Schritte der Reihe nach durch:</p>
+
+                    <h2>1. Log-Datei prüfen (`logs/jdmx.log`)</h2>
+                    <p>Siehst du dort Einträge wie <code>[DMX-CHANGE] Uni=1 Ch=1 Val: 0 -&gt; 255</code>? Wenn ja, verarbeitet JDMX deine Fader-Eingaben intern einwandfrei.</p>
+
+                    <h2>2. Art-Net Netzwerkeinstellungen (Tab 5: I/O Patch)</h2>
+                    <ul>
+                        <li>Steht Art-Net auf der richtigen Netzwerkkarte (IP-Bereich z. B. <code>192.168.x.x</code> oder <code>2.x.x.x</code>)?</li>
+                        <li>Ist das Universum richtig zugewiesen? <em>Achtung:</em> Viele Art-Net-Nodes beginnen bei 0 zu zählen (Universum 1 in JDMX = Universum 0 auf der Node).</li>
+                    </ul>
+
+                    <h2>3. Firewall (UDP-Port 6454)</h2>
+                    <p>Art-Net benötigt freigegebenen <strong>UDP-Port 6454</strong>. Unter Linux prüfen:</p>
+                    <pre><code>sudo ufw allow 6454/udp</code></pre>
+
+                    <h2>4. Gegenprüfung mit `artnet2view`</h2>
+                    <p>Starte das Schwestertool <code>artnet2view</code> im selben Netzwerk. Wenn dort Pakete ankommen, sendet JDMX fehlerfrei und das Problem liegt am DMX-Kabel oder Empfänger-Gerät.</p>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 18: HOW-TO AUDIO-FEHLERDIAGNOSE                   -->
+                <!-- ========================================================= -->
+                <article id="art-howto-audio-debug" class="wiki-article">
+                    <h1>Fehlerdiagnose: „Audiodatei spielt nicht ab“</h1>
+                    <p>Wenn eine MP3/WAV keinen Ton ausgibt:</p>
+
+                    <h2>1. Fehlermeldung im Log prüfen</h2>
+                    <p>Suche in <code>logs/jdmx.log</code> nach Einträgen mit <code>[AUDIO-PLAYBACK]</code>. Bei defekten oder exotischen MP3-Dateien meldet JLayer den genauen Frame-Fehler.</p>
+
+                    <h2>2. Audio-Mixer unter Linux prüfen</h2>
+                    <p>Java Sound benötigt ein funktionierendes Standard-Ausgabegerät über ALSA, PulseAudio oder PipeWire. Prüfe im Terminal:</p>
+                    <pre><code>pactl info</code></pre>
+
+                    <h2>3. Mute-Status &amp; Startzeit</h2>
+                    <p>Prüfe in der Timeline, ob die Spur versehentlich stummgeschaltet ist (runde Mute-LED) oder ob der Song-Clip weit rechts liegt und der Playhead ihn noch gar nicht erreicht hat.</p>
+                </article>
+
+                <!-- ========================================================= -->
+                <!-- ARTIKEL 19: HOW-TO BUILD & RELEASE                        -->
+                <!-- ========================================================= -->
+                <article id="art-howto-release" class="wiki-article">
+                    <h1>Rezept: Neue Version bauen & Release erstellen</h1>
+                    <p>So erstellst du die fertigen Produktions-Artefakte:</p>
+
+                    <pre><code># 1. Tests ausführen (100% grün Pflicht)
+mvn test
+
+# 2. Standalone All-in-One Fat-JAR bauen
+mvn package -DskipTests
+
+# 3. Linux AppImage bauen (im Terminal oder WSL)
+./build-appimage.sh</code></pre>
+
+                    <h2>Erzeugte Dateien</h2>
+                    <ul>
+                        <li><code>target/jdmx-&lt;version&gt;-all.jar</code>: Standalone Fat-JAR (ca. 24 MB), läuft unter Windows und Linux mit <code>java -jar</code>.</li>
+                        <li><code>jdmx-x86_64.AppImage</code>: Vollständiges Linux-Binary für Debian, Ubuntu, Mint, Fedora etc.</li>
+                    </ul>
+                </article>
+
+            </div>
         </div>
-
-        <div class="stats-bar">
-            <div class="stat-item">
-                <h4>23.008</h4>
-                <span>Produktiv-Code (Java)</span>
-            </div>
-            <div class="stat-item">
-                <h4>370</h4>
-                <span>Unit-Tests (100% Grün)</span>
-            </div>
-            <div class="stat-item">
-                <h4>95</h4>
-                <span>Java-Klassen</span>
-            </div>
-            <div class="stat-item">
-                <h4>40 Hz</h4>
-                <span>DMX-Frame-Rate</span>
-            </div>
-            <div class="stat-item">
-                <h4>100%</h4>
-                <span>Offline-Fähig</span>
-            </div>
-        </div>
-
-        <footer>
-            JDMX – Java DMX Lighting Controller &bull; de.exit.jdmx &bull; Java 21 LTS & OpenJFX 21
-        </footer>
     </div>
+
+    <!-- ----------------- JAVASCRIPT LOGIC ----------------- -->
+    <script>
+        // Navigation Handler
+        const navItems = document.querySelectorAll('.nav-item[data-target]');
+        const articles = document.querySelectorAll('.wiki-article');
+        const crumb = document.getElementById('current-crumb');
+        const searchInput = document.getElementById('search-input');
+        const noResults = document.getElementById('no-results');
+
+        function switchArticle(targetId, updateHash = true) {
+            let found = false;
+            articles.forEach(art => {
+                if (art.id === targetId) {
+                    art.classList.add('active');
+                    found = true;
+                } else {
+                    art.classList.remove('active');
+                }
+            });
+
+            if (!found && articles.length > 0) {
+                targetId = articles[0].id;
+                articles[0].classList.add('active');
+            }
+
+            navItems.forEach(item => {
+                if (item.getAttribute('data-target') === targetId) {
+                    item.classList.add('active');
+                    crumb.textContent = item.textContent;
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            document.getElementById('main-scroll').scrollTop = 0;
+            if (updateHash) {
+                window.location.hash = targetId.replace('art-', '');
+            }
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const target = item.getAttribute('data-target');
+                if (target) {
+                    switchArticle(target);
+                }
+            });
+        });
+
+        // Hash Navigation on Load
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                const target = 'art-' + hash;
+                if (document.getElementById(target)) {
+                    switchArticle(target, false);
+                }
+            }
+        });
+
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                const target = 'art-' + hash;
+                if (document.getElementById(target)) {
+                    switchArticle(target, false);
+                }
+            }
+        });
+
+        // Instant Search
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                navItems.forEach(item => item.style.display = 'block');
+                noResults.style.display = 'none';
+                return;
+            }
+
+            let matches = 0;
+            navItems.forEach(item => {
+                const targetId = item.getAttribute('data-target');
+                if (!targetId) return;
+                const art = document.getElementById(targetId);
+                const title = item.textContent.toLowerCase();
+                const content = art ? art.textContent.toLowerCase() : '';
+
+                if (title.includes(query) || content.includes(query)) {
+                    item.style.display = 'block';
+                    matches++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (matches === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+                // Switch to first match if current is hidden
+                const firstVisible = Array.from(navItems).find(i => i.style.display !== 'none');
+                if (firstVisible) {
+                    switchArticle(firstVisible.getAttribute('data-target'));
+                }
+            }
+        });
+
+        // Keyboard Shortcut: Ctrl + K / Cmd + K to focus search
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+
+        // Add Copy Button to Pre Code Blocks
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.textContent = 'Kopieren';
+            btn.addEventListener('click', () => {
+                const code = pre.querySelector('code');
+                const text = code ? code.innerText : pre.innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.textContent = 'Kopiert!';
+                    setTimeout(() => btn.textContent = 'Kopieren', 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
 </body>
 </html>
