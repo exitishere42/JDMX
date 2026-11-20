@@ -362,7 +362,7 @@ public class SupportDialog {
 
         if (msg.systemInfo() != null) {
             Label lblFile = new Label("📄 jdmx-diagnostic.log");
-            lblFile.setStyle("-fx-text-fill: #FEDC94; -fx-font-size: 10px; -fx-background-color: rgba(254, 220, 148, 0.12); -fx-background-radius: 8px; -fx-padding: 2px 7px;");
+            lblFile.setStyle("-fx-text-fill: #FEDC94; -fx-font-size: 10px; -fx-background-color: rgba(254, 220, 148, 0.12); -fx-background-radius: 4px; -fx-padding: 2px 7px;");
             topRow.getChildren().add(lblFile);
         }
 
