@@ -131,3 +131,42 @@ JDMX speichert Show-Dateien und Konfigurationen relational und transaktionssiche
   * `fixtures` (Gepatchte Geräte, Universum, Startadresse, Kanallayout).
   * `timeline_tracks` (Spurnamen, Songdateien, Offsets `startTimeMs`, Mute-Zustand).
   * `chaser_steps` & `presets` (Lichtstimmungen, Faderwerte, Fade-Zeiten).
+
+---
+
+## 6. Support- & Feedback-Subsystem (`SupportService.java`)
+
+Um Anwendern direkt aus der App heraus eine unkomplizierte Kontaktaufnahme bei Feedback, Ideen oder Bugs zu ermöglichen, verfügt JDMX über ein integriertes Support-Subsystem:
+
+```mermaid
+flowchart TD
+    subgraph UI ["JavaFX In-App Overlay (SupportDialog)"]
+        A["Underline-Tabs<br/>(Feedback | Bugs)"]
+        B["Chat-Verlauf & Eingabe<br/>(Nachricht, Absender, Kontakt)"]
+        C["Diagnosedaten-Checkbox<br/>(Systeminfo & Log-Auszug)"]
+    end
+
+    subgraph Service ["Service Layer (SupportService)"]
+        D["SupportMessage Record<br/>(Typ, Absender, Text, Timestamp)"]
+        E["SupportSystemInfo<br/>(OS, Java, DMX-Rate, AppLogger)"]
+        F["Discord JSON-Builder<br/>(Embeds, Hex-Farben, Escaping)"]
+    end
+
+    subgraph Network ["Asynchroner HTTPS-Versand"]
+        G["java.net.http.HttpClient<br/>(Non-Blocking POST Request)"]
+        H["Discord Webhook Endpoint<br/>(#jdmx-feedback / #jdmx-bugs)"]
+    end
+
+    A --> B
+    B -->|Senden| D
+    C -->|Optional bei Bug| E
+    D --> F
+    E --> F
+    F --> G
+    G -->|204 No Content| H
+```
+
+* **Underline-Tab Design:** Anstelle klobiger Button-Tabs setzt der `SupportDialog` auf moderne, schlanke Text-Tabs mit einer 2px-Unterstrichlinie in Akzentfarbe (wie beim Show-Tab Explorer/Inspector).
+* **Discord-Webhook Embeds:** Feedback wird in Sky-Blue (`#38BDF8`), Bugs in Signalrot (`#EF4444`) formatiert.
+* **Diagnosedaten bei Bugs:** Automatische Erfassung von Betriebssystem, Architektur, Java-Version, aktueller DMX-Paketrate und den letzten Zeilen des Anwendungs-Logs (`AppLogger.getRecentLogs(25)`).
+* **Konfiguration:** Die Webhook-URL kann über die System-Property `-Djdmx.discord.webhook=...` oder die Umgebungsvariable `JDMX_DISCORD_WEBHOOK` gesetzt werden. Ist kein Webhook hinterlegt, meldet der Dialog sauber einen Übertragungsfehler ohne UI-Einfrieren.
