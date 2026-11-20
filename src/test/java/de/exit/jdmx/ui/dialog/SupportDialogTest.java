@@ -58,6 +58,7 @@ class SupportDialogTest {
         assertThat(dialog.getActiveCategory()).isEqualTo(SupportCategory.FEEDBACK);
         // Diagnostik-Checkbox im Feedback-Tab unsichtbar
         assertThat(dialog.getCbIncludeDiagnostics().isVisible()).isFalse();
+        assertThat(dialog.getLblBanner().getText()).isEqualTo(I18n.get("support.banner.feedback"));
     }
 
     @Test
@@ -73,6 +74,7 @@ class SupportDialogTest {
         assertThat(dialog.getBtnTabBugs().getStyleClass()).contains("active");
         assertThat(dialog.getBtnTabFeedback().getStyleClass()).doesNotContain("active");
         assertThat(dialog.getCbIncludeDiagnostics().isVisible()).isTrue();
+        assertThat(dialog.getLblBanner().getText()).isEqualTo(I18n.get("support.banner.bugs"));
 
         // Zurückschalten auf Feedback
         dialog.getBtnTabFeedback().fire();
@@ -81,6 +83,7 @@ class SupportDialogTest {
         assertThat(dialog.getBtnTabFeedback().getStyleClass()).contains("active");
         assertThat(dialog.getBtnTabBugs().getStyleClass()).doesNotContain("active");
         assertThat(dialog.getCbIncludeDiagnostics().isVisible()).isFalse();
+        assertThat(dialog.getLblBanner().getText()).isEqualTo(I18n.get("support.banner.feedback"));
     }
 
     @Test

@@ -1915,6 +1915,49 @@
     -fx-padding: 16px;
 }
 
+.support-info-banner {
+    -fx-background-color: #202024;
+    -fx-border-color: #2E2E33;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 10px 14px;
+}
+
+.support-banner-text {
+    -fx-text-fill: #E4E4E7;
+    -fx-font-size: 12px;
+}
+
+.support-history-title {
+    -fx-text-fill: #9CA3AF;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 4px 0 2px 0;
+}
+
+.support-history-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+}
+
+.support-history-scroll > .viewport {
+    -fx-background-color: #121214;
+}
+
+.support-history-card {
+    -fx-background-color: #1E1E22;
+    -fx-border-color: #2A2A30;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 8px 10px;
+}
+
 .support-chat-scroll {
     -fx-background-color: transparent;
     -fx-background: transparent;

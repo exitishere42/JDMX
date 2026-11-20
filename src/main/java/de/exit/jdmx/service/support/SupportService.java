@@ -2,10 +2,14 @@ package de.exit.jdmx.service.support;
 
 import de.exit.jdmx.core.log.AppLogger;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -32,11 +36,14 @@ public class SupportService {
             System.getenv().getOrDefault("JDMX_DISCORD_WEBHOOK", "https://discord.com/api/webhooks/1573445591386693684/bwDAT2E8dlaaCru84KDampMnZKFlutFjVlyGmM7exXA2cf7cXDhXTOSNtKTy42N4gNJW")
     );
 
-    /** Farbe für Feedback-Embeds: Sky-Blue (#38BDF8 -> 3719160). */
-    public static final int COLOR_FEEDBACK = 3719160;
+    /** Primäre Farbe für Discord-Embeds: JDMX Gold-Gelb (#FBBF24 -> 16498468). */
+    public static final int COLOR_EMBED_YELLOW = 16498468;
 
-    /** Farbe für Bug-Embeds: Vivid Red (#EF4244 -> 15680068). */
-    public static final int COLOR_BUG = 15680068;
+    /** Farbe für Feedback-Embeds: JDMX Amber-Gelb (#FBBF24 -> 16498468). */
+    public static final int COLOR_FEEDBACK = COLOR_EMBED_YELLOW;
+
+    /** Farbe für Bug-Embeds: JDMX Gold-Gelb (#FBBF24 -> 16498468). */
+    public static final int COLOR_BUG = COLOR_EMBED_YELLOW;
 
     private final HttpClient httpClient;
     private final Map<SupportCategory, List<SupportMessage>> historyByCategory = new ConcurrentHashMap<>();
@@ -178,15 +185,32 @@ public class SupportService {
         message.setStatus(SupportMessage.MessageStatus.SENDING);
         String jsonPayload = buildDiscordJson(message);
 
+        boolean hasLogFile = message.systemInfo() != null
+                && message.systemInfo().recentLogs() != null
+                && !message.systemInfo().recentLogs().isBlank();
+
         HttpRequest request;
         try {
-            request = HttpRequest.newBuilder()
-                    .uri(URI.create(webhookUrl))
-                    .timeout(Duration.ofSeconds(15))
-                    .header("Content-Type", "application/json")
-                    .header("User-Agent", "DiscordBot (https://github.com/exitishere42/jdmx, 1.0.0)")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                    .build();
+            if (hasLogFile) {
+                String boundary = "----JDMXBoundary" + UUID.randomUUID().toString().replace("-", "");
+                byte[] multipartBytes = buildMultipartPayload(boundary, jsonPayload, "jdmx-diagnostic.log", message.systemInfo().recentLogs());
+
+                request = HttpRequest.newBuilder()
+                        .uri(URI.create(webhookUrl))
+                        .timeout(Duration.ofSeconds(20))
+                        .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                        .header("User-Agent", "DiscordBot (https://github.com/exitishere42/jdmx, 1.0.0)")
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBytes))
+                        .build();
+            } else {
+                request = HttpRequest.newBuilder()
+                        .uri(URI.create(webhookUrl))
+                        .timeout(Duration.ofSeconds(15))
+                        .header("Content-Type", "application/json; charset=utf-8")
+                        .header("User-Agent", "DiscordBot (https://github.com/exitishere42/jdmx, 1.0.0)")
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonPayload, StandardCharsets.UTF_8))
+                        .build();
+            }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Fehler beim Erstellen des HTTP-Requests", e);
             message.setStatus(SupportMessage.MessageStatus.FAILED);
@@ -213,6 +237,42 @@ public class SupportService {
                     message.setStatus(SupportMessage.MessageStatus.FAILED);
                     return false;
                 });
+    }
+
+    /**
+     * Erstellt einen standardkonformen Multipart/Form-Data Payload für Discord mit JSON und Log-Datei.
+     *
+     * @param boundary    Eindeutige Multipart-Trennlinie
+     * @param jsonPayload JSON-Struktur für Discord embeds
+     * @param fileName    Dateiname der Log-Datei (z. B. "jdmx-diagnostic.log")
+     * @param fileContent Textinhalt der Log-Datei
+     * @return Multipart Byte-Array
+     */
+    public static byte[] buildMultipartPayload(String boundary, String jsonPayload, String fileName, String fileContent) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            // 1. Part: payload_json
+            out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            out.write("Content-Disposition: form-data; name=\"payload_json\"\r\n".getBytes(StandardCharsets.UTF_8));
+            out.write("Content-Type: application/json; charset=utf-8\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+            out.write(jsonPayload.getBytes(StandardCharsets.UTF_8));
+            out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+
+            // 2. Part: files[0]
+            if (fileContent != null && !fileContent.isBlank()) {
+                out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+                out.write(("Content-Disposition: form-data; name=\"files[0]\"; filename=\"" + fileName + "\"\r\n").getBytes(StandardCharsets.UTF_8));
+                out.write("Content-Type: text/plain; charset=utf-8\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+                out.write(fileContent.getBytes(StandardCharsets.UTF_8));
+                out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+            }
+
+            // Closing boundary
+            out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return out.toByteArray();
     }
 
     private CompletableFuture<Boolean> sendBotDirectMessage(SupportMessage message) {
@@ -334,19 +394,15 @@ public class SupportService {
             SupportSystemInfo info = message.systemInfo();
             sb.append(",{\"name\":\"System\",\"value\":\"")
                     .append(escapeJson(info.osName() + " (" + info.osArch() + ") • Java " + info.javaVersion()))
-                    .append("\",\"inline\":false}");
+                    .append("\",\"inline\":true}");
             sb.append(",{\"name\":\"Version & DMX\",\"value\":\"")
                     .append(escapeJson("JDMX v" + info.appVersion() + " • " + info.dmxRate() + " DMX/s"))
-                    .append("\",\"inline\":false}");
+                    .append("\",\"inline\":true}");
 
             if (info.recentLogs() != null && !info.recentLogs().isBlank()) {
-                String truncatedLog = info.recentLogs();
-                if (truncatedLog.length() > 900) {
-                    truncatedLog = truncatedLog.substring(truncatedLog.length() - 900);
-                }
-                sb.append(",{\"name\":\"Diagnose-Log\",\"value\":\"```\\n")
-                        .append(escapeJson(truncatedLog))
-                        .append("\\n```\",\"inline\":false}");
+                sb.append(",{\"name\":\"Diagnose-Datei\",\"value\":\"")
+                        .append(escapeJson("📄 Siehe angehängte Datei: `jdmx-diagnostic.log`"))
+                        .append("\",\"inline\":false}");
             }
         }
 

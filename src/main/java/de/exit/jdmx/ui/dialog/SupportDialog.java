@@ -20,6 +20,7 @@ import javafx.scene.paint.Color;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,8 +28,8 @@ import java.util.logging.Logger;
 /**
  * Modaler In-App Dialog für Support, Feedback und Bug-Reporting ("Fenster im Fenster").
  * <p>
- * Bietet ein elegantes Chat-Interface mit Underline-Tab-Navigation (Feedback & Bugs),
- * Live-Validierung und direkter asynchroner Übertragung an das Entwicklerteam via Discord-Webhook.
+ * Bietet eine aufgeräumte Studio-Oberfläche mit dynamischem Info-Banner, Underline-Tab-Navigation
+ * (Feedback & Bugs), klarer Formular-Eingabe und einer Historien-Liste übermittelter Berichte.
  * </p>
  */
 public class SupportDialog {
@@ -40,6 +41,9 @@ public class SupportDialog {
     /** Weiches, lesbares Rot für Akzente ("weißes Rot" / Tailwind Red-400). */
     public static final Color COLOR_ACCENT_RED = Color.web("#F87171");
 
+    /** JDMX Warm Gold-Gelb für Feedback. */
+    public static final Color COLOR_ACCENT_YELLOW = Color.web("#FBBF24");
+
     private final MainWindow mainWindow;
     private final SupportService supportService;
     private final VBox card;
@@ -49,8 +53,8 @@ public class SupportDialog {
     private Button btnTabFeedback;
     private Button btnTabBugs;
 
-    private VBox chatContainer;
-    private ScrollPane chatScrollPane;
+    private LucideIcon iconBanner;
+    private Label lblBanner;
 
     private TextField txtName;
     private TextField txtContact;
@@ -58,6 +62,10 @@ public class SupportDialog {
     private TextArea txtMessage;
     private Label lblStatus;
     private Button btnSend;
+
+    private Label lblHistoryTitle;
+    private VBox historyContainer;
+    private ScrollPane historyScrollPane;
 
     private SupportCategory activeCategory = SupportCategory.FEEDBACK;
 
@@ -95,7 +103,7 @@ public class SupportDialog {
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
         buildUi();
-        refreshChatView();
+        refreshHistoryView();
 
         // Dynamischer Sprachwechsel
         I18n.addLanguageChangeListener(lang -> {
@@ -123,23 +131,16 @@ public class SupportDialog {
         // 2. Underline-Tab-Leiste (Feedback | Bugs)
         HBox tabBar = buildUnderlineTabBar();
 
-        // 3. Chat-Verlauf
-        this.chatContainer = new VBox(10);
-        chatContainer.setPadding(new Insets(10));
-
-        this.chatScrollPane = new ScrollPane(chatContainer);
-        chatScrollPane.getStyleClass().add("support-chat-scroll");
-        chatScrollPane.setMinHeight(200);
-        chatScrollPane.setPrefHeight(220);
-        chatScrollPane.setMaxHeight(240);
-        chatScrollPane.setFitToWidth(true);
-        chatScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        chatScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        // 3. Info-Banner (erklärt die aktive Sektion)
+        HBox infoBanner = buildInfoBanner();
 
         // 4. Formular- & Eingabebereich
         VBox inputSection = buildInputSection();
 
-        card.getChildren().addAll(header, tabBar, chatScrollPane, inputSection);
+        // 5. Historien-Bereich (übermittelte Berichte dieser Sitzung)
+        VBox historySection = buildHistorySection();
+
+        card.getChildren().addAll(header, tabBar, infoBanner, inputSection, historySection);
     }
 
     private HBox buildHeader() {
@@ -171,18 +172,34 @@ public class SupportDialog {
 
         btnTabFeedback = new Button(I18n.get("support.tab.feedback"));
         btnTabFeedback.getStyleClass().addAll("dialog-underline-tab", "active");
-        btnTabFeedback.setGraphic(new LucideIcon("sparkles", 14, COLOR_ACCENT_RED));
+        btnTabFeedback.setGraphic(new LucideIcon("sparkles", 14, COLOR_ACCENT_YELLOW));
         btnTabFeedback.setCursor(Cursor.HAND);
         btnTabFeedback.setOnAction(e -> switchTab(SupportCategory.FEEDBACK));
 
         btnTabBugs = new Button(I18n.get("support.tab.bugs"));
         btnTabBugs.getStyleClass().add("dialog-underline-tab");
-        btnTabBugs.setGraphic(new LucideIcon("bug", 14, Color.web("#9CA3AF")));
+        btnTabBugs.setGraphic(new LucideIcon("alert-triangle", 14, Color.web("#9CA3AF")));
         btnTabBugs.setCursor(Cursor.HAND);
         btnTabBugs.setOnAction(e -> switchTab(SupportCategory.BUG));
 
         tabBar.getChildren().addAll(btnTabFeedback, btnTabBugs);
         return tabBar;
+    }
+
+    private HBox buildInfoBanner() {
+        HBox banner = new HBox(10);
+        banner.setAlignment(Pos.CENTER_LEFT);
+        banner.getStyleClass().add("support-info-banner");
+
+        this.iconBanner = new LucideIcon("sparkles", 16, COLOR_ACCENT_YELLOW);
+
+        this.lblBanner = new Label(I18n.get("support.banner.feedback"));
+        lblBanner.setWrapText(true);
+        lblBanner.getStyleClass().add("support-banner-text");
+        HBox.setHgrow(lblBanner, Priority.ALWAYS);
+
+        banner.getChildren().addAll(iconBanner, lblBanner);
+        return banner;
     }
 
     private VBox buildInputSection() {
@@ -237,6 +254,28 @@ public class SupportDialog {
         return box;
     }
 
+    private VBox buildHistorySection() {
+        VBox box = new VBox(6);
+
+        this.lblHistoryTitle = new Label(I18n.get("support.history.title"));
+        lblHistoryTitle.getStyleClass().add("support-history-title");
+
+        this.historyContainer = new VBox(6);
+        historyContainer.setPadding(new Insets(4, 2, 4, 2));
+
+        this.historyScrollPane = new ScrollPane(historyContainer);
+        historyScrollPane.getStyleClass().add("support-history-scroll");
+        historyScrollPane.setMinHeight(85);
+        historyScrollPane.setPrefHeight(105);
+        historyScrollPane.setMaxHeight(125);
+        historyScrollPane.setFitToWidth(true);
+        historyScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        historyScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+
+        box.getChildren().addAll(lblHistoryTitle, historyScrollPane);
+        return box;
+    }
+
     /**
      * Schaltet zwischen Feedback- und Bug-Tab um.
      *
@@ -248,8 +287,11 @@ public class SupportDialog {
         if (category == SupportCategory.FEEDBACK) {
             btnTabFeedback.getStyleClass().add("active");
             btnTabBugs.getStyleClass().remove("active");
-            ((LucideIcon) btnTabFeedback.getGraphic()).setColor(COLOR_ACCENT_RED);
+            ((LucideIcon) btnTabFeedback.getGraphic()).setColor(COLOR_ACCENT_YELLOW);
             ((LucideIcon) btnTabBugs.getGraphic()).setColor(Color.web("#9CA3AF"));
+
+            iconBanner.setIcon("sparkles", COLOR_ACCENT_YELLOW);
+            lblBanner.setText(I18n.get("support.banner.feedback"));
 
             cbIncludeDiagnostics.setVisible(false);
             cbIncludeDiagnostics.setManaged(false);
@@ -259,80 +301,77 @@ public class SupportDialog {
             ((LucideIcon) btnTabBugs.getGraphic()).setColor(COLOR_ACCENT_RED);
             ((LucideIcon) btnTabFeedback.getGraphic()).setColor(Color.web("#9CA3AF"));
 
+            iconBanner.setIcon("alert-triangle", COLOR_ACCENT_RED);
+            lblBanner.setText(I18n.get("support.banner.bugs"));
+
             cbIncludeDiagnostics.setVisible(true);
             cbIncludeDiagnostics.setManaged(true);
         }
 
         lblStatus.setText("");
-        refreshChatView();
+        refreshHistoryView();
     }
 
     /**
-     * Baut den Chatverlauf für die aktive Kategorie neu auf.
+     * Baut die Verlaufsansicht übermittelter Berichte für die aktive Kategorie neu auf.
      */
-    private void refreshChatView() {
-        chatContainer.getChildren().clear();
+    private void refreshHistoryView() {
+        historyContainer.getChildren().clear();
 
-        // 1. Willkommensnachricht vom Bot
-        String greetingKey = (activeCategory == SupportCategory.BUG)
-                ? "support.chat.greeting_bugs"
-                : "support.chat.greeting_feedback";
-        Node botBubble = createSystemBubble(I18n.get(greetingKey));
-        chatContainer.getChildren().add(botBubble);
-
-        // 2. Bisherige Nachrichten der Kategorie
-        for (SupportMessage msg : supportService.getHistory(activeCategory)) {
-            chatContainer.getChildren().add(createUserBubble(msg));
+        List<SupportMessage> history = supportService.getHistory(activeCategory);
+        if (history.isEmpty()) {
+            Label emptyLbl = new Label(I18n.get("support.history.empty"));
+            emptyLbl.setStyle("-fx-text-fill: #71717A; -fx-font-style: italic; -fx-font-size: 11px;");
+            historyContainer.getChildren().add(emptyLbl);
+        } else {
+            for (SupportMessage msg : history) {
+                historyContainer.getChildren().add(createHistoryCard(msg));
+            }
         }
 
         // Automatisch nach unten scrollen
-        Platform.runLater(() -> chatScrollPane.setVvalue(1.0));
+        Platform.runLater(() -> historyScrollPane.setVvalue(1.0));
     }
 
-    private Node createSystemBubble(String text) {
-        VBox bubble = new VBox(4);
-        bubble.getStyleClass().add("support-bubble-system");
+    private Node createHistoryCard(SupportMessage msg) {
+        VBox card = new VBox(4);
+        card.getStyleClass().add("support-history-card");
 
-        HBox authorRow = new HBox(6);
-        authorRow.setAlignment(Pos.CENTER_LEFT);
-        LucideIcon botIcon = new LucideIcon("life-buoy", 14, COLOR_ACCENT_RED);
-        Label lblAuthor = new Label(I18n.get("support.chat.bot_name"));
-        lblAuthor.setStyle("-fx-text-fill: #F87171; -fx-font-weight: bold; -fx-font-size: 11px;");
-        authorRow.getChildren().addAll(botIcon, lblAuthor);
-
-        Label lblContent = new Label(text);
-        lblContent.setWrapText(true);
-        lblContent.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 13px;");
-
-        bubble.getChildren().addAll(authorRow, lblContent);
-        return bubble;
-    }
-
-    private Node createUserBubble(SupportMessage msg) {
-        VBox bubble = new VBox(4);
-        bubble.getStyleClass().add("support-bubble-user");
-
-        HBox topRow = new HBox(8);
+        HBox topRow = new HBox(6);
         topRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label lblAuthor = new Label(msg.senderName());
-        lblAuthor.setStyle("-fx-text-fill: #F87171; -fx-font-weight: bold; -fx-font-size: 11px;");
+        LucideIcon checkIcon = new LucideIcon("check", 12, Color.web("#10B981"));
+        Label lblBadge = new Label(I18n.get("support.history.sent"));
+        lblBadge.setStyle("-fx-text-fill: #10B981; -fx-font-weight: bold; -fx-font-size: 10px;");
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Label lblDot = new Label("•");
+        lblDot.setStyle("-fx-text-fill: #71717A; -fx-font-size: 10px;");
 
         String timeStr = TIME_FORMATTER.format(msg.timestamp());
         Label lblTime = new Label(timeStr);
         lblTime.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px;");
 
-        topRow.getChildren().addAll(lblAuthor, spacer, lblTime);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label lblAuthor = new Label(msg.senderName());
+        lblAuthor.setStyle("-fx-text-fill: #E4E4E7; -fx-font-weight: bold; -fx-font-size: 11px;");
+
+        topRow.getChildren().addAll(checkIcon, lblBadge, lblDot, lblTime, spacer, lblAuthor);
 
         Label lblContent = new Label(msg.messageText());
         lblContent.setWrapText(true);
-        lblContent.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 13px;");
+        lblContent.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 12px;");
 
-        bubble.getChildren().addAll(topRow, lblContent);
-        return bubble;
+        card.getChildren().addAll(topRow, lblContent);
+
+        if (msg.systemInfo() != null) {
+            Label lblFile = new Label("📄 jdmx-diagnostic.log");
+            lblFile.setStyle("-fx-text-fill: #FBBF24; -fx-font-size: 10px;");
+            card.getChildren().add(lblFile);
+        }
+
+        return card;
     }
 
     private void handleSendMessage() {
@@ -351,7 +390,7 @@ public class SupportDialog {
             int dmxRate = (mainWindow != null && mainWindow.getDmxService() != null)
                     ? mainWindow.getDmxService().getCurrentRate()
                     : 0;
-            String recentLogs = AppLogger.getRecentLogs(25);
+            String recentLogs = AppLogger.getRecentLogs(200);
             sysInfo = supportService.collectSystemInfo(dmxRate, recentLogs);
         }
 
@@ -359,7 +398,7 @@ public class SupportDialog {
 
         // UI vorbereiten & sperren
         btnSend.setDisable(true);
-        lblStatus.setStyle("-fx-text-fill: #F87171; -fx-font-size: 11px;");
+        lblStatus.setStyle("-fx-text-fill: #FBBF24; -fx-font-size: 11px;");
         lblStatus.setText(I18n.get("support.status.sending"));
 
         // Asynchron über SupportService senden
@@ -369,7 +408,7 @@ public class SupportDialog {
                 lblStatus.setStyle("-fx-text-fill: #10B981; -fx-font-size: 11px;");
                 lblStatus.setText(I18n.get("support.status.sent"));
                 txtMessage.clear();
-                refreshChatView();
+                refreshHistoryView();
             } else {
                 lblStatus.setStyle("-fx-text-fill: #F87171; -fx-font-size: 11px;");
                 lblStatus.setText(I18n.get("support.status.failed"));
@@ -388,12 +427,14 @@ public class SupportDialog {
         lblTitle.setText(I18n.get("support.title"));
         btnTabFeedback.setText(I18n.get("support.tab.feedback"));
         btnTabBugs.setText(I18n.get("support.tab.bugs"));
+        lblBanner.setText(I18n.get(activeCategory == SupportCategory.BUG ? "support.banner.bugs" : "support.banner.feedback"));
+        lblHistoryTitle.setText(I18n.get("support.history.title"));
         txtName.setPromptText(I18n.get("support.field.name"));
         txtContact.setPromptText(I18n.get("support.field.contact"));
         cbIncludeDiagnostics.setText(I18n.get("support.field.sysinfo_checkbox"));
         txtMessage.setPromptText(I18n.get("support.field.message"));
         btnSend.setText(I18n.get("support.btn.send"));
-        refreshChatView();
+        refreshHistoryView();
     }
 
     /**
@@ -445,5 +486,13 @@ public class SupportDialog {
 
     public SupportCategory getActiveCategory() {
         return activeCategory;
+    }
+
+    public Label getLblBanner() {
+        return lblBanner;
+    }
+
+    public Label getLblHistoryTitle() {
+        return lblHistoryTitle;
     }
 }

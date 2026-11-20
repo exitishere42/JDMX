@@ -60,8 +60,8 @@ class SupportServiceTest {
         assertThat(json).contains("Feedback von Lars");
         assertThat(json).contains("Eine tolle Ergänzung wäre ein Farbfilter!");
         assertThat(json).contains("lars@example.com");
-        // Farbe für Feedback sollte Cyan/Sky-Blue sein (Dezimalwert 3719160 bzw. 0x38BDF8)
-        assertThat(json).contains("\"color\":3719160");
+        // Farbe für Feedback sollte Gelb / Amber sein (Dezimalwert 16498468 bzw. #FBBF24)
+        assertThat(json).contains("\"color\":16498468");
     }
 
     @Test
@@ -92,9 +92,9 @@ class SupportServiceTest {
         assertThat(json).contains("Linux (x86_64)");
         assertThat(json).contains("Java 21.0.2");
         assertThat(json).contains("44 DMX/s");
-        assertThat(json).contains("ERROR: Serial port not found");
-        // Farbe für Bug sollte Amber/Rot sein (Dezimalwert 16738657 bzw. 0xFF6B61 / 0xEF4444)
-        assertThat(json).contains("\"color\":15680068");
+        assertThat(json).contains("jdmx-diagnostic.log");
+        // Farbe für Bug sollte Gelb / Amber sein (Dezimalwert 16498468 bzw. #FBBF24)
+        assertThat(json).contains("\"color\":16498468");
     }
 
     @Test
@@ -331,6 +331,24 @@ class SupportServiceTest {
 
         assertThat(success).isTrue();
         assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.SENT);
+    }
+
+    @Test
+    @DisplayName("Sollte korrekten Multipart-Payload mit JSON und Log-Datei erstellen")
+    void shouldBuildValidMultipartPayload() {
+        String boundary = "test-boundary-123";
+        String json = "{\"content\":\"test\"}";
+        String logContent = "Log line 1\nLog line 2";
+
+        byte[] payload = SupportService.buildMultipartPayload(boundary, json, "test.log", logContent);
+        String payloadStr = new String(payload, java.nio.charset.StandardCharsets.UTF_8);
+
+        assertThat(payloadStr).contains("--test-boundary-123");
+        assertThat(payloadStr).contains("name=\"payload_json\"");
+        assertThat(payloadStr).contains("{\"content\":\"test\"}");
+        assertThat(payloadStr).contains("name=\"files[0]\"; filename=\"test.log\"");
+        assertThat(payloadStr).contains("Log line 1\nLog line 2");
+        assertThat(payloadStr).contains("--test-boundary-123--");
     }
 
     @Test
