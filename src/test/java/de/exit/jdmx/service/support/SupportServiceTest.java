@@ -183,6 +183,7 @@ class SupportServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(channelResponse))
                 .thenReturn(CompletableFuture.completedFuture(messageResponse));
 
+        supportService.setWebhookUrl("");
         supportService.setBotConfig("fake-bot-token", "123456789012345678");
 
         SupportMessage message = SupportMessage.create(
@@ -212,6 +213,7 @@ class SupportServiceTest {
         when(mockHttpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(CompletableFuture.completedFuture(channelResponse));
 
+        supportService.setWebhookUrl("");
         supportService.setBotConfig("fake-bot-token", "123456789012345678");
 
         SupportMessage message = SupportMessage.create(
@@ -265,6 +267,7 @@ class SupportServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(channelResponse))
                 .thenReturn(CompletableFuture.completedFuture(messageResponse));
 
+        supportService.setWebhookUrl("");
         supportService.setBotConfig("fake-bot-token", "");
 
         SupportMessage message = SupportMessage.create(
@@ -285,6 +288,7 @@ class SupportServiceTest {
     @Test
     @DisplayName("Sollte fehlschlagen wenn Bot-Token gesetzt aber keine User-ID ermittelt werden kann")
     void shouldFailWhenBotTokenIsSetWithoutRecipientId() throws Exception {
+        supportService.setWebhookUrl("");
         supportService.setBotConfig("fake-bot-token", "");
 
         SupportMessage message = SupportMessage.create(
@@ -300,6 +304,33 @@ class SupportServiceTest {
 
         assertThat(success).isFalse();
         assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.FAILED);
+    }
+
+    @Test
+    @DisplayName("Sollte standardmäßig vorkonfigurierte DEFAULT_WEBHOOK_URL verwenden")
+    @SuppressWarnings("unchecked")
+    void shouldUseDefaultWebhookUrlOutOfTheBox() throws Exception {
+        HttpResponse<String> mockResponse = mock(HttpResponse.class);
+        when(mockResponse.statusCode()).thenReturn(204);
+        when(mockHttpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(CompletableFuture.completedFuture(mockResponse));
+
+        SupportService serviceWithDefaultWebhook = new SupportService(mockHttpClient);
+        assertThat(serviceWithDefaultWebhook.getWebhookUrl()).isNotEmpty().startsWith("https://discord.com/api/webhooks/");
+
+        SupportMessage message = SupportMessage.create(
+                SupportCategory.FEEDBACK,
+                "Community Member",
+                null,
+                "Tolle App, danke!",
+                null
+        );
+
+        CompletableFuture<Boolean> future = serviceWithDefaultWebhook.sendMessage(message);
+        Boolean success = future.get();
+
+        assertThat(success).isTrue();
+        assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.SENT);
     }
 
     @Test

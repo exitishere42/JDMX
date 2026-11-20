@@ -29,7 +29,7 @@ public class SupportService {
     /** Fallback- bzw. Standard-Webhook URL für das JDMX Entwicklerteam. */
     public static final String DEFAULT_WEBHOOK_URL = System.getProperty(
             "jdmx.discord.webhook",
-            System.getenv().getOrDefault("JDMX_DISCORD_WEBHOOK", "")
+            System.getenv().getOrDefault("JDMX_DISCORD_WEBHOOK", "https://discord.com/api/webhooks/1573445591386693684/bwDAT2E8dlaaCru84KDampMnZKFlutFjVlyGmM7exXA2cf7cXDhXTOSNtKTy42N4gNJW")
     );
 
     /** Farbe für Feedback-Embeds: Sky-Blue (#38BDF8 -> 3719160). */
@@ -151,7 +151,7 @@ public class SupportService {
     }
 
     /**
-     * Sendet eine Support-Nachricht asynchron an Discord (entweder als Bot-DM oder Webhook).
+     * Sendet eine Support-Nachricht asynchron an Discord (bevorzugt über den Standard-Webhook).
      *
      * @param message Die zu übermittelnde Nachricht
      * @return {@link CompletableFuture} mit {@code true} bei Erfolg, sonst {@code false}
@@ -159,17 +159,22 @@ public class SupportService {
     public CompletableFuture<Boolean> sendMessage(SupportMessage message) {
         Objects.requireNonNull(message, "Nachricht darf nicht null sein");
 
-        // Wenn Bot konfiguriert ist, bevorzugt echte Direktnachricht per Bot an den Nutzer senden
+        // 1. Webhook hat oberste Priorität (funktioniert out-of-the-box für jeden Benutzer ohne Setup)
+        if (webhookUrl != null && !webhookUrl.isBlank() && webhookUrl.startsWith("http")) {
+            return sendWebhookMessage(message);
+        }
+
+        // 2. Optionaler Fallback: Bot-Direktnachricht falls Bot explizit konfiguriert ist
         if (isBotConfigured() || (isBotTokenSet() && resolveRecipientUserId(message) != null)) {
             return sendBotDirectMessage(message);
         }
 
-        if (webhookUrl == null || webhookUrl.isBlank() || !webhookUrl.startsWith("http")) {
-            AppLogger.warn("[SUPPORT] Weder Discord Bot noch gültiger Webhook konfiguriert. Nachricht kann nicht gesendet werden.");
-            message.setStatus(SupportMessage.MessageStatus.FAILED);
-            return CompletableFuture.completedFuture(false);
-        }
+        AppLogger.warn("[SUPPORT] Weder Discord Webhook noch Bot konfiguriert. Nachricht kann nicht gesendet werden.");
+        message.setStatus(SupportMessage.MessageStatus.FAILED);
+        return CompletableFuture.completedFuture(false);
+    }
 
+    private CompletableFuture<Boolean> sendWebhookMessage(SupportMessage message) {
         message.setStatus(SupportMessage.MessageStatus.SENDING);
         String jsonPayload = buildDiscordJson(message);
 
@@ -179,7 +184,7 @@ public class SupportService {
                     .uri(URI.create(webhookUrl))
                     .timeout(Duration.ofSeconds(15))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "JDMX-Desktop-Support/1.0")
+                    .header("User-Agent", "DiscordBot (https://github.com/exitishere42/jdmx, 1.0.0)")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
         } catch (Exception e) {
