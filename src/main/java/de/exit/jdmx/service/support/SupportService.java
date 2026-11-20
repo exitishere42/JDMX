@@ -36,13 +36,13 @@ public class SupportService {
             System.getenv().getOrDefault("JDMX_DISCORD_WEBHOOK", "https://discord.com/api/webhooks/1573445591386693684/bwDAT2E8dlaaCru84KDampMnZKFlutFjVlyGmM7exXA2cf7cXDhXTOSNtKTy42N4gNJW")
     );
 
-    /** Primäre Farbe für Discord-Embeds: JDMX Gold-Gelb (#FBBF24 -> 16498468). */
-    public static final int COLOR_EMBED_YELLOW = 16498468;
+    /** Primäre Farbe für Discord-Embeds: Helles JDMX Logo-Gelb (#FEDC94 -> 16702612). */
+    public static final int COLOR_EMBED_YELLOW = 16702612;
 
-    /** Farbe für Feedback-Embeds: JDMX Amber-Gelb (#FBBF24 -> 16498468). */
+    /** Farbe für Feedback-Embeds: Helles JDMX Logo-Gelb (#FEDC94 -> 16702612). */
     public static final int COLOR_FEEDBACK = COLOR_EMBED_YELLOW;
 
-    /** Farbe für Bug-Embeds: JDMX Gold-Gelb (#FBBF24 -> 16498468). */
+    /** Farbe für Bug-Embeds: Helles JDMX Logo-Gelb (#FEDC94 -> 16702612). */
     public static final int COLOR_BUG = COLOR_EMBED_YELLOW;
 
     private final HttpClient httpClient;

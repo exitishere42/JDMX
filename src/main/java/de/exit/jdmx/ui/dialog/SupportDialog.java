@@ -2,6 +2,7 @@ package de.exit.jdmx.ui.dialog;
 
 import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.log.AppLogger;
+import de.exit.jdmx.service.UpdateService;
 import de.exit.jdmx.service.support.SupportCategory;
 import de.exit.jdmx.service.support.SupportMessage;
 import de.exit.jdmx.service.support.SupportService;
@@ -41,8 +42,8 @@ public class SupportDialog {
     /** Weiches, lesbares Rot für Akzente ("weißes Rot" / Tailwind Red-400). */
     public static final Color COLOR_ACCENT_RED = Color.web("#F87171");
 
-    /** JDMX Warm Gold-Gelb für Feedback. */
-    public static final Color COLOR_ACCENT_YELLOW = Color.web("#FBBF24");
+    /** JDMX Helles Logo-Gelb (#FEDC94). */
+    public static final Color COLOR_ACCENT_YELLOW = Color.web("#FEDC94");
 
     private final MainWindow mainWindow;
     private final SupportService supportService;
@@ -359,17 +360,17 @@ public class SupportDialog {
 
         topRow.getChildren().addAll(checkIcon, lblBadge, lblDot, lblTime, spacer, lblAuthor);
 
+        if (msg.systemInfo() != null) {
+            Label lblFile = new Label("📄 jdmx-diagnostic.log");
+            lblFile.setStyle("-fx-text-fill: #FEDC94; -fx-font-size: 10px; -fx-background-color: rgba(254, 220, 148, 0.12); -fx-background-radius: 8px; -fx-padding: 2px 7px;");
+            topRow.getChildren().add(lblFile);
+        }
+
         Label lblContent = new Label(msg.messageText());
         lblContent.setWrapText(true);
         lblContent.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 12px;");
 
         card.getChildren().addAll(topRow, lblContent);
-
-        if (msg.systemInfo() != null) {
-            Label lblFile = new Label("📄 jdmx-diagnostic.log");
-            lblFile.setStyle("-fx-text-fill: #FBBF24; -fx-font-size: 10px;");
-            card.getChildren().add(lblFile);
-        }
 
         return card;
     }
@@ -391,6 +392,16 @@ public class SupportDialog {
                     ? mainWindow.getDmxService().getCurrentRate()
                     : 0;
             String recentLogs = AppLogger.getRecentLogs(200);
+            if (recentLogs == null || recentLogs.isBlank()) {
+                recentLogs = "=== JDMX Diagnostic Log Export ===\n" +
+                        "Zeitstempel: " + java.time.LocalDateTime.now() + "\n" +
+                        "Betriebssystem: " + System.getProperty("os.name") + " (" + System.getProperty("os.arch") + ")\n" +
+                        "Java: " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ")\n" +
+                        "JDMX Version: v" + UpdateService.CURRENT_VERSION + "\n" +
+                        "DMX Framerate: " + dmxRate + " DMX/s\n" +
+                        "Speicher (Max/Frei): " + (Runtime.getRuntime().maxMemory() / 1024 / 1024) + " MB / " + (Runtime.getRuntime().freeMemory() / 1024 / 1024) + " MB\n" +
+                        "Hinweis: Keine weiteren DMX-Ereignisse im aktuellen Logfile verzeichnet.\n";
+            }
             sysInfo = supportService.collectSystemInfo(dmxRate, recentLogs);
         }
 
@@ -398,7 +409,7 @@ public class SupportDialog {
 
         // UI vorbereiten & sperren
         btnSend.setDisable(true);
-        lblStatus.setStyle("-fx-text-fill: #FBBF24; -fx-font-size: 11px;");
+        lblStatus.setStyle("-fx-text-fill: #FEDC94; -fx-font-size: 11px;");
         lblStatus.setText(I18n.get("support.status.sending"));
 
         // Asynchron über SupportService senden
