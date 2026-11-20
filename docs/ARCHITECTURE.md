@@ -166,7 +166,8 @@ flowchart TD
     G -->|204 No Content| H
 ```
 
-* **Underline-Tab Design:** Anstelle klobiger Button-Tabs setzt der `SupportDialog` auf moderne, schlanke Text-Tabs mit einer 2px-Unterstrichlinie in Akzentfarbe (wie beim Show-Tab Explorer/Inspector).
-* **Discord-Webhook Embeds:** Feedback wird in Sky-Blue (`#38BDF8`), Bugs in Signalrot (`#EF4444`) formatiert.
+* **Underline-Tab Design:** Anstelle klobiger Button-Tabs setzt der `SupportDialog` auf moderne, schlanke Text-Tabs mit einer 2px-Unterstrichlinie in Akzentfarbe (weiches "weißes Rot" `#F87171`, wie beim Show-Tab Explorer/Inspector).
+* **Discord-Embeds:** Feedback wird in Sky-Blue (`#38BDF8`), Bugs in Signalrot (`#EF4444`) formatiert.
+* **Discord Bot Direktnachrichten (DM):** Bevorzugter Versand über die Discord REST API (`POST /users/@me/channels` und `POST /channels/{id}/messages`), wodurch Meldungen direkt als private Direktnachricht (DM) an den Discord-Account des Entwicklers gesendet werden.
 * **Diagnosedaten bei Bugs:** Automatische Erfassung von Betriebssystem, Architektur, Java-Version, aktueller DMX-Paketrate und den letzten Zeilen des Anwendungs-Logs (`AppLogger.getRecentLogs(25)`).
-* **Konfiguration:** Die Webhook-URL kann über die System-Property `-Djdmx.discord.webhook=...` oder die Umgebungsvariable `JDMX_DISCORD_WEBHOOK` gesetzt werden. Ist kein Webhook hinterlegt, meldet der Dialog sauber einen Übertragungsfehler ohne UI-Einfrieren.
+* **Konfiguration & Persistenz:** Discord-Bot-Token und Empfänger-User-ID werden lokal und git-ignoriert in der `settings.json` persistiert (`SettingsService`). Alternativ können sie über die Properties `-Djdmx.discord.bot_token=...` und `-Djdmx.discord.user_id=...` sowie die Umgebungsvariablen `JDMX_DISCORD_BOT_TOKEN` und `JDMX_DISCORD_USER_ID` bereitgestellt werden. Fallback auf Discord-Webhook (`-Djdmx.discord.webhook=...` / `JDMX_DISCORD_WEBHOOK`). Ist weder Bot noch Webhook hinterlegt, meldet der Dialog sauber einen Übertragungsfehler ohne UI-Einfrieren.

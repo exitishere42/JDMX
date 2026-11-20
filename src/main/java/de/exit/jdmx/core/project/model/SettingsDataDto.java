@@ -15,6 +15,8 @@ import java.util.Map;
  * @param defaultFolder    Standard-Speicherverzeichnis für Shows
  * @param shortcuts        Map von Shortcut-Aktionsname auf KeyCombination-String (z. B. "SAVE_PROJECT" -> "Ctrl+S")
  * @param uiScale          Skalierungsfaktor der Benutzeroberfläche (z. B. 0.8, 1.0, 1.25)
+ * @param discordBotToken  Optionaler Discord-Bot-Token für direkten Support- und Feedback-Versand
+ * @param discordRecipientUserId Optionale Discord-Benutzer-ID des Empfängers für Direktnachrichten
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SettingsDataDto(
@@ -24,7 +26,9 @@ public record SettingsDataDto(
         String autoSaveInterval,
         String defaultFolder,
         Map<String, String> shortcuts,
-        double uiScale
+        double uiScale,
+        String discordBotToken,
+        String discordRecipientUserId
 ) {
     /** Standardmäßige Skalierung (100%). */
     public static final double DEFAULT_UI_SCALE = 1.0;
@@ -36,13 +40,26 @@ public record SettingsDataDto(
         if (uiScale <= 0.1) {
             uiScale = DEFAULT_UI_SCALE;
         }
+        if (discordBotToken == null) {
+            discordBotToken = "";
+        }
+        if (discordRecipientUserId == null) {
+            discordRecipientUserId = "";
+        }
+    }
+
+    /**
+     * Überladener Konstruktor für Abwärtskompatibilität mit uiScale ohne Discord-Felder.
+     */
+    public SettingsDataDto(String language, boolean fullscreen, boolean confirmExit, String autoSaveInterval, String defaultFolder, Map<String, String> shortcuts, double uiScale) {
+        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, uiScale, "", "");
     }
 
     /**
      * Überladener Konstruktor für Abwärtskompatibilität ohne expliziten uiScale.
      */
     public SettingsDataDto(String language, boolean fullscreen, boolean confirmExit, String autoSaveInterval, String defaultFolder, Map<String, String> shortcuts) {
-        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, DEFAULT_UI_SCALE);
+        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, DEFAULT_UI_SCALE, "", "");
     }
 
     /**
@@ -56,7 +73,9 @@ public record SettingsDataDto(
                 "Alle 10 Minuten",
                 System.getProperty("user.home") + File.separator + "jdmx-shows",
                 Map.of(),
-                DEFAULT_UI_SCALE
+                DEFAULT_UI_SCALE,
+                "",
+                ""
         );
     }
 }

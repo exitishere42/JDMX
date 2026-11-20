@@ -200,6 +200,9 @@ public class MainWindow extends StackPane {
 
         // 6. Globale Einstellungen für den App-Start laden
         settingsService.loadGlobalSettings(shortcutService);
+        if (supportService != null) {
+            supportService.setBotConfig(settingsService.getDiscordBotToken(), settingsService.getDiscordRecipientUserId());
+        }
 
         // 7. Virtual Viewport: Skalierbarer Root-Container für randlose UI-Skalierung
         this.scalableRoot = new StackPane();
@@ -927,6 +930,9 @@ public class MainWindow extends StackPane {
         if (data.settings() != null) {
             settingsService.applyDto(data.settings(), shortcutService);
             applyUiScale(settingsService.getUiScale());
+            if (supportService != null) {
+                supportService.setBotConfig(settingsService.getDiscordBotToken(), settingsService.getDiscordRecipientUserId());
+            }
         }
     }
 

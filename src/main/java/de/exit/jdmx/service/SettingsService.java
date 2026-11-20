@@ -42,6 +42,8 @@ public class SettingsService {
     private boolean confirmExit = true;
     private String autoSaveInterval = "Alle 10 Minuten";
     private String defaultFolder = System.getProperty("user.home") + File.separator + "jdmx-shows";
+    private String discordBotToken = System.getProperty("jdmx.discord.bot_token", System.getenv().getOrDefault("JDMX_DISCORD_BOT_TOKEN", ""));
+    private String discordRecipientUserId = System.getProperty("jdmx.discord.user_id", System.getenv().getOrDefault("JDMX_DISCORD_USER_ID", ""));
 
     private final List<Consumer<Double>> uiScaleListeners = new CopyOnWriteArrayList<>();
 
@@ -148,7 +150,9 @@ public class SettingsService {
                 autoSaveInterval,
                 defaultFolder,
                 shortcutService != null ? shortcutService.exportShortcuts() : java.util.Map.of(),
-                uiScale
+                uiScale,
+                discordBotToken,
+                discordRecipientUserId
         );
     }
 
@@ -176,6 +180,12 @@ public class SettingsService {
         }
         if (dto.defaultFolder() != null && !dto.defaultFolder().isBlank()) {
             this.defaultFolder = dto.defaultFolder();
+        }
+        if (dto.discordBotToken() != null && !dto.discordBotToken().isBlank()) {
+            this.discordBotToken = dto.discordBotToken();
+        }
+        if (dto.discordRecipientUserId() != null && !dto.discordRecipientUserId().isBlank()) {
+            this.discordRecipientUserId = dto.discordRecipientUserId();
         }
         if (shortcutService != null && dto.shortcuts() != null) {
             shortcutService.importShortcuts(dto.shortcuts());
@@ -272,6 +282,22 @@ public class SettingsService {
 
     public void setDefaultFolder(String defaultFolder) {
         this.defaultFolder = Objects.requireNonNullElse(defaultFolder, System.getProperty("user.home") + File.separator + "jdmx-shows");
+    }
+
+    public String getDiscordBotToken() {
+        return discordBotToken != null ? discordBotToken : "";
+    }
+
+    public void setDiscordBotToken(String discordBotToken) {
+        this.discordBotToken = discordBotToken != null ? discordBotToken.trim() : "";
+    }
+
+    public String getDiscordRecipientUserId() {
+        return discordRecipientUserId != null ? discordRecipientUserId : "";
+    }
+
+    public void setDiscordRecipientUserId(String discordRecipientUserId) {
+        this.discordRecipientUserId = discordRecipientUserId != null ? discordRecipientUserId.trim() : "";
     }
 
     public File getGlobalConfigFile() {

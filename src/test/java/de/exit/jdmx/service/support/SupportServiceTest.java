@@ -168,6 +168,68 @@ class SupportServiceTest {
     }
 
     @Test
+    @DisplayName("Sollte Direktnachricht über Discord Bot REST API an Benutzer-ID senden")
+    @SuppressWarnings("unchecked")
+    void shouldSendDirectMessageViaBotSuccessfully() throws Exception {
+        HttpResponse<String> channelResponse = mock(HttpResponse.class);
+        when(channelResponse.statusCode()).thenReturn(200);
+        when(channelResponse.body()).thenReturn("{\"id\":\"dm-chan-999\",\"type\":1}");
+
+        HttpResponse<String> messageResponse = mock(HttpResponse.class);
+        when(messageResponse.statusCode()).thenReturn(200);
+        when(messageResponse.body()).thenReturn("{\"id\":\"msg-888\"}");
+
+        when(mockHttpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(CompletableFuture.completedFuture(channelResponse))
+                .thenReturn(CompletableFuture.completedFuture(messageResponse));
+
+        supportService.setBotConfig("fake-bot-token", "123456789012345678");
+
+        SupportMessage message = SupportMessage.create(
+                SupportCategory.BUG,
+                "Lars",
+                null,
+                "Der Bot sendet jetzt direkte DMs!",
+                null
+        );
+
+        CompletableFuture<Boolean> future = supportService.sendMessage(message);
+        Boolean success = future.get();
+
+        assertThat(success).isTrue();
+        assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.SENT);
+        assertThat(supportService.getHistory(SupportCategory.BUG)).contains(message);
+    }
+
+    @Test
+    @DisplayName("Sollte Fehler behandeln wenn Bot keinen DM-Kanal zum Nutzer öffnen kann")
+    @SuppressWarnings("unchecked")
+    void shouldFailWhenBotCannotOpenDmChannel() throws Exception {
+        HttpResponse<String> channelResponse = mock(HttpResponse.class);
+        when(channelResponse.statusCode()).thenReturn(403); // Forbidden (z.B. User hat DMs deaktiviert)
+        when(channelResponse.body()).thenReturn("{\"message\":\"Cannot send messages to this user\",\"code\":50007}");
+
+        when(mockHttpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(CompletableFuture.completedFuture(channelResponse));
+
+        supportService.setBotConfig("fake-bot-token", "123456789012345678");
+
+        SupportMessage message = SupportMessage.create(
+                SupportCategory.BUG,
+                "Tester",
+                null,
+                "Bug ohne DM-Rechte",
+                null
+        );
+
+        CompletableFuture<Boolean> future = supportService.sendMessage(message);
+        Boolean success = future.get();
+
+        assertThat(success).isFalse();
+        assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.FAILED);
+    }
+
+    @Test
     @DisplayName("Sollte Nachricht ablehnen wenn Webhook-URL leer oder ungültig ist")
     void shouldRejectInvalidWebhookUrl() throws Exception {
         supportService.setWebhookUrl("");
@@ -177,6 +239,59 @@ class SupportServiceTest {
                 "Tester",
                 null,
                 "Feedback ohne URL",
+                null
+        );
+
+        CompletableFuture<Boolean> future = supportService.sendMessage(message);
+        Boolean success = future.get();
+
+        assertThat(success).isFalse();
+        assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.FAILED);
+    }
+
+    @Test
+    @DisplayName("Sollte Bot-DM mit User-ID aus Kontaktfeld senden wenn keine globale ID konfiguriert ist")
+    @SuppressWarnings("unchecked")
+    void shouldSendBotDmUsingRecipientUserIdFromContactField() throws Exception {
+        HttpResponse<String> channelResponse = mock(HttpResponse.class);
+        when(channelResponse.statusCode()).thenReturn(200);
+        when(channelResponse.body()).thenReturn("{\"id\":\"dm-contact-chan\",\"type\":1}");
+
+        HttpResponse<String> messageResponse = mock(HttpResponse.class);
+        when(messageResponse.statusCode()).thenReturn(200);
+        when(messageResponse.body()).thenReturn("{\"id\":\"msg-contact-123\"}");
+
+        when(mockHttpClient.sendAsync(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenReturn(CompletableFuture.completedFuture(channelResponse))
+                .thenReturn(CompletableFuture.completedFuture(messageResponse));
+
+        supportService.setBotConfig("fake-bot-token", "");
+
+        SupportMessage message = SupportMessage.create(
+                SupportCategory.BUG,
+                "Lars",
+                "987654321012345678",
+                "Bug gemeldet mit Discord ID im Kontaktfeld",
+                null
+        );
+
+        CompletableFuture<Boolean> future = supportService.sendMessage(message);
+        Boolean success = future.get();
+
+        assertThat(success).isTrue();
+        assertThat(message.status()).isEqualTo(SupportMessage.MessageStatus.SENT);
+    }
+
+    @Test
+    @DisplayName("Sollte fehlschlagen wenn Bot-Token gesetzt aber keine User-ID ermittelt werden kann")
+    void shouldFailWhenBotTokenIsSetWithoutRecipientId() throws Exception {
+        supportService.setBotConfig("fake-bot-token", "");
+
+        SupportMessage message = SupportMessage.create(
+                SupportCategory.BUG,
+                "Lars",
+                "keine-id-sondern-text",
+                "Bug ohne ID",
                 null
         );
 

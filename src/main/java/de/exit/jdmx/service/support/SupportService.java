@@ -41,6 +41,8 @@ public class SupportService {
     private final HttpClient httpClient;
     private final Map<SupportCategory, List<SupportMessage>> historyByCategory = new ConcurrentHashMap<>();
     private volatile String webhookUrl;
+    private volatile String botToken = System.getProperty("jdmx.discord.bot_token", System.getenv().getOrDefault("JDMX_DISCORD_BOT_TOKEN", ""));
+    private volatile String botRecipientUserId = System.getProperty("jdmx.discord.user_id", System.getenv().getOrDefault("JDMX_DISCORD_USER_ID", ""));
 
     /**
      * Erstellt den Service mit Standard-HTTP-Client und Standard-Webhook-URL.
@@ -93,7 +95,63 @@ public class SupportService {
     }
 
     /**
-     * Sendet eine Support-Nachricht asynchron an den konfigurierten Discord-Webhook.
+     * Konfiguriert den Bot-Token und die Empfänger-Benutzer-ID für direkte DMs.
+     *
+     * @param botToken        Discord-Bot-Token
+     * @param recipientUserId Discord-User-ID des Empfängers
+     */
+    public void setBotConfig(String botToken, String recipientUserId) {
+        this.botToken = botToken != null ? botToken.trim() : "";
+        this.botRecipientUserId = recipientUserId != null ? recipientUserId.trim() : "";
+    }
+
+    /**
+     * Prüft, ob ein Discord-Bot für den Direktnachrichten-Versand konfiguriert ist.
+     *
+     * @return true, falls Bot-Token und User-ID gesetzt sind
+     */
+    public boolean isBotConfigured() {
+        return botToken != null && !botToken.isBlank() && botRecipientUserId != null && !botRecipientUserId.isBlank();
+    }
+
+    /**
+     * Prüft, ob ein Bot-Token hinterlegt ist.
+     *
+     * @return true, falls Bot-Token gesetzt ist
+     */
+    public boolean isBotTokenSet() {
+        return botToken != null && !botToken.isBlank();
+    }
+
+    /**
+     * Ermittelt die Ziel-Benutzer-ID aus Konfiguration oder Kontaktfeld.
+     *
+     * @param message Die zu sendende Nachricht
+     * @return Benutzer-ID oder null
+     */
+    public String resolveRecipientUserId(SupportMessage message) {
+        if (botRecipientUserId != null && !botRecipientUserId.isBlank()) {
+            return botRecipientUserId.trim();
+        }
+        if (message != null && message.senderContact() != null) {
+            String contact = message.senderContact().trim();
+            if (contact.matches("\\d{17,20}")) {
+                return contact;
+            }
+        }
+        return null;
+    }
+
+    public String getBotToken() {
+        return botToken != null ? botToken : "";
+    }
+
+    public String getBotRecipientUserId() {
+        return botRecipientUserId != null ? botRecipientUserId : "";
+    }
+
+    /**
+     * Sendet eine Support-Nachricht asynchron an Discord (entweder als Bot-DM oder Webhook).
      *
      * @param message Die zu übermittelnde Nachricht
      * @return {@link CompletableFuture} mit {@code true} bei Erfolg, sonst {@code false}
@@ -101,8 +159,13 @@ public class SupportService {
     public CompletableFuture<Boolean> sendMessage(SupportMessage message) {
         Objects.requireNonNull(message, "Nachricht darf nicht null sein");
 
+        // Wenn Bot konfiguriert ist, bevorzugt echte Direktnachricht per Bot an den Nutzer senden
+        if (isBotConfigured() || (isBotTokenSet() && resolveRecipientUserId(message) != null)) {
+            return sendBotDirectMessage(message);
+        }
+
         if (webhookUrl == null || webhookUrl.isBlank() || !webhookUrl.startsWith("http")) {
-            AppLogger.warn("[SUPPORT] Kein gültiger Discord Webhook konfiguriert. Nachricht kann nicht gesendet werden.");
+            AppLogger.warn("[SUPPORT] Weder Discord Bot noch gültiger Webhook konfiguriert. Nachricht kann nicht gesendet werden.");
             message.setStatus(SupportMessage.MessageStatus.FAILED);
             return CompletableFuture.completedFuture(false);
         }
@@ -145,6 +208,96 @@ public class SupportService {
                     message.setStatus(SupportMessage.MessageStatus.FAILED);
                     return false;
                 });
+    }
+
+    private CompletableFuture<Boolean> sendBotDirectMessage(SupportMessage message) {
+        String recipientId = resolveRecipientUserId(message);
+        if (recipientId == null || recipientId.isBlank()) {
+            AppLogger.warn("[SUPPORT-BOT] Kein Discord-Empfänger konfiguriert (weder in Einstellungen noch als gültige User-ID im Kontaktfeld).");
+            message.setStatus(SupportMessage.MessageStatus.FAILED);
+            return CompletableFuture.completedFuture(false);
+        }
+
+        message.setStatus(SupportMessage.MessageStatus.SENDING);
+
+        // 1. DM-Kanal öffnen: POST https://discord.com/api/v10/users/@me/channels
+        HttpRequest openDmReq;
+        try {
+            openDmReq = HttpRequest.newBuilder()
+                    .uri(URI.create("https://discord.com/api/v10/users/@me/channels"))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("Authorization", "Bot " + botToken)
+                    .header("Content-Type", "application/json")
+                    .header("User-Agent", "DiscordBot (https://github.com/exitishere42/jdmx, 1.0.0)")
+                    .POST(HttpRequest.BodyPublishers.ofString("{\"recipient_id\":\"" + recipientId + "\"}"))
+                    .build();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Fehler beim Erstellen der DM-Kanal-Anfrage", e);
+            message.setStatus(SupportMessage.MessageStatus.FAILED);
+            return CompletableFuture.completedFuture(false);
+        }
+
+        return httpClient.sendAsync(openDmReq, HttpResponse.BodyHandlers.ofString())
+                .thenCompose(openDmRes -> {
+                    if (openDmRes.statusCode() < 200 || openDmRes.statusCode() >= 300) {
+                        AppLogger.warn("[SUPPORT-BOT] Konnte DM-Kanal nicht öffnen (Status " + openDmRes.statusCode() + "): " + openDmRes.body());
+                        message.setStatus(SupportMessage.MessageStatus.FAILED);
+                        return CompletableFuture.completedFuture(false);
+                    }
+
+                    String channelId = extractIdFromJson(openDmRes.body());
+                    if (channelId == null || channelId.isBlank()) {
+                        AppLogger.warn("[SUPPORT-BOT] DM-Kanal-ID konnte nicht aus Antwort geparst werden: " + openDmRes.body());
+                        message.setStatus(SupportMessage.MessageStatus.FAILED);
+                        return CompletableFuture.completedFuture(false);
+                    }
+
+                    // 2. Nachricht in DM-Kanal senden: POST https://discord.com/api/v10/channels/{channel_id}/messages
+                    String jsonPayload = buildDiscordJson(message);
+                    HttpRequest sendMsgReq;
+                    try {
+                        sendMsgReq = HttpRequest.newBuilder()
+                                .uri(URI.create("https://discord.com/api/v10/channels/" + channelId + "/messages"))
+                                .timeout(Duration.ofSeconds(15))
+                                .header("Authorization", "Bot " + botToken)
+                                .header("Content-Type", "application/json")
+                                .header("User-Agent", "DiscordBot (https://github.com/exitishere42/jdmx, 1.0.0)")
+                                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                                .build();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Fehler beim Erstellen der Sende-Anfrage", e);
+                        message.setStatus(SupportMessage.MessageStatus.FAILED);
+                        return CompletableFuture.completedFuture(false);
+                    }
+
+                    return httpClient.sendAsync(sendMsgReq, HttpResponse.BodyHandlers.ofString())
+                            .thenApply(msgRes -> {
+                                if (msgRes.statusCode() >= 200 && msgRes.statusCode() < 300) {
+                                    message.setStatus(SupportMessage.MessageStatus.SENT);
+                                    addMessageToHistory(message);
+                                    AppLogger.info("[SUPPORT-BOT] DM erfolgreich an Benutzer '" + recipientId + "' gesendet.");
+                                    return true;
+                                } else {
+                                    AppLogger.warn("[SUPPORT-BOT] Nachricht senden fehlgeschlagen (Status " + msgRes.statusCode() + "): " + msgRes.body());
+                                    message.setStatus(SupportMessage.MessageStatus.FAILED);
+                                    return false;
+                                }
+                            });
+                })
+                .exceptionally(ex -> {
+                    AppLogger.warn("[SUPPORT-BOT] Fehler beim Senden der Direktnachricht: " + ex.getMessage());
+                    message.setStatus(SupportMessage.MessageStatus.FAILED);
+                    return false;
+                });
+    }
+
+    private String extractIdFromJson(String json) {
+        if (json == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"id\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
     }
 
     /**

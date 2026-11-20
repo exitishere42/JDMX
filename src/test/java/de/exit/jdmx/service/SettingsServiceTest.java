@@ -167,4 +167,18 @@ class SettingsServiceTest {
         assertThat(restoredService.getDefaultFolder()).isEqualTo("D:\\Shows");
         assertThat(newShortcutService.getDisplayText(ShortcutAction.UNDO)).contains("Strg + U");
     }
+
+    @Test
+    @DisplayName("Sollte Discord Bot Einstellungen speichern und wiederherstellen")
+    void shouldSaveAndLoadDiscordBotSettings(@TempDir Path tempDir) {
+        File configFile = tempDir.resolve("settings.json").toFile();
+        SettingsService service = new SettingsService(configFile);
+        service.setDiscordBotToken("test-bot-token-xyz");
+        service.setDiscordRecipientUserId("987654321098765432");
+        service.saveGlobalSettings(null);
+
+        SettingsService restoredService = new SettingsService(configFile);
+        assertThat(restoredService.getDiscordBotToken()).isEqualTo("test-bot-token-xyz");
+        assertThat(restoredService.getDiscordRecipientUserId()).isEqualTo("987654321098765432");
+    }
 }

@@ -47,6 +47,7 @@ class UpdateServiceTest {
     @Test
     @DisplayName("Sollte Version 1.21.2 nicht als veraltet einstufen wenn GitHub denselben Tag liefert")
     void shouldNotConsiderSameOrOlderVersionAsNewer() {
+        assertThat(UpdateService.isVersionNewer("v1.21.3", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.21.2", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.21.1", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.21.0", UpdateService.CURRENT_VERSION)).isFalse();
@@ -60,7 +61,7 @@ class UpdateServiceTest {
         assertThat(UpdateService.isVersionNewer("v1.20.3", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.20.1", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.15.5", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.3", UpdateService.CURRENT_VERSION)).isTrue();
+        assertThat(UpdateService.isVersionNewer("v1.21.4", UpdateService.CURRENT_VERSION)).isTrue();
         assertThat(UpdateService.isVersionNewer("v1.22.0", UpdateService.CURRENT_VERSION)).isTrue();
         assertThat(UpdateService.isVersionNewer("v2.0.0", UpdateService.CURRENT_VERSION)).isTrue();
     }
