@@ -93,8 +93,8 @@ class SupportServiceTest {
         assertThat(json).contains("Java 21.0.2");
         assertThat(json).contains("44 DMX/s");
         assertThat(json).contains("jdmx-diagnostic.log");
-        // Farbe für Bug sollte das helle JDMX Logo-Gelb sein (Dezimalwert 16702612 bzw. #FEDC94)
-        assertThat(json).contains("\"color\":16702612");
+        // Farbe für Bug sollte Hellrot sein (Dezimalwert 16281969 bzw. #F87171)
+        assertThat(json).contains("\"color\":16281969");
     }
 
     @Test

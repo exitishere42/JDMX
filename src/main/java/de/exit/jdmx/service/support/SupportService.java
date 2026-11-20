@@ -42,8 +42,8 @@ public class SupportService {
     /** Farbe für Feedback-Embeds: Helles JDMX Logo-Gelb (#FEDC94 -> 16702612). */
     public static final int COLOR_FEEDBACK = COLOR_EMBED_YELLOW;
 
-    /** Farbe für Bug-Embeds: Helles JDMX Logo-Gelb (#FEDC94 -> 16702612). */
-    public static final int COLOR_BUG = COLOR_EMBED_YELLOW;
+    /** Farbe für Bug-Embeds: Hellrot (#F87171 -> 16281969). */
+    public static final int COLOR_BUG = 16281969;
 
     private final HttpClient httpClient;
     private final Map<SupportCategory, List<SupportMessage>> historyByCategory = new ConcurrentHashMap<>();
