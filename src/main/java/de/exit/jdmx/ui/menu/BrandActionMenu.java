@@ -58,7 +58,7 @@ public class BrandActionMenu extends Popup {
         // 3. System & Ansicht
         Button btnSettings = createMenuItem("settings", I18n.get("menu.settings"), "settings", StudioTheme.COLOR_MENU_SETTINGS);
         Button btnUpdates = createMenuItem("check_updates", I18n.get("menu.updates"), "arrow-up-circle", Color.web("#38BDF8"));
-        Button btnSupport = createMenuItem("support", I18n.get("menu.support"), "life-buoy", Color.web("#38BDF8"));
+        Button btnSupport = createMenuItem("support", I18n.get("menu.support"), "life-buoy", Color.web("#F87171"));
         Button btnFullscreen = createMenuItem("fullscreen", I18n.get("menu.fullscreen"), "maximize", StudioTheme.COLOR_MENU_FULLSCREEN);
 
         root.getChildren().addAll(

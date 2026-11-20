@@ -37,6 +37,9 @@ public class SupportDialog {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
             .withZone(ZoneId.systemDefault());
 
+    /** Weiches, lesbares Rot für Akzente ("weißes Rot" / Tailwind Red-400). */
+    public static final Color COLOR_ACCENT_RED = Color.web("#F87171");
+
     private final MainWindow mainWindow;
     private final SupportService supportService;
     private final VBox card;
@@ -143,7 +146,7 @@ public class SupportDialog {
         HBox header = new HBox(10);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        LucideIcon icon = new LucideIcon("life-buoy", 20, Color.web("#38BDF8"));
+        LucideIcon icon = new LucideIcon("life-buoy", 20, COLOR_ACCENT_RED);
 
         this.lblTitle = new Label(I18n.get("support.title"));
         lblTitle.getStyleClass().add("dialog-title");
@@ -168,7 +171,7 @@ public class SupportDialog {
 
         btnTabFeedback = new Button(I18n.get("support.tab.feedback"));
         btnTabFeedback.getStyleClass().addAll("dialog-underline-tab", "active");
-        btnTabFeedback.setGraphic(new LucideIcon("sparkles", 14, Color.web("#38BDF8")));
+        btnTabFeedback.setGraphic(new LucideIcon("sparkles", 14, COLOR_ACCENT_RED));
         btnTabFeedback.setCursor(Cursor.HAND);
         btnTabFeedback.setOnAction(e -> switchTab(SupportCategory.FEEDBACK));
 
@@ -223,8 +226,8 @@ public class SupportDialog {
         HBox.setHgrow(lblStatus, Priority.ALWAYS);
 
         this.btnSend = new Button(I18n.get("support.btn.send"));
-        btnSend.getStyleClass().add("primary-button");
-        btnSend.setGraphic(new LucideIcon("send", 14, Color.web("#18181B")));
+        btnSend.getStyleClass().add("settings-btn-primary");
+        btnSend.setGraphic(new LucideIcon("send", 14, StudioTheme.COLOR_ICON_GREEN));
         btnSend.setCursor(Cursor.HAND);
         btnSend.setOnAction(e -> handleSendMessage());
 
@@ -245,7 +248,7 @@ public class SupportDialog {
         if (category == SupportCategory.FEEDBACK) {
             btnTabFeedback.getStyleClass().add("active");
             btnTabBugs.getStyleClass().remove("active");
-            ((LucideIcon) btnTabFeedback.getGraphic()).setColor(Color.web("#38BDF8"));
+            ((LucideIcon) btnTabFeedback.getGraphic()).setColor(COLOR_ACCENT_RED);
             ((LucideIcon) btnTabBugs.getGraphic()).setColor(Color.web("#9CA3AF"));
 
             cbIncludeDiagnostics.setVisible(false);
@@ -253,7 +256,7 @@ public class SupportDialog {
         } else {
             btnTabBugs.getStyleClass().add("active");
             btnTabFeedback.getStyleClass().remove("active");
-            ((LucideIcon) btnTabBugs.getGraphic()).setColor(Color.web("#EF4444"));
+            ((LucideIcon) btnTabBugs.getGraphic()).setColor(COLOR_ACCENT_RED);
             ((LucideIcon) btnTabFeedback.getGraphic()).setColor(Color.web("#9CA3AF"));
 
             cbIncludeDiagnostics.setVisible(true);
@@ -292,14 +295,14 @@ public class SupportDialog {
 
         HBox authorRow = new HBox(6);
         authorRow.setAlignment(Pos.CENTER_LEFT);
-        LucideIcon botIcon = new LucideIcon("life-buoy", 14, Color.web("#38BDF8"));
+        LucideIcon botIcon = new LucideIcon("life-buoy", 14, COLOR_ACCENT_RED);
         Label lblAuthor = new Label(I18n.get("support.chat.bot_name"));
-        lblAuthor.setStyle("-fx-text-fill: #38BDF8; -fx-font-weight: bold; -fx-font-size: 11px;");
+        lblAuthor.setStyle("-fx-text-fill: #F87171; -fx-font-weight: bold; -fx-font-size: 11px;");
         authorRow.getChildren().addAll(botIcon, lblAuthor);
 
         Label lblContent = new Label(text);
         lblContent.setWrapText(true);
-        lblContent.setStyle("-fx-text-fill: #E4E4E7; -fx-font-size: 12px;");
+        lblContent.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 13px;");
 
         bubble.getChildren().addAll(authorRow, lblContent);
         return bubble;
@@ -313,7 +316,7 @@ public class SupportDialog {
         topRow.setAlignment(Pos.CENTER_LEFT);
 
         Label lblAuthor = new Label(msg.senderName());
-        lblAuthor.setStyle("-fx-text-fill: #38BDF8; -fx-font-weight: bold; -fx-font-size: 11px;");
+        lblAuthor.setStyle("-fx-text-fill: #F87171; -fx-font-weight: bold; -fx-font-size: 11px;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -326,7 +329,7 @@ public class SupportDialog {
 
         Label lblContent = new Label(msg.messageText());
         lblContent.setWrapText(true);
-        lblContent.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px;");
+        lblContent.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 13px;");
 
         bubble.getChildren().addAll(topRow, lblContent);
         return bubble;
@@ -335,7 +338,7 @@ public class SupportDialog {
     private void handleSendMessage() {
         String text = txtMessage.getText();
         if (text == null || text.isBlank()) {
-            lblStatus.setStyle("-fx-text-fill: #EF4444; -fx-font-size: 11px;");
+            lblStatus.setStyle("-fx-text-fill: #F87171; -fx-font-size: 11px;");
             lblStatus.setText(I18n.get("support.status.empty"));
             return;
         }
@@ -356,7 +359,7 @@ public class SupportDialog {
 
         // UI vorbereiten & sperren
         btnSend.setDisable(true);
-        lblStatus.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 11px;");
+        lblStatus.setStyle("-fx-text-fill: #F87171; -fx-font-size: 11px;");
         lblStatus.setText(I18n.get("support.status.sending"));
 
         // Asynchron über SupportService senden
@@ -368,13 +371,13 @@ public class SupportDialog {
                 txtMessage.clear();
                 refreshChatView();
             } else {
-                lblStatus.setStyle("-fx-text-fill: #EF4444; -fx-font-size: 11px;");
+                lblStatus.setStyle("-fx-text-fill: #F87171; -fx-font-size: 11px;");
                 lblStatus.setText(I18n.get("support.status.failed"));
             }
         })).exceptionally(ex -> {
             Platform.runLater(() -> {
                 btnSend.setDisable(false);
-                lblStatus.setStyle("-fx-text-fill: #EF4444; -fx-font-size: 11px;");
+                lblStatus.setStyle("-fx-text-fill: #F87171; -fx-font-size: 11px;");
                 lblStatus.setText(I18n.get("support.status.failed"));
             });
             return null;

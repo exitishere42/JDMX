@@ -1901,8 +1901,8 @@
 }
 
 .dialog-underline-tab.active {
-    -fx-text-fill: #38BDF8;
-    -fx-border-color: transparent transparent #38BDF8 transparent;
+    -fx-text-fill: #F87171;
+    -fx-border-color: transparent transparent #F87171 transparent;
     -fx-border-width: 0 0 2 0;
 }
 
@@ -1929,8 +1929,8 @@
 }
 
 .support-bubble-system {
-    -fx-background-color: #1F2430;
-    -fx-border-color: #2E384D;
+    -fx-background-color: #222227;
+    -fx-border-color: #383842;
     -fx-border-width: 1px;
     -fx-background-radius: 6px;
     -fx-border-radius: 6px;
@@ -1938,8 +1938,8 @@
 }
 
 .support-bubble-user {
-    -fx-background-color: #1E293B;
-    -fx-border-color: #38BDF8;
+    -fx-background-color: #262226;
+    -fx-border-color: #F87171;
     -fx-border-width: 1px;
     -fx-background-radius: 6px;
     -fx-border-radius: 6px;
@@ -1947,36 +1947,50 @@
 }
 
 .support-input-text {
-    -fx-background-color: #121214;
-    -fx-border-color: #27272A;
+    -fx-background-color: #202024;
+    -fx-border-color: #3F3F46;
     -fx-border-width: 1px;
-    -fx-text-fill: #F3F4F6;
+    -fx-text-fill: #FFFFFF;
+    -fx-prompt-text-fill: #A1A1AA;
+    -fx-highlight-fill: #F87171;
+    -fx-highlight-text-fill: #FFFFFF;
     -fx-background-radius: 4px;
     -fx-border-radius: 4px;
-    -fx-padding: 6 10;
-    -fx-font-size: 12px;
+    -fx-padding: 8 12;
+    -fx-font-size: 13px;
+}
+
+.support-input-text .text {
+    -fx-fill: #FFFFFF;
 }
 
 .support-input-text:focused {
-    -fx-border-color: #38BDF8;
+    -fx-border-color: #F87171;
 }
 
 .support-textarea {
-    -fx-background-color: #121214;
-    -fx-border-color: #27272A;
+    -fx-background-color: #202024;
+    -fx-border-color: #3F3F46;
     -fx-border-width: 1px;
-    -fx-text-fill: #F3F4F6;
+    -fx-text-fill: #FFFFFF;
+    -fx-prompt-text-fill: #A1A1AA;
+    -fx-highlight-fill: #F87171;
+    -fx-highlight-text-fill: #FFFFFF;
     -fx-background-radius: 4px;
     -fx-border-radius: 4px;
-    -fx-padding: 6 10;
-    -fx-font-size: 12px;
+    -fx-padding: 8 12;
+    -fx-font-size: 13px;
 }
 
 .support-textarea .content {
-    -fx-background-color: #121214;
+    -fx-background-color: #202024;
+}
+
+.support-textarea .text {
+    -fx-fill: #FFFFFF;
 }
 
 .support-textarea:focused {
-    -fx-border-color: #38BDF8;
+    -fx-border-color: #F87171;
 }
 
