@@ -133,7 +133,8 @@ class ProjectStorageServiceTest {
                 false,
                 "Alle 5 Minuten",
                 "D:\\CustomShows",
-                java.util.Map.of("SAVE_PROJECT", "Ctrl+Alt+S")
+                java.util.Map.of("SAVE_PROJECT", "Ctrl+Alt+S"),
+                0.8
         );
 
         ProjectData project = new ProjectData(
@@ -159,6 +160,7 @@ class ProjectStorageServiceTest {
         assertThat(loaded.settings().autoSaveInterval()).isEqualTo("Alle 5 Minuten");
         assertThat(loaded.settings().defaultFolder()).isEqualTo("D:\\CustomShows");
         assertThat(loaded.settings().shortcuts()).containsEntry("SAVE_PROJECT", "Ctrl+Alt+S");
+        assertThat(loaded.settings().uiScale()).isEqualTo(0.8);
     }
 
     @Test

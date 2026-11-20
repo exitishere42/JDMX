@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.*;
 
@@ -213,6 +214,27 @@ public final class AppLogger {
     public static Path getLogDirectoryPath() {
         init();
         return logDirPath;
+    }
+
+    /**
+     * Liest die letzten Zeilen aus der aktuellen Log-Datei.
+     *
+     * @param maxLines Maximale Anzahl an Zeilen vom Ende der Datei
+     * @return Log-Auszug als String
+     */
+    public static String getRecentLogs(int maxLines) {
+        init();
+        flush();
+        if (logFilePath == null || !Files.exists(logFilePath)) {
+            return "";
+        }
+        try {
+            List<String> lines = Files.readAllLines(logFilePath);
+            int start = Math.max(0, lines.size() - Math.max(1, maxLines));
+            return String.join(System.lineSeparator(), lines.subList(start, lines.size()));
+        } catch (Exception e) {
+            return "Konnte Log-Datei nicht lesen: " + e.getMessage();
+        }
     }
 
     /**

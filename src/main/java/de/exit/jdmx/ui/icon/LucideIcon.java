@@ -349,6 +349,18 @@ public class LucideIcon extends StackPane {
             case "wrench", "maintenance" ->
                 // Lucide wrench
                 "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z";
+            case "life-buoy", "support" ->
+                // Lucide life-buoy
+                "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15a5 5 0 1 1 5-5 5 5 0 0 1-5 5zm3.5-3.5L19 17m-14 0l3.5-3.5m0-7L5 7m14 0l-3.5 3.5";
+            case "message-square" ->
+                // Lucide message-square
+                "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z";
+            case "bug" ->
+                // Lucide bug
+                "m8 2 1.88 1.88 M14.12 3.88 16 2 M9 7.13v-1a3.003 3.003 0 1 1 6 0v1 M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6 M12 20v-9 M6.53 9C4.6 8.8 3 7.1 3 5 M6 13H2 M3 21c0-2.1 1.7-3.9 3.8-4 M20.97 5c0 2.1-1.6 3.8-3.5 4 M22 13h-4 M17.2 17c2.1.1 3.8 1.9 3.8 4";
+            case "send" ->
+                // Lucide send
+                "m22 2-7 20-4-9-9-4ZM22 2 11 13";
             case "circle" ->
                 // Lucide circle
                 "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";

@@ -31,7 +31,7 @@ public class UpdateService {
     private static final Logger LOGGER = Logger.getLogger(UpdateService.class.getName());
 
     /** Feste Fallback-Version für Entwicklungsumgebungen. */
-    public static final String FALLBACK_VERSION = "1.20.10";
+    public static final String FALLBACK_VERSION = "1.21.0";
 
     /** Aktuelle Anwendungsversion (dynamisch ermittelt aus version.properties). */
     public static final String CURRENT_VERSION = resolveCurrentVersion();

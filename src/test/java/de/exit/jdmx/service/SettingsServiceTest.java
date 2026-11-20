@@ -1,15 +1,21 @@
 package de.exit.jdmx.service;
 
+import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.project.model.SettingsDataDto;
 import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,6 +30,11 @@ class SettingsServiceTest {
             Platform.startup(() -> {});
         } catch (IllegalStateException ignored) {
         }
+    }
+
+    @AfterEach
+    void resetLocale() {
+        I18n.setLanguage("de");
     }
 
     @Test
@@ -85,5 +96,75 @@ class SettingsServiceTest {
         assertThat(service.isFullscreen()).isFalse();
         assertThat(service.isConfirmExit()).isTrue();
         assertThat(shortcutService.getDisplayText(ShortcutAction.SAVE_PROJECT)).contains("Strg + S");
+        assertThat(service.getUiScale()).isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("Sollte standardmäßig UI-Skalierung 1.0 (100%) besitzen")
+    void shouldDefaultToUiScale100Percent() {
+        SettingsService service = new SettingsService();
+        assertThat(service.getUiScale()).isEqualTo(1.0);
+    }
+
+    @Test
+    @DisplayName("Sollte UI-Skalierung setzen und auf sinnvolle Werte begrenzen (0.5 bis 2.5)")
+    void shouldSetAndClampUiScale() {
+        SettingsService service = new SettingsService();
+        service.setUiScale(0.8);
+        assertThat(service.getUiScale()).isEqualTo(0.8);
+
+        service.setUiScale(1.25);
+        assertThat(service.getUiScale()).isEqualTo(1.25);
+
+        // Clamping nach unten
+        service.setUiScale(0.1);
+        assertThat(service.getUiScale()).isEqualTo(0.5);
+
+        // Clamping nach oben
+        service.setUiScale(5.0);
+        assertThat(service.getUiScale()).isEqualTo(2.5);
+    }
+
+    @Test
+    @DisplayName("Sollte Listener bei UI-Skalierungsänderung reaktiv benachrichtigen")
+    void shouldNotifyUiScaleListenersWhenScaleChanges() {
+        SettingsService service = new SettingsService();
+        AtomicReference<Double> capturedScale = new AtomicReference<>();
+        service.addUiScaleListener(capturedScale::set);
+
+        service.setUiScale(0.9);
+        assertThat(capturedScale.get()).isEqualTo(0.9);
+    }
+
+    @Test
+    @DisplayName("Sollte globale Konfigurationsdatei laden und speichern können")
+    void shouldSaveAndLoadGlobalConfigFile(@TempDir Path tempDir) {
+        File configFile = tempDir.resolve("settings.json").toFile();
+        ShortcutService shortcutService = new ShortcutService();
+        shortcutService.setShortcut(ShortcutAction.UNDO, new KeyCodeCombination(KeyCode.U, KeyCombination.CONTROL_DOWN));
+
+        SettingsService service = new SettingsService(configFile);
+        service.setLanguage("en");
+        service.setUiScale(0.8);
+        service.setFullscreen(true);
+        service.setConfirmExit(false);
+        service.setAutoSaveInterval("Alle 15 Minuten");
+        service.setDefaultFolder("D:\\Shows");
+        service.saveGlobalSettings(shortcutService);
+
+        assertThat(configFile).exists().isNotEmpty();
+
+        // Neuen Service mit derselben Datei initialisieren -> muss Einstellungen sofort laden
+        ShortcutService newShortcutService = new ShortcutService();
+        SettingsService restoredService = new SettingsService(configFile);
+        restoredService.loadGlobalSettings(newShortcutService);
+
+        assertThat(restoredService.getLanguage()).isEqualTo("en");
+        assertThat(restoredService.getUiScale()).isEqualTo(0.8);
+        assertThat(restoredService.isFullscreen()).isTrue();
+        assertThat(restoredService.isConfirmExit()).isFalse();
+        assertThat(restoredService.getAutoSaveInterval()).isEqualTo("Alle 15 Minuten");
+        assertThat(restoredService.getDefaultFolder()).isEqualTo("D:\\Shows");
+        assertThat(newShortcutService.getDisplayText(ShortcutAction.UNDO)).contains("Strg + U");
     }
 }

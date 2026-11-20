@@ -232,6 +232,11 @@ public class HeaderBar extends HBox {
             } else {
                 Bounds bounds = btn.localToScreen(btn.getBoundsInLocal());
                 if (bounds != null && btn.getScene() != null && btn.getScene().getWindow() != null) {
+                    double scale = 1.0;
+                    if (btn.getScene().getRoot() instanceof MainWindow mw) {
+                        scale = mw.getSettingsService().getUiScale();
+                    }
+                    actionMenu.setScale(scale);
                     actionMenu.show(btn.getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
                 }
             }

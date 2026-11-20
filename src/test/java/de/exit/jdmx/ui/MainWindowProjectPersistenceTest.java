@@ -17,6 +17,7 @@ import de.exit.jdmx.service.ProjectStorageService;
 import de.exit.jdmx.service.ShortcutService;
 import javafx.application.Platform;
 import javafx.scene.paint.Color;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,11 @@ class MainWindowProjectPersistenceTest {
             latch.countDown();
         }
         assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @AfterEach
+    void resetLocale() {
+        de.exit.jdmx.core.i18n.I18n.setLanguage("de");
     }
 
     @Test
@@ -212,8 +218,13 @@ class MainWindowProjectPersistenceTest {
                 window.saveCurrentProject(projectFile);
                 assertThat(projectFile).exists().isNotEmpty();
 
-                // Auf neues leeres Projekt zurücksetzen
+                // Auf neues leeres Projekt zurücksetzen - Benutzereinstellungen bleiben erhalten!
                 window.newProject();
+                assertThat(window.getSettingsService().isFullscreen()).isTrue();
+                assertThat(window.getSettingsService().getLanguage()).isEqualTo("en");
+
+                // Einstellungen vorübergehend auf Werks-Defaults für Reload-Test zurücksetzen
+                window.getSettingsService().resetDefaults(window.getShortcutService());
                 assertThat(window.getSettingsService().isFullscreen()).isFalse();
 
                 // Projekt wieder laden

@@ -57,6 +57,8 @@ public class SettingsDialog {
 
     private Text titleText;
     private Label lblLang;
+    private Label lblUiScale;
+    private ComboBox<String> cbUiScale;
     private CheckBox cbFullscreen;
     private CheckBox cbConfirmExit;
     private Label lblAutoSave;
@@ -129,9 +131,9 @@ public class SettingsDialog {
         // 3. Inhaltsbereich (mit identischer Höhe für Allgemein und Shortcuts)
         this.contentArea = new StackPane();
         contentArea.getStyleClass().add("settings-content-area");
-        contentArea.setMinHeight(255);
-        contentArea.setPrefHeight(255);
-        contentArea.setMaxHeight(255);
+        contentArea.setMinHeight(295);
+        contentArea.setPrefHeight(295);
+        contentArea.setMaxHeight(295);
 
         this.generalView = buildGeneralView();
         this.shortcutsView = buildShortcutsView();
@@ -224,25 +226,53 @@ public class SettingsDialog {
         ComboBox<LanguageOption> cbLanguage = createLanguageComboBox();
         langRow.getChildren().addAll(lblLang, cbLanguage);
 
-        // 2. Vollbild beim Start
+        // 2. UI-Skalierung für kleinere Displays und Laptops
+        HBox scaleRow = new HBox(12);
+        scaleRow.setAlignment(Pos.CENTER_LEFT);
+        this.lblUiScale = new Label(I18n.get("settings.ui_scale"));
+        lblUiScale.getStyleClass().add("settings-label");
+        lblUiScale.setMinWidth(160);
+
+        this.cbUiScale = new ComboBox<>();
+        cbUiScale.getStyleClass().add("settings-combo");
+        cbUiScale.getItems().addAll("75%", "80%", "90%", "100%", "110%", "120%", "125%", "150%");
+        cbUiScale.setValue(formatUiScale(settingsService.getUiScale()));
+        cbUiScale.valueProperty().addListener((obs, o, n) -> {
+            if (n != null) {
+                double scaleVal = parseUiScale(n);
+                settingsService.setUiScale(scaleVal);
+                settingsService.saveGlobalSettings(shortcutService);
+                if (mainWindow != null) {
+                    mainWindow.applyUiScale(scaleVal);
+                    if (mainWindow.getCurrentProjectFile() != null) {
+                        mainWindow.autoSave();
+                    }
+                }
+            }
+        });
+        scaleRow.getChildren().addAll(lblUiScale, cbUiScale);
+
+        // 3. Vollbild beim Start
         this.cbFullscreen = new CheckBox(I18n.get("settings.fullscreen"));
         cbFullscreen.getStyleClass().add("settings-checkbox");
         cbFullscreen.setSelected(settingsService.isFullscreen());
         cbFullscreen.selectedProperty().addListener((obs, o, n) -> {
             settingsService.setFullscreen(n);
+            settingsService.saveGlobalSettings(shortcutService);
             if (mainWindow != null) mainWindow.autoSave();
         });
 
-        // 3. Sicherheitsabfrage vor Beenden
+        // 4. Sicherheitsabfrage vor Beenden
         this.cbConfirmExit = new CheckBox(I18n.get("settings.confirm_exit"));
         cbConfirmExit.getStyleClass().add("settings-checkbox");
         cbConfirmExit.setSelected(settingsService.isConfirmExit());
         cbConfirmExit.selectedProperty().addListener((obs, o, n) -> {
             settingsService.setConfirmExit(n);
+            settingsService.saveGlobalSettings(shortcutService);
             if (mainWindow != null) mainWindow.autoSave();
         });
 
-        // 4. Auto-Save
+        // 5. Auto-Save
         HBox autoSaveRow = new HBox(12);
         autoSaveRow.setAlignment(Pos.CENTER_LEFT);
         this.lblAutoSave = new Label(I18n.get("settings.autosave"));
@@ -255,12 +285,13 @@ public class SettingsDialog {
         cbAutoSave.valueProperty().addListener((obs, o, n) -> {
             if (n != null) {
                 settingsService.setAutoSaveInterval(n);
+                settingsService.saveGlobalSettings(shortcutService);
                 if (mainWindow != null) mainWindow.autoSave();
             }
         });
         autoSaveRow.getChildren().addAll(lblAutoSave, cbAutoSave);
 
-        // 5. Standard-Projektverzeichnis
+        // 6. Standard-Projektverzeichnis
         VBox folderBox = new VBox(6);
         this.lblFolder = new Label(I18n.get("settings.default_folder"));
         lblFolder.getStyleClass().add("settings-label");
@@ -273,6 +304,7 @@ public class SettingsDialog {
         tfFolder.textProperty().addListener((obs, o, n) -> {
             if (n != null) {
                 settingsService.setDefaultFolder(n);
+                settingsService.saveGlobalSettings(shortcutService);
                 if (mainWindow != null) mainWindow.autoSave();
             }
         });
@@ -292,6 +324,7 @@ public class SettingsDialog {
             if (chosen != null) {
                 tfFolder.setText(chosen.getAbsolutePath());
                 settingsService.setDefaultFolder(chosen.getAbsolutePath());
+                settingsService.saveGlobalSettings(shortcutService);
                 if (mainWindow != null) mainWindow.autoSave();
             }
         });
@@ -299,7 +332,7 @@ public class SettingsDialog {
         folderRow.getChildren().addAll(tfFolder, btnBrowse);
         folderBox.getChildren().addAll(lblFolder, folderRow);
 
-        // 6. Diagnose & Log-Datei (für Fehleranalyse)
+        // 7. Diagnose & Log-Datei (für Fehleranalyse)
         VBox logBox = new VBox(6);
         this.lblLog = new Label(I18n.get("settings.diagnostics"));
         lblLog.getStyleClass().add("settings-label");
@@ -331,7 +364,7 @@ public class SettingsDialog {
         logRow.getChildren().addAll(tfLog, btnOpenLog, btnCopyLog);
         logBox.getChildren().addAll(lblLog, logRow);
 
-        box.getChildren().addAll(langRow, cbFullscreen, cbConfirmExit, autoSaveRow, folderBox, logBox);
+        box.getChildren().addAll(langRow, scaleRow, cbFullscreen, cbConfirmExit, autoSaveRow, folderBox, logBox);
         return box;
     }
 
@@ -354,6 +387,7 @@ public class SettingsDialog {
             if (newVal != null) {
                 I18n.setLanguage(newVal.code());
                 settingsService.setLanguage(newVal.code());
+                settingsService.saveGlobalSettings(shortcutService);
                 if (mainWindow != null) {
                     mainWindow.autoSave();
                 }
@@ -472,6 +506,7 @@ public class SettingsDialog {
             shortcutService.resetShortcut(item.action());
             btnKey.setText(shortcutService.getDisplayText(item.action()));
             btnKey.getStyleClass().remove("recording");
+            settingsService.saveGlobalSettings(shortcutService);
             if (mainWindow != null) {
                 mainWindow.autoSave();
             }
@@ -543,6 +578,7 @@ public class SettingsDialog {
 
         this.recordingAction = null;
         this.recordingButton = null;
+        settingsService.saveGlobalSettings(shortcutService);
         if (mainWindow != null) {
             mainWindow.autoSave();
         }
@@ -577,6 +613,7 @@ public class SettingsDialog {
         if (btnTabGeneral != null) btnTabGeneral.setText(I18n.get("settings.tab.general"));
         if (btnTabShortcuts != null) btnTabShortcuts.setText(I18n.get("settings.tab.shortcuts"));
         if (lblLang != null) lblLang.setText(I18n.get("settings.language"));
+        if (lblUiScale != null) lblUiScale.setText(I18n.get("settings.ui_scale"));
         if (cbFullscreen != null) cbFullscreen.setText(I18n.get("settings.fullscreen"));
         if (cbConfirmExit != null) cbConfirmExit.setText(I18n.get("settings.confirm_exit"));
         if (lblAutoSave != null) lblAutoSave.setText(I18n.get("settings.autosave"));
@@ -586,6 +623,21 @@ public class SettingsDialog {
         if (btnOpenLog != null) btnOpenLog.setText(I18n.get("settings.open_log_folder"));
         if (btnCopyLog != null) btnCopyLog.setText(I18n.get("settings.copy_path"));
         if (btnDone != null) btnDone.setText(I18n.get("action.close"));
+    }
+
+    private static String formatUiScale(double scale) {
+        int pct = (int) Math.round(scale * 100);
+        return pct + "%";
+    }
+
+    private static double parseUiScale(String str) {
+        if (str == null) return 1.0;
+        try {
+            String clean = str.replace("%", "").trim();
+            return Double.parseDouble(clean) / 100.0;
+        } catch (NumberFormatException e) {
+            return 1.0;
+        }
     }
 
     /**

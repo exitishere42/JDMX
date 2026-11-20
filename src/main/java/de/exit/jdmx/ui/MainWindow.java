@@ -28,10 +28,12 @@ import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.service.UndoRedoService;
+import de.exit.jdmx.service.support.SupportService;
 import de.exit.jdmx.ui.desk.LightDeskWorkspaceView;
 import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.FixturePatchDialog;
 import de.exit.jdmx.ui.dialog.SettingsDialog;
+import de.exit.jdmx.ui.dialog.SupportDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.io.IOWorkspaceView;
 import de.exit.jdmx.ui.io.UniversePatchTable;
@@ -64,6 +66,7 @@ import java.util.Optional;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 
 /**
@@ -96,6 +99,12 @@ public class MainWindow extends StackPane {
     /** HUD-Container für schnelle, unaufdringliche Status-Benachrichtigungen (z. B. Vollbild). */
     private final StackPane hudPane;
 
+    /** Skalierbarer Root-Layer für Virtual Viewport (Content, Modale Dialoge, HUD). */
+    private final StackPane scalableRoot;
+
+    /** Scale-Transformation für dynamische UI-Skalierung. */
+    private final Scale scaleTransform = new Scale(1.0, 1.0, 0, 0);
+
     /** Zentraler Shortcut-Service für konfigurierbare Tastaturkürzel. */
     private final ShortcutService shortcutService;
 
@@ -107,6 +116,9 @@ public class MainWindow extends StackPane {
 
     /** Dienst zur Verwaltung von Undo- und Redo-Schritten. */
     private final UndoRedoService undoRedoService = new UndoRedoService();
+
+    /** Zentraler Support- und Feedback-Dienst. */
+    private final SupportService supportService = new SupportService();
 
     /** Aktuelle Projektdatei (default.jdmx oder geladene/gespeicherte Datei). */
     private File currentProjectFile;
@@ -186,7 +198,20 @@ public class MainWindow extends StackPane {
         hudPane.setPickOnBounds(false);
         hudPane.setAlignment(Pos.CENTER);
 
-        getChildren().addAll(contentPane, overlayPane, hudPane);
+        // 6. Globale Einstellungen für den App-Start laden
+        settingsService.loadGlobalSettings(shortcutService);
+
+        // 7. Virtual Viewport: Skalierbarer Root-Container für randlose UI-Skalierung
+        this.scalableRoot = new StackPane();
+        scalableRoot.getStyleClass().add("scalable-root");
+        scalableRoot.getChildren().addAll(contentPane, overlayPane, hudPane);
+        scalableRoot.getTransforms().add(scaleTransform);
+
+        getChildren().add(scalableRoot);
+
+        // UI-Scale Listener registrieren
+        settingsService.addUiScaleListener(this::applyUiScale);
+        applyUiScale(settingsService.getUiScale());
 
         // Stage-Initialisierung für sauberes Fullscreen-Handling
         sceneProperty().addListener((obs, oldScene, newScene) -> {
@@ -239,6 +264,10 @@ public class MainWindow extends StackPane {
 
         headerBar.getActionMenu().setOnAction("check_updates", () -> {
             AboutUpdateDialog.show(this);
+        });
+
+        headerBar.getActionMenu().setOnAction("support", () -> {
+            SupportDialog.show(this);
         });
 
         // Undo & Redo Verwaltung und Synchronisation mit Kopfzeile und Aktionsmenü
@@ -465,9 +494,8 @@ public class MainWindow extends StackPane {
         if (undoRedoService != null) {
             undoRedoService.clear();
         }
-        if (settingsService != null) {
-            settingsService.resetDefaults(shortcutService);
-        }
+        // Hinweis: Einstellungen (Sprache, UI-Scale, Shortcuts) werden bei neuem Projekt bewusst
+        // beibehalten, damit die bevorzugte Arbeitsumgebung des Nutzers nicht verloren geht.
     }
 
     /**
@@ -898,6 +926,7 @@ public class MainWindow extends StackPane {
         // 6. Profileinstellungen wiederherstellen
         if (data.settings() != null) {
             settingsService.applyDto(data.settings(), shortcutService);
+            applyUiScale(settingsService.getUiScale());
         }
     }
 
@@ -1112,5 +1141,52 @@ public class MainWindow extends StackPane {
      */
     public SettingsService getSettingsService() {
         return settingsService;
+    }
+
+    /**
+     * Liefert den zentralen SupportService des Hauptfensters.
+     */
+    public SupportService getSupportService() {
+        return supportService;
+    }
+
+    @Override
+    protected void layoutChildren() {
+        double w = getWidth();
+        double h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        double scale = scaleTransform.getX();
+        if (scale <= 0.1) {
+            scale = 1.0;
+        }
+
+        double logicalW = w / scale;
+        double logicalH = h / scale;
+
+        scalableRoot.resizeRelocate(0, 0, logicalW, logicalH);
+    }
+
+    /**
+     * Wendet einen neuen Skalierungsfaktor sofort auf das Hauptfenster an.
+     *
+     * @param scale Der neue UI-Skalierungsfaktor (z. B. 0.8 für 80%)
+     */
+    public void applyUiScale(double scale) {
+        double s = Math.max(0.5, Math.min(2.5, scale));
+        if (settingsService != null && Double.compare(settingsService.getUiScale(), s) != 0) {
+            settingsService.setUiScale(s);
+        }
+        scaleTransform.setX(s);
+        scaleTransform.setY(s);
+        requestLayout();
+    }
+
+    /**
+     * Liefert den skalierbaren Root-Container für den Virtual Viewport.
+     */
+    public StackPane getScalableRoot() {
+        return scalableRoot;
     }
 }

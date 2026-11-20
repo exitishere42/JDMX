@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.component;
 
+import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.beans.property.SimpleStringProperty;
@@ -9,6 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.OverrunStyle;
@@ -119,11 +121,32 @@ public class CustomDropdownButton extends HBox {
         } else {
             Bounds bounds = localToScreen(getBoundsInLocal());
             if (bounds != null && getScene() != null && getScene().getWindow() != null) {
+                double scale = resolveActiveScale();
+                menuContainer.getTransforms().setAll(new javafx.scene.transform.Scale(scale, scale, 0, 0));
                 // Breite des Popups an Steuerelement anpassen
                 menuContainer.setMinWidth(getWidth());
                 menuPopup.show(getScene().getWindow(), bounds.getMinX(), bounds.getMaxY() + 4);
             }
         }
+    }
+
+    private double resolveActiveScale() {
+        Node current = this;
+        while (current != null) {
+            for (javafx.scene.transform.Transform t : current.getTransforms()) {
+                if (t instanceof javafx.scene.transform.Scale s) {
+                    return s.getX();
+                }
+            }
+            if (current instanceof MainWindow mw) {
+                return mw.getSettingsService().getUiScale();
+            }
+            current = current.getParent();
+        }
+        if (getScene() != null && getScene().getRoot() instanceof MainWindow mw) {
+            return mw.getSettingsService().getUiScale();
+        }
+        return 1.0;
     }
 
     /**

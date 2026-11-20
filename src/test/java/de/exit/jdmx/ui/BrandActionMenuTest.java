@@ -73,6 +73,10 @@ class BrandActionMenuTest {
         assertThat(btnUpdates).isNotNull();
         assertThat(btnUpdates.getText()).isEqualTo("Updates");
 
+        Button btnSupport = menu.getItem("support");
+        assertThat(btnSupport).isNotNull();
+        assertThat(btnSupport.getText()).isEqualTo("Support");
+
         Button btnFullscreen = menu.getItem("fullscreen");
         assertThat(btnFullscreen).isNotNull();
         assertThat(btnFullscreen.getText()).isEqualTo("Vollbild");
@@ -86,6 +90,7 @@ class BrandActionMenuTest {
         assertThat(btnUndo.getText()).isEqualTo("Undo");
         assertThat(btnRedo.getText()).isEqualTo("Redo");
         assertThat(btnSettings.getText()).isEqualTo("Settings");
+        assertThat(btnSupport.getText()).isEqualTo("Support");
         assertThat(btnFullscreen.getText()).isEqualTo("Fullscreen");
     }
 

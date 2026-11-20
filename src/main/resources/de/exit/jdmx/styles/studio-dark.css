@@ -1871,3 +1871,112 @@
     -fx-border-width: 1px;
     -fx-background-color: rgba(16, 185, 129, 0.15);
 }
+
+/* ==========================================================================
+   SUPPORT & FEEDBACK DIALOG (Underline-Tabs & Chat)
+   ========================================================================== */
+
+.dialog-underline-tab-bar {
+    -fx-spacing: 12px;
+    -fx-padding: 0 0 0 2;
+    -fx-border-color: transparent transparent #27272A transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.dialog-underline-tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-text-fill: #9CA3AF;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 12 8 12;
+    -fx-cursor: hand;
+    -fx-border-width: 0 0 2 0;
+}
+
+.dialog-underline-tab:hover {
+    -fx-text-fill: #F3F4F6;
+}
+
+.dialog-underline-tab.active {
+    -fx-text-fill: #38BDF8;
+    -fx-border-color: transparent transparent #38BDF8 transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.support-dialog-card {
+    -fx-background-color: #18181B;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1px;
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-padding: 16px;
+}
+
+.support-chat-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+}
+
+.support-chat-scroll > .viewport {
+    -fx-background-color: #121214;
+}
+
+.support-bubble-system {
+    -fx-background-color: #1F2430;
+    -fx-border-color: #2E384D;
+    -fx-border-width: 1px;
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-padding: 10px 14px;
+}
+
+.support-bubble-user {
+    -fx-background-color: #1E293B;
+    -fx-border-color: #38BDF8;
+    -fx-border-width: 1px;
+    -fx-background-radius: 6px;
+    -fx-border-radius: 6px;
+    -fx-padding: 10px 14px;
+}
+
+.support-input-text {
+    -fx-background-color: #121214;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1px;
+    -fx-text-fill: #F3F4F6;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 6 10;
+    -fx-font-size: 12px;
+}
+
+.support-input-text:focused {
+    -fx-border-color: #38BDF8;
+}
+
+.support-textarea {
+    -fx-background-color: #121214;
+    -fx-border-color: #27272A;
+    -fx-border-width: 1px;
+    -fx-text-fill: #F3F4F6;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-padding: 6 10;
+    -fx-font-size: 12px;
+}
+
+.support-textarea .content {
+    -fx-background-color: #121214;
+}
+
+.support-textarea:focused {
+    -fx-border-color: #38BDF8;
+}
+

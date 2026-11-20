@@ -58,6 +58,7 @@ public class BrandActionMenu extends Popup {
         // 3. System & Ansicht
         Button btnSettings = createMenuItem("settings", I18n.get("menu.settings"), "settings", StudioTheme.COLOR_MENU_SETTINGS);
         Button btnUpdates = createMenuItem("check_updates", I18n.get("menu.updates"), "arrow-up-circle", Color.web("#38BDF8"));
+        Button btnSupport = createMenuItem("support", I18n.get("menu.support"), "life-buoy", Color.web("#38BDF8"));
         Button btnFullscreen = createMenuItem("fullscreen", I18n.get("menu.fullscreen"), "maximize", StudioTheme.COLOR_MENU_FULLSCREEN);
 
         root.getChildren().addAll(
@@ -70,6 +71,7 @@ public class BrandActionMenu extends Popup {
                 createMenuSeparator(),
                 btnSettings,
                 btnUpdates,
+                btnSupport,
                 btnFullscreen
         );
 
@@ -141,6 +143,7 @@ public class BrandActionMenu extends Popup {
         updateButtonText("redo", "menu.redo");
         updateButtonText("settings", "menu.settings");
         updateButtonText("check_updates", "menu.updates");
+        updateButtonText("support", "menu.support");
         updateButtonText("fullscreen", "menu.fullscreen");
     }
 
@@ -208,6 +211,17 @@ public class BrandActionMenu extends Popup {
      */
     public Button getItem(String key) {
         return items.get(key);
+    }
+
+    /**
+     * Setzt die Skalierung des Menü-Containers passend zur aktiven UI-Skalierung.
+     *
+     * @param scale Der Skalierungsfaktor (z. B. 0.8)
+     */
+    public void setScale(double scale) {
+        if (!getContent().isEmpty()) {
+            getContent().getFirst().getTransforms().setAll(new javafx.scene.transform.Scale(scale, scale, 0, 0));
+        }
     }
 
     /**
