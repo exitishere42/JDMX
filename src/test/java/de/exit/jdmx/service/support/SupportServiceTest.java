@@ -316,7 +316,7 @@ class SupportServiceTest {
                 .thenReturn(CompletableFuture.completedFuture(mockResponse));
 
         SupportService serviceWithDefaultWebhook = new SupportService(mockHttpClient);
-        assertThat(serviceWithDefaultWebhook.getWebhookUrl()).isNotEmpty().startsWith("https://discord.com/api/webhooks/");
+        assertThat(serviceWithDefaultWebhook.getWebhookUrl()).isNotEmpty().startsWith("https://").contains("1573987180152619038");
 
         SupportMessage message = SupportMessage.create(
                 SupportCategory.FEEDBACK,

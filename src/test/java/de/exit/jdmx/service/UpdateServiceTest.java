@@ -38,7 +38,7 @@ class UpdateServiceTest {
     @DisplayName("Sollte korrekte Konstanten für Repository und Version besitzen")
     void shouldHaveValidRepoAndVersionConstants() {
         assertThat(UpdateService.CURRENT_VERSION).matches("^\\d+\\.\\d+\\.\\d+.*$");
-        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("1.21.8");
+        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("1.21.9");
         assertThat(UpdateService.GITHUB_REPO).isEqualTo("exitishere42/JDMX");
         assertThat(UpdateService.API_URL).isEqualTo("https://api.github.com/repos/exitishere42/JDMX/releases/latest");
         assertThat(UpdateService.REPO_URL).isEqualTo("https://github.com/exitishere42/JDMX");
@@ -47,6 +47,7 @@ class UpdateServiceTest {
     @Test
     @DisplayName("Sollte Version 1.21.2 nicht als veraltet einstufen wenn GitHub denselben Tag liefert")
     void shouldNotConsiderSameOrOlderVersionAsNewer() {
+        assertThat(UpdateService.isVersionNewer("v1.21.9", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.21.8", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.21.7", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.21.6", UpdateService.CURRENT_VERSION)).isFalse();
@@ -66,7 +67,7 @@ class UpdateServiceTest {
         assertThat(UpdateService.isVersionNewer("v1.20.3", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.20.1", UpdateService.CURRENT_VERSION)).isFalse();
         assertThat(UpdateService.isVersionNewer("v1.15.5", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.9", UpdateService.CURRENT_VERSION)).isTrue();
+        assertThat(UpdateService.isVersionNewer("v1.21.10", UpdateService.CURRENT_VERSION)).isTrue();
         assertThat(UpdateService.isVersionNewer("v1.22.0", UpdateService.CURRENT_VERSION)).isTrue();
         assertThat(UpdateService.isVersionNewer("v2.0.0", UpdateService.CURRENT_VERSION)).isTrue();
     }
