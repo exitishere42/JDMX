@@ -2,6 +2,9 @@ package de.exit.jdmx.ui.timeline;
 
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
+import javafx.scene.Cursor;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -152,5 +155,95 @@ class TimelineGridPlayheadTest {
 
         // Track-Startzeit bleibt gespeichert
         assertThat(track1.getStartTimeMs()).isGreaterThan(0L);
+    }
+
+    @Test
+    @DisplayName("Sollte Verschieben von Clips während laufender Wiedergabe blockieren")
+    void shouldPreventClipDragDuringPlayback() {
+        TimelineService service = new TimelineService();
+        de.exit.jdmx.core.model.TimelineTrack track1 = service.getTracks().get(0);
+        track1.setSongName("test.mp3");
+        track1.setDurationMs(30_000L);
+        track1.setStartTimeMs(0L);
+
+        TimelineGridView grid = new TimelineGridView(service);
+
+        // Wiedergabe starten
+        service.startPlayback();
+        assertThat(service.isPlaying()).isTrue();
+
+        // Klick auf Clip während Playback
+        MouseEvent clipPress = new MouseEvent(
+                MouseEvent.MOUSE_PRESSED,
+                50.0, 20.0, 50.0, 20.0,
+                MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        grid.fireEvent(clipPress);
+
+        // Drag Clip um 100px
+        MouseEvent clipDrag = new MouseEvent(
+                MouseEvent.MOUSE_DRAGGED,
+                150.0, 20.0, 150.0, 20.0,
+                MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        grid.fireEvent(clipDrag);
+
+        // Startzeit darf sich während Wiedergabe NICHT geändert haben
+        assertThat(track1.getStartTimeMs()).isEqualTo(0L);
+        assertThat(grid.getCursor()).isNotEqualTo(Cursor.MOVE);
+
+        // Release Clip
+        MouseEvent clipRelease = new MouseEvent(
+                MouseEvent.MOUSE_RELEASED,
+                150.0, 20.0, 150.0, 20.0,
+                MouseButton.PRIMARY, 1,
+                false, false, false, false, false, false, false, false, false, false, null
+        );
+        grid.fireEvent(clipRelease);
+
+        assertThat(track1.getStartTimeMs()).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("Sollte über Clips während Playback den Standard-Cursor statt Cursor.HAND anzeigen")
+    void shouldShowDefaultCursorOverClipDuringPlayback() {
+        TimelineService service = new TimelineService();
+        de.exit.jdmx.core.model.TimelineTrack track1 = service.getTracks().get(0);
+        track1.setSongName("test.mp3");
+        track1.setDurationMs(30_000L);
+        track1.setStartTimeMs(0L);
+
+        TimelineGridView grid = new TimelineGridView(service);
+
+        // 1. Wenn gestoppt: Hand-Cursor über Clip
+        assertThat(service.isPlaying()).isFalse();
+        MouseEvent hoverStopped = new MouseEvent(
+                MouseEvent.MOUSE_MOVED,
+                50.0, 20.0, 50.0, 20.0,
+                MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null
+        );
+        grid.fireEvent(hoverStopped);
+        assertThat(grid.getCursor()).isEqualTo(Cursor.HAND);
+
+        // 2. Wenn Playback läuft: Normaler Cursor über Clip (gesperrt)
+        service.startPlayback();
+        assertThat(service.isPlaying()).isTrue();
+
+        MouseEvent hoverPlaying = new MouseEvent(
+                MouseEvent.MOUSE_MOVED,
+                50.0, 20.0, 50.0, 20.0,
+                MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null
+        );
+        grid.fireEvent(hoverPlaying);
+        assertThat(grid.getCursor()).isEqualTo(Cursor.DEFAULT);
+
+        // 3. Nach Stop: Wieder Hand-Cursor
+        service.stopPlayback();
+        grid.fireEvent(hoverStopped);
+        assertThat(grid.getCursor()).isEqualTo(Cursor.HAND);
     }
 }

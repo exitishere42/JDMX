@@ -106,6 +106,11 @@ public class TimelineGridView extends Pane {
             // Prüfen ob Klick auf einen Song-Clip erfolgte
             TimelineTrack hitTrack = findClipTrackAt(e.getX(), e.getY());
             if (hitTrack != null) {
+                if (service.isPlaying()) {
+                    // Während aktiver Show-Wiedergabe ist das Verschieben von Tracks gesperrt!
+                    draggingClipTrack = null;
+                    return;
+                }
                 draggingClipTrack = hitTrack;
                 dragStartMouseX = e.getX();
                 dragStartClipTimeMs = hitTrack.getStartTimeMs();
@@ -124,6 +129,10 @@ public class TimelineGridView extends Pane {
             if (isDraggingPlayhead) {
                 handleSeek(e.getX());
             } else if (draggingClipTrack != null) {
+                if (service.isPlaying()) {
+                    draggingClipTrack = null;
+                    return;
+                }
                 double deltaPx = e.getX() - dragStartMouseX;
                 long deltaMs = Math.round((deltaPx / PIXELS_PER_SECOND) * 1000.0);
                 long newStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
@@ -305,14 +314,15 @@ public class TimelineGridView extends Pane {
 
     /**
      * Ermittelt die passende Mauszeigerform an der angegebenen Position.
-     * Zeigt Resize-Cursor über dem Playhead-Dreieck, Hand-Cursor über Clips und Standardzeiger auf Freiflächen.
+     * Zeigt Resize-Cursor über dem Playhead-Dreieck, Hand-Cursor über Clips (nur im gestoppten Zustand)
+     * und Standardzeiger auf Freiflächen oder über gesperrten Clips während aktiver Show-Wiedergabe.
      */
     private void updateCursorForPosition(double x, double y) {
         double playheadContentX = millisToX(service.getCurrentPositionMs());
         if (y <= 24.0 && Math.abs(x - playheadContentX) <= 16.0) {
             setCursor(Cursor.H_RESIZE);
         } else if (findClipTrackAt(x, y) != null) {
-            setCursor(Cursor.HAND);
+            setCursor(service.isPlaying() ? Cursor.DEFAULT : Cursor.HAND);
         } else {
             setCursor(Cursor.DEFAULT);
         }

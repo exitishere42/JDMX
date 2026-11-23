@@ -142,8 +142,8 @@ class TimelineServiceTest {
     }
 
     @Test
-    @DisplayName("Sollte resyncTrackImmediate aufrufen und bei Verschiebung während Wiedergabe Audio resynchronisieren")
-    void shouldResyncAudioWhenTrackMovedDuringPlayback() {
+    @DisplayName("Sollte Verschiebung der Track-Startzeit während aktiver Wiedergabe ablehnen")
+    void shouldRejectTrackStartTimeChangeDuringPlayback() {
         TimelineService service = new TimelineService();
         TimelineTrack track1 = service.getTracks().get(0);
         track1.setSongName("test.mp3");
@@ -154,14 +154,20 @@ class TimelineServiceTest {
         service.startPlayback();
         assertThat(service.isPlaying()).isTrue();
 
-        // Startzeit wird während Wiedergabe verschoben
-        service.setTrackStartTimeMs(track1.getId(), 5000L);
-        assertThat(track1.getStartTimeMs()).isEqualTo(5000L);
+        // Startzeit darf während Wiedergabe NICHT verschoben werden
+        boolean changed = service.setTrackStartTimeMs(track1.getId(), 5000L);
+        assertThat(changed).isFalse();
+        assertThat(track1.getStartTimeMs()).isEqualTo(0L);
 
-        // Sofortiger Resync (z.B. bei Mouse-Release)
-        assertThatCode(() -> service.resyncTrackImmediate(track1.getId())).doesNotThrowAnyException();
-
+        // Wiedergabe stoppen -> jetzt muss Verschiebung wieder erlaubt sein
         service.stopPlayback();
         assertThat(service.isPlaying()).isFalse();
+
+        boolean changedAfterStop = service.setTrackStartTimeMs(track1.getId(), 5000L);
+        assertThat(changedAfterStop).isTrue();
+        assertThat(track1.getStartTimeMs()).isEqualTo(5000L);
+
+        // Sofortiger Resync bei Stop
+        assertThatCode(() -> service.resyncTrackImmediate(track1.getId())).doesNotThrowAnyException();
     }
 }

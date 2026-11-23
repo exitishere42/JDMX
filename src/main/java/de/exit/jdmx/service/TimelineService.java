@@ -396,19 +396,25 @@ public class TimelineService {
 
     /**
      * Verschiebt die Startzeit eines Clips (Songs) auf der angegebenen Spur.
+     * <p>
+     * <b>Schutz während der Show:</b> Befindet sich die Timeline in der aktiven Wiedergabe
+     * ({@link #isPlaying()} == {@code true}), wird die Verschiebung abgewiesen und {@code false}
+     * zurückgegeben, um komplexe Resynchronisationslogiken und Audio-Glitches zu verhindern.
+     * </p>
      *
      * @param trackId     ID der Zielspur
      * @param startTimeMs Neuer Startzeitpunkt in Millisekunden (>= 0)
-     * @return {@code true}, wenn die Spur gefunden und aktualisiert wurde
+     * @return {@code true}, wenn die Spur gefunden und aktualisiert wurde; {@code false}, wenn nicht gefunden oder Wiedergabe aktiv ist
      */
     public boolean setTrackStartTimeMs(String trackId, long startTimeMs) {
+        if (playing.get()) {
+            AppLogger.warn("[TIMELINE] Verschieben von Tracks während aktiver Wiedergabe blockiert (trackId: %s)", trackId);
+            return false;
+        }
         Optional<TimelineTrack> trackOpt = findTrackById(trackId);
         if (trackOpt.isPresent()) {
             TimelineTrack track = trackOpt.get();
             track.setStartTimeMs(startTimeMs);
-            if (playing.get()) {
-                audioPlaybackService.resyncTrackDebounced(track, currentPositionMs.get());
-            }
             notifyChange();
             return true;
         }
