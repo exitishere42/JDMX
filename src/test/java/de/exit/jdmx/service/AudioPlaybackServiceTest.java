@@ -135,4 +135,16 @@ class AudioPlaybackServiceTest {
         service.stop();
         assertThat(service.isPlaying()).isFalse();
     }
+
+    @Test
+    @DisplayName("Sollte bei schnellem mehrfachem Seek (Scrubbing) niemals mehr als 1 Kanal pro Spur aktiv halten")
+    void shouldNotLeakZombieThreadsOnRapidSeeking() {
+        AudioPlaybackService service = new AudioPlaybackService();
+
+        for (int i = 0; i < 50; i++) {
+            service.setPosition(i * 100L);
+        }
+
+        assertThat(service.getActiveChannelCount()).isZero();
+    }
 }

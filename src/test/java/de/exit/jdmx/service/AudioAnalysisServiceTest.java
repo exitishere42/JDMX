@@ -122,6 +122,55 @@ class AudioAnalysisServiceTest {
         assertThat(loudAvg).isGreaterThan(quietAvg * 2.0f);
     }
 
+    @Test
+    @DisplayName("Sollte 3-Band Frequenzen (Bass, Mitten, Höhen) für Rekordbox-Wellenform extrahieren")
+    void shouldExtract3BandFrequencies(@TempDir Path tempDir) throws IOException {
+        File lowFile = tempDir.resolve("bass_100hz.wav").toFile();
+        File highFile = tempDir.resolve("treble_6000hz.wav").toFile();
+
+        createSyntheticToneFile(lowFile, 44100, 1.0, 100.0);   // 100 Hz Subbass / Kick
+        createSyntheticToneFile(highFile, 44100, 1.0, 6000.0); // 6000 Hz Hi-Hat / Cymbals
+
+        AudioAnalysisResult lowResult = service.analyze(lowFile);
+        AudioAnalysisResult highResult = service.analyze(highFile);
+
+        assertThat(lowResult.has3BandWaveform()).isTrue();
+        assertThat(highResult.has3BandWaveform()).isTrue();
+
+        float avgLowInBass = average(lowResult.lowBand());
+        float avgHighInBass = average(lowResult.highBand());
+        assertThat(avgLowInBass).isGreaterThan(avgHighInBass * 2.0f);
+
+        float avgLowInTreble = average(highResult.lowBand());
+        float avgHighInTreble = average(highResult.highBand());
+        assertThat(avgHighInTreble).isGreaterThan(avgLowInTreble * 2.0f);
+    }
+
+    private float average(float[] arr) {
+        if (arr == null || arr.length == 0) return 0.0f;
+        float sum = 0.0f;
+        for (float v : arr) sum += v;
+        return sum / arr.length;
+    }
+
+    private void createSyntheticToneFile(File file, int sampleRate, double durationSec, double freq) throws IOException {
+        AudioFormat format = new AudioFormat(sampleRate, 16, 1, true, false);
+        int totalSamples = (int) (sampleRate * durationSec);
+        byte[] pcmData = new byte[totalSamples * 2];
+
+        for (int i = 0; i < totalSamples; i++) {
+            double angle = 2.0 * Math.PI * i * freq / sampleRate;
+            short sample = (short) (Math.sin(angle) * 30000.0);
+            pcmData[i * 2] = (byte) (sample & 0xFF);
+            pcmData[i * 2 + 1] = (byte) ((sample >> 8) & 0xFF);
+        }
+
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(pcmData);
+             AudioInputStream ais = new AudioInputStream(bais, format, totalSamples)) {
+            AudioSystem.write(ais, AudioFileFormat.Type.WAVE, file);
+        }
+    }
+
     /**
      * Erstellt eine synthetische WAV-Datei mit Sinuston.
      */

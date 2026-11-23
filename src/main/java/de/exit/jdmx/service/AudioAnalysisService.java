@@ -117,6 +117,12 @@ public class AudioAnalysisService {
                 }
 
                 List<Float> peaks = new ArrayList<>();
+                List<Float> lowPeaks = new ArrayList<>();
+                List<Float> midPeaks = new ArrayList<>();
+                List<Float> highPeaks = new ArrayList<>();
+
+                ThreeBandFilter filter = new ThreeBandFilter(sampleRate);
+                float[] bands = new float[3];
                 byte[] buffer = new byte[4096 * channels * 2];
                 int bytesRead;
                 long totalFramesRead = 0;
@@ -125,21 +131,36 @@ public class AudioAnalysisService {
                     int samplesInChunk = bytesRead / 2;
                     float chunkPeak = 0.0f;
                     double sumSq = 0.0;
+                    float chunkLow = 0.0f;
+                    float chunkMid = 0.0f;
+                    float chunkHigh = 0.0f;
 
                     for (int i = 0; i < samplesInChunk; i++) {
                         int byteIdx = i * 2;
                         short sample = (short) ((buffer[byteIdx] & 0xFF) | (buffer[byteIdx + 1] << 8));
-                        float normalized = Math.abs(sample) / 32768.0f;
-                        sumSq += normalized * normalized;
-                        if (normalized > chunkPeak) {
-                            chunkPeak = normalized;
+                        float normalized = sample / 32768.0f;
+                        float absNorm = Math.abs(normalized);
+                        sumSq += absNorm * absNorm;
+                        if (absNorm > chunkPeak) {
+                            chunkPeak = absNorm;
                         }
+
+                        filter.process(normalized, bands);
+                        float absL = Math.abs(bands[0]);
+                        float absM = Math.abs(bands[1]);
+                        float absH = Math.abs(bands[2]);
+                        if (absL > chunkLow) chunkLow = absL;
+                        if (absM > chunkMid) chunkMid = absM;
+                        if (absH > chunkHigh) chunkHigh = absH;
                     }
 
                     float rms = (float) Math.sqrt(sumSq / Math.max(1, samplesInChunk));
                     // 35% Peak für Transienten-Spikes, 65% RMS für Lautstärke-Dynamik
                     float combined = (0.35f * chunkPeak) + (0.65f * rms);
                     peaks.add(combined);
+                    lowPeaks.add(chunkLow);
+                    midPeaks.add(chunkMid);
+                    highPeaks.add(chunkHigh);
                     totalFramesRead += (bytesRead / (channels * 2));
                 }
 
@@ -147,8 +168,16 @@ public class AudioAnalysisService {
                     durationMs = Math.round((totalFramesRead / (double) sampleRate) * 1000.0);
                 }
 
-                float[] waveform = resamplePeaks(toFloatArray(peaks), DEFAULT_WAVEFORM_POINTS);
-                return new AudioAnalysisResult(durationMs, waveform, (int) sampleRate);
+                float[] rawPeaks = toFloatArray(peaks);
+                float refMax = 0.0f;
+                for (float v : rawPeaks) {
+                    if (v > refMax) refMax = v;
+                }
+                float[] waveform = resamplePeaks(rawPeaks, DEFAULT_WAVEFORM_POINTS, refMax);
+                float[] lowBand = resamplePeaks(toFloatArray(lowPeaks), DEFAULT_WAVEFORM_POINTS, refMax);
+                float[] midBand = resamplePeaks(toFloatArray(midPeaks), DEFAULT_WAVEFORM_POINTS, refMax);
+                float[] highBand = resamplePeaks(toFloatArray(highPeaks), DEFAULT_WAVEFORM_POINTS, refMax);
+                return new AudioAnalysisResult(durationMs, waveform, (int) sampleRate, lowBand, midBand, highBand);
             }
         }
     }
@@ -163,6 +192,12 @@ public class AudioAnalysisService {
             Decoder decoder = new Decoder();
 
             List<Float> framePeaks = new ArrayList<>();
+            List<Float> lowPeaks = new ArrayList<>();
+            List<Float> midPeaks = new ArrayList<>();
+            List<Float> highPeaks = new ArrayList<>();
+
+            ThreeBandFilter filter = null;
+            float[] bands = new float[3];
             int sampleRate = 44100;
             long totalFrames = 0;
             double msPerFrame = 26.122; // Standard für 44.1kHz Layer 3
@@ -185,6 +220,9 @@ public class AudioAnalysisService {
                 totalFrames++;
                 sampleRate = header.frequency();
                 msPerFrame = header.ms_per_frame();
+                if (filter == null) {
+                    filter = new ThreeBandFilter(sampleRate);
+                }
 
                 try {
                     SampleBuffer output = (SampleBuffer) decoder.decodeFrame(header, bitstream);
@@ -193,17 +231,32 @@ public class AudioAnalysisService {
                         int len = output.getBufferLength();
                         float maxPeak = 0.0f;
                         double sumSq = 0.0;
+                        float chunkLow = 0.0f;
+                        float chunkMid = 0.0f;
+                        float chunkHigh = 0.0f;
 
                         for (int i = 0; i < len; i++) {
-                            float absVal = Math.abs(buffer[i]) / 32768.0f;
+                            float normalized = buffer[i] / 32768.0f;
+                            float absVal = Math.abs(normalized);
                             sumSq += absVal * absVal;
                             if (absVal > maxPeak) {
                                 maxPeak = absVal;
                             }
+
+                            filter.process(normalized, bands);
+                            float absL = Math.abs(bands[0]);
+                            float absM = Math.abs(bands[1]);
+                            float absH = Math.abs(bands[2]);
+                            if (absL > chunkLow) chunkLow = absL;
+                            if (absM > chunkMid) chunkMid = absM;
+                            if (absH > chunkHigh) chunkHigh = absH;
                         }
                         float rms = (float) Math.sqrt(sumSq / Math.max(1, len));
                         float combined = (0.35f * maxPeak) + (0.65f * rms);
                         framePeaks.add(combined);
+                        lowPeaks.add(chunkLow);
+                        midPeaks.add(chunkMid);
+                        highPeaks.add(chunkHigh);
                     }
                 } catch (Exception ignored) {
                     // Einzelner Frame nicht dekodierbar -> überspringen
@@ -221,8 +274,16 @@ public class AudioAnalysisService {
                 durationMs = Math.max(10_000L, (mp3File.length() * 1000L) / 24000L);
             }
 
-            float[] waveform = resamplePeaks(toFloatArray(framePeaks), DEFAULT_WAVEFORM_POINTS);
-            return new AudioAnalysisResult(durationMs, waveform, sampleRate);
+            float[] rawPeaks = toFloatArray(framePeaks);
+            float refMax = 0.0f;
+            for (float v : rawPeaks) {
+                if (v > refMax) refMax = v;
+            }
+            float[] waveform = resamplePeaks(rawPeaks, DEFAULT_WAVEFORM_POINTS, refMax);
+            float[] lowBand = resamplePeaks(toFloatArray(lowPeaks), DEFAULT_WAVEFORM_POINTS, refMax);
+            float[] midBand = resamplePeaks(toFloatArray(midPeaks), DEFAULT_WAVEFORM_POINTS, refMax);
+            float[] highBand = resamplePeaks(toFloatArray(highPeaks), DEFAULT_WAVEFORM_POINTS, refMax);
+            return new AudioAnalysisResult(durationMs, waveform, sampleRate, lowBand, midBand, highBand);
         } catch (Exception e) {
             log.warn("Fehler beim MP3-Parsing von '{}': {}", mp3File.getName(), e.getMessage());
             long fallbackDuration = mp3File.length() > 0 ? Math.max(10_000L, (mp3File.length() * 1000L) / 24000L) : 60_000L;
@@ -240,6 +301,19 @@ public class AudioAnalysisService {
      * @return resampletes Array mit genau {@code targetPoints} Werten
      */
     public float[] resamplePeaks(float[] original, int targetPoints) {
+        return resamplePeaks(original, targetPoints, 0.0f);
+    }
+
+    /**
+     * Reduziert oder interpoliert eine Reihe von Peak-Werten auf eine Zielanzahl von Punkten
+     * relativ zu einer Referenz-Spitzenamplitude (verhindert das künstliche Aufblasen leiser Frequenzbänder).
+     *
+     * @param original     originale Peak-Werte
+     * @param targetPoints Zielanzahl an Punkten
+     * @param referenceMax optionale Referenz-Maximalamplitude (> 0)
+     * @return resampletes Array mit genau {@code targetPoints} Werten
+     */
+    public float[] resamplePeaks(float[] original, int targetPoints, float referenceMax) {
         if (original == null || original.length == 0 || targetPoints <= 0) {
             return new float[0];
         }
@@ -280,10 +354,12 @@ public class AudioAnalysisService {
             }
         }
 
+        float normBase = referenceMax > 0.001f ? Math.max(referenceMax, globalMax) : globalMax;
+
         float[] result = new float[raw.length];
-        if (globalMax > 0.001f) {
+        if (normBase > 0.001f) {
             for (int i = 0; i < raw.length; i++) {
-                float norm = Math.min(1.0f, raw[i] / globalMax);
+                float norm = Math.min(1.0f, raw[i] / normBase);
                 // Exponent 1.35 lässt Täler subtil absinken und Spikes kräftig hervortreten
                 result[i] = (float) Math.pow(norm, 1.35);
             }
@@ -300,5 +376,46 @@ public class AudioAnalysisService {
             arr[i] = list.get(i);
         }
         return arr;
+    }
+
+    /**
+     * Schneller 3-Band Frequenzfilter für Rekordbox-Wellenformanalyse.
+     * Teilt Audiosignale in Low (< 250 Hz, Bass), Mid (250 Hz - 3000 Hz, Mitten)
+     * und High (> 3000 Hz, Höhen) auf.
+     */
+    public static class ThreeBandFilter {
+        private final float alphaLow;
+        private final float alphaHigh;
+        private float low = 0.0f;
+        private float lowHigh = 0.0f;
+
+        /**
+         * Erstellt einen neuen {@link ThreeBandFilter} für die angegebene Samplerate.
+         *
+         * @param sampleRate Abtastrate in Hz (z. B. 44100)
+         */
+        public ThreeBandFilter(float sampleRate) {
+            float sRate = Math.max(8000.0f, sampleRate);
+            this.alphaLow = (float) Math.min(1.0, 2.0 * Math.PI * 250.0 / sRate);
+            this.alphaHigh = (float) Math.min(1.0, 2.0 * Math.PI * 3000.0 / sRate);
+        }
+
+        /**
+         * Verarbeitet ein einzelnes normalisiertes Sample (-1.0f bis +1.0f) und schreibt
+         * die gefilterten Amplituden in das Ausgabearray (Index 0 = Low, 1 = Mid, 2 = High).
+         *
+         * @param sample Eingangssample
+         * @param out    Ausgabearray der Länge 3
+         */
+        public void process(float sample, float[] out) {
+            low += alphaLow * (sample - low);
+            lowHigh += alphaHigh * (sample - lowHigh);
+            float high = sample - lowHigh;
+            float mid = sample - low - high;
+
+            out[0] = low;
+            out[1] = mid;
+            out[2] = high;
+        }
     }
 }

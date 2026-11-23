@@ -45,6 +45,15 @@ public class TimelineTrack {
     /** Normalisierte Wellenform-Peaks (Werte zwischen 0.0f und 1.0f) oder {@code null}. */
     private float[] waveformData;
 
+    /** 3-Band Rekordbox Wellenformdaten: Bass (< 250 Hz) */
+    private float[] lowBandData;
+
+    /** 3-Band Rekordbox Wellenformdaten: Mitten (250 Hz - 3000 Hz) */
+    private float[] midBandData;
+
+    /** 3-Band Rekordbox Wellenformdaten: Höhen (> 3000 Hz) */
+    private float[] highBandData;
+
     /**
      * Erstellt einen neuen ungemuteten Timeline-Track mit Standardhöhe.
      *
@@ -255,6 +264,57 @@ public class TimelineTrack {
      */
     public boolean hasWaveform() {
         return waveformData != null && waveformData.length > 0;
+    }
+
+    /**
+     * Liefert eine Kopie des Low-Bandes (Bass) oder {@code null}.
+     *
+     * @return Kopie der Bass-Amplituden oder {@code null}
+     */
+    public float[] getLowBandData() {
+        return lowBandData != null ? lowBandData.clone() : null;
+    }
+
+    /**
+     * Liefert eine Kopie des Mid-Bandes (Mitten) oder {@code null}.
+     *
+     * @return Kopie der Mitten-Amplituden oder {@code null}
+     */
+    public float[] getMidBandData() {
+        return midBandData != null ? midBandData.clone() : null;
+    }
+
+    /**
+     * Liefert eine Kopie des High-Bandes (Höhen) oder {@code null}.
+     *
+     * @return Kopie der Höhen-Amplituden oder {@code null}
+     */
+    public float[] getHighBandData() {
+        return highBandData != null ? highBandData.clone() : null;
+    }
+
+    /**
+     * Setzt die 3-Band Rekordbox-Wellenformdaten (Low, Mid, High).
+     *
+     * @param low  Bass-Amplituden oder {@code null}
+     * @param mid  Mitten-Amplituden oder {@code null}
+     * @param high Höhen-Amplituden oder {@code null}
+     */
+    public void set3BandWaveformData(float[] low, float[] mid, float[] high) {
+        this.lowBandData = low != null ? low.clone() : null;
+        this.midBandData = mid != null ? mid.clone() : null;
+        this.highBandData = high != null ? high.clone() : null;
+    }
+
+    /**
+     * Prüft, ob vollständige 3-Band Rekordbox-Daten (Bass, Mitten, Höhen) vorliegen.
+     *
+     * @return {@code true}, wenn alle 3 Bänder vorhanden sind
+     */
+    public boolean has3BandWaveform() {
+        return lowBandData != null && lowBandData.length > 0
+                && midBandData != null && midBandData.length > 0
+                && highBandData != null && highBandData.length > 0;
     }
 
     @Override

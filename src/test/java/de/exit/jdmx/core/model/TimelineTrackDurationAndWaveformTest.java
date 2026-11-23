@@ -47,4 +47,35 @@ class TimelineTrackDurationAndWaveformTest {
         peaks[0] = 0.99f;
         assertThat(track.getWaveformData()[0]).isEqualTo(0.1f);
     }
+
+    @Test
+    @DisplayName("Sollte 3-Band-Wellenformdaten (Low, Mid, High) separat speichern und defensive Kopien anlegen")
+    void shouldSetAndGet3BandWaveformData() {
+        TimelineTrack track = new TimelineTrack("track-1", "Spur 1");
+
+        assertThat(track.has3BandWaveform()).isFalse();
+        assertThat(track.getLowBandData()).isNull();
+        assertThat(track.getMidBandData()).isNull();
+        assertThat(track.getHighBandData()).isNull();
+
+        float[] low = new float[]{0.8f, 0.9f};
+        float[] mid = new float[]{0.4f, 0.5f};
+        float[] high = new float[]{0.1f, 0.2f};
+
+        track.set3BandWaveformData(low, mid, high);
+
+        assertThat(track.has3BandWaveform()).isTrue();
+        assertThat(track.getLowBandData()).containsExactly(0.8f, 0.9f);
+        assertThat(track.getMidBandData()).containsExactly(0.4f, 0.5f);
+        assertThat(track.getHighBandData()).containsExactly(0.1f, 0.2f);
+
+        // Defensive Kopie prüfen
+        low[0] = 0.0f;
+        mid[0] = 0.0f;
+        high[0] = 0.0f;
+
+        assertThat(track.getLowBandData()[0]).isEqualTo(0.8f);
+        assertThat(track.getMidBandData()[0]).isEqualTo(0.4f);
+        assertThat(track.getHighBandData()[0]).isEqualTo(0.1f);
+    }
 }

@@ -109,8 +109,16 @@ public class AudioPlaybackService implements AutoCloseable {
                 clip.open(ais);
                 applyVolume(clip, currentVolume);
                 clip.setMicrosecondPosition(offsetMs * 1000L);
-                clip.start();
-                this.wavClip = clip;
+
+                synchronized (this) {
+                    if (sessionGen.get() != generation || !active.get()) {
+                        clip.close();
+                        ais.close();
+                        return;
+                    }
+                    clip.start();
+                    this.wavClip = clip;
+                }
 
                 thread = new Thread(() -> {
                     try {
@@ -120,14 +128,18 @@ public class AudioPlaybackService implements AutoCloseable {
                     } catch (InterruptedException ignored) {
                         Thread.currentThread().interrupt();
                     } finally {
-                        active.set(false);
+                        synchronized (this) {
+                            active.set(false);
+                        }
                     }
                 }, "WAV-Channel-" + trackId);
                 thread.setDaemon(true);
                 thread.start();
             } catch (Exception e) {
                 AppLogger.error("[AUDIO-PLAYBACK] Fehler beim Abspielen von WAV (Track %s): %s", trackId, e.getMessage());
-                active.set(false);
+                synchronized (this) {
+                    active.set(false);
+                }
             }
         }
 
@@ -135,21 +147,35 @@ public class AudioPlaybackService implements AutoCloseable {
             int startFrame = (int) Math.round(offsetMs / MP3_MS_PER_FRAME);
 
             thread = new Thread(() -> {
+                AdvancedPlayer playerToPlay = null;
                 try (InputStream in = new BufferedInputStream(new FileInputStream(audioFile))) {
-                    if (sessionGen.get() != generation || !active.get()) {
-                        return;
+                    synchronized (this) {
+                        if (sessionGen.get() != generation || !active.get()) {
+                            return;
+                        }
+                        this.stream = in;
+                        AdvancedPlayer player = new AdvancedPlayer(in);
+                        this.mp3Player = player;
+                        playerToPlay = player;
                     }
-                    this.stream = in;
-                    AdvancedPlayer player = new AdvancedPlayer(in);
-                    this.mp3Player = player;
 
-                    player.play(startFrame, Integer.MAX_VALUE);
+                    if (playerToPlay != null) {
+                        playerToPlay.play(startFrame, Integer.MAX_VALUE);
+                    }
                 } catch (Exception e) {
                     if (active.get() && sessionGen.get() == generation) {
                         AppLogger.warn("[AUDIO-PLAYBACK] MP3-Track '%s' beendet oder unterbrochen: %s", trackId, e.getMessage());
                     }
                 } finally {
-                    active.set(false);
+                    synchronized (this) {
+                        active.set(false);
+                        if (mp3Player != null) {
+                            try {
+                                mp3Player.close();
+                            } catch (Exception ignored) {}
+                            mp3Player = null;
+                        }
+                    }
                 }
             }, "MP3-Channel-" + trackId);
             thread.setDaemon(true);
@@ -157,29 +183,31 @@ public class AudioPlaybackService implements AutoCloseable {
         }
 
         void stop() {
-            active.set(false);
-            if (wavClip != null) {
-                try {
-                    wavClip.stop();
-                    wavClip.close();
-                } catch (Exception ignored) {}
-                wavClip = null;
-            }
-            if (mp3Player != null) {
-                try {
-                    mp3Player.close();
-                } catch (Exception ignored) {}
-                mp3Player = null;
-            }
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (Exception ignored) {}
-                stream = null;
-            }
-            if (thread != null && thread.isAlive()) {
-                thread.interrupt();
-                thread = null;
+            synchronized (this) {
+                active.set(false);
+                if (wavClip != null) {
+                    try {
+                        wavClip.stop();
+                        wavClip.close();
+                    } catch (Exception ignored) {}
+                    wavClip = null;
+                }
+                if (mp3Player != null) {
+                    try {
+                        mp3Player.close();
+                    } catch (Exception ignored) {}
+                    mp3Player = null;
+                }
+                if (stream != null) {
+                    try {
+                        stream.close();
+                    } catch (Exception ignored) {}
+                    stream = null;
+                }
+                if (thread != null && thread.isAlive()) {
+                    thread.interrupt();
+                    thread = null;
+                }
             }
         }
 
@@ -432,6 +460,15 @@ public class AudioPlaybackService implements AutoCloseable {
      */
     public boolean isPlaying() {
         return playing.get();
+    }
+
+    /**
+     * Liefert die Anzahl der aktuell aktiven Audio-Kanäle.
+     *
+     * @return Anzahl aktiver Kanäle
+     */
+    public int getActiveChannelCount() {
+        return activeChannels.size();
     }
 
     /**

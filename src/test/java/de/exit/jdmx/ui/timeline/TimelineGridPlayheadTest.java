@@ -246,4 +246,48 @@ class TimelineGridPlayheadTest {
         grid.fireEvent(hoverStopped);
         assertThat(grid.getCursor()).isEqualTo(Cursor.HAND);
     }
+
+    @Test
+    @DisplayName("Sollte während Playhead-Dragging bei laufendem Playback pausieren und beim Loslassen sauber fortsetzen")
+    void shouldPauseDuringPlayheadDragAndResumeOnRelease() {
+        TimelineService service = new TimelineService();
+        TimelineGridView grid = new TimelineGridView(service);
+        service.startPlayback();
+        assertThat(service.isPlaying()).isTrue();
+
+        // Klick auf Playhead-Griff (x = 0, y = 10)
+        MouseEvent handlePress = new MouseEvent(
+                MouseEvent.MOUSE_PRESSED,
+                2.0, 10.0, 2.0, 10.0,
+                MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        grid.fireEvent(handlePress);
+
+        // Während des Draggings ist Playback pausiert (kein Audio-Stacking)
+        assertThat(service.isPlaying()).isFalse();
+
+        // Drag an Sekunde 5 (x = 240)
+        MouseEvent handleDrag = new MouseEvent(
+                MouseEvent.MOUSE_DRAGGED,
+                240.0, 10.0, 240.0, 10.0,
+                MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        );
+        grid.fireEvent(handleDrag);
+        assertThat(service.getCurrentPositionMs()).isEqualTo(5000L);
+        assertThat(service.isPlaying()).isFalse();
+
+        // Loslassen des Griffs -> Wiedergabe setzt an Zielposition nahtlos fort
+        MouseEvent handleRelease = new MouseEvent(
+                MouseEvent.MOUSE_RELEASED,
+                240.0, 10.0, 240.0, 10.0,
+                MouseButton.PRIMARY, 1,
+                false, false, false, false, false, false, false, false, false, false, null
+        );
+        grid.fireEvent(handleRelease);
+
+        assertThat(service.getCurrentPositionMs()).isEqualTo(5000L);
+        assertThat(service.isPlaying()).isTrue();
+    }
 }

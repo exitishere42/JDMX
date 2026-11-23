@@ -519,6 +519,9 @@ public class TimelineService {
         if (analysis.hasWaveform()) {
             track.setWaveformData(analysis.waveformPeaks());
         }
+        if (analysis.has3BandWaveform()) {
+            track.set3BandWaveformData(analysis.lowBand(), analysis.midBand(), analysis.highBand());
+        }
     }
 
     /**

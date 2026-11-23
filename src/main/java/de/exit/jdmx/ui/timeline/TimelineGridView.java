@@ -59,6 +59,7 @@ public class TimelineGridView extends Pane {
     private ScrollPane attachedScrollPane;
 
     private boolean isDraggingPlayhead = false;
+    private boolean wasPlayingBeforePlayheadDrag = false;
     private TimelineTrack draggingClipTrack = null;
     private double dragStartMouseX = 0;
     private long dragStartClipTimeMs = 0;
@@ -99,6 +100,10 @@ public class TimelineGridView extends Pane {
             // Prüfen ob Klick auf das obere Playhead-Dreieck erfolgte (y <= 24px und im Radius von 16px um den Playhead)
             if (e.getY() <= 24.0 && Math.abs(e.getX() - playheadContentX) <= 16.0) {
                 isDraggingPlayhead = true;
+                wasPlayingBeforePlayheadDrag = service.isPlaying();
+                if (wasPlayingBeforePlayheadDrag) {
+                    service.pausePlayback();
+                }
                 handleSeek(e.getX());
                 return;
             }
@@ -143,6 +148,12 @@ public class TimelineGridView extends Pane {
         });
 
         setOnMouseReleased(e -> {
+            if (isDraggingPlayhead) {
+                if (wasPlayingBeforePlayheadDrag) {
+                    service.startPlayback();
+                    wasPlayingBeforePlayheadDrag = false;
+                }
+            }
             if (draggingClipTrack != null) {
                 service.resyncTrackImmediate(draggingClipTrack.getId());
             }
@@ -487,7 +498,8 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Zeichnet einen Song-Clip Block auf einer Spur mit realer Länge und echter Wellenform.
+     * Zeichnet einen Song-Clip Block auf einer Spur im modernen Pioneer Rekordbox 3-Band DJ-Stil
+     * (Blau für Bass/Subbass < 250 Hz, Orange für Mitten 250-3000 Hz, Weiß für Höhen > 3000 Hz).
      */
     private void drawSongClip(GraphicsContext gc, TimelineTrack track, double screenY, double h, double scrollX, double viewW) {
         long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
@@ -501,78 +513,112 @@ public class TimelineGridView extends Pane {
             return;
         }
 
-        // Clip-Karten-Hintergrund (smaragdgrün/teal Studio-Theme)
-        gc.setFill(Color.web("#064E3B"));
-        gc.fillRoundRect(clipStartX + 2, clipY, clipW, clipH, 6, 6);
+        // 1. Clip-Karten-Hintergrund: Tiefdunkles Studio-Deck (Pioneer CDJ-3000 Anthrazit)
+        gc.setFill(Color.web("#121215"));
+        gc.fillRoundRect(clipStartX, clipY, clipW, clipH, 4, 4);
 
-        gc.setStroke(Color.web("#10B981"));
+        gc.setStroke(Color.web("#27272A"));
         gc.setLineWidth(1.0);
-        gc.strokeRoundRect(clipStartX + 2, clipY, clipW, clipH, 6, 6);
+        gc.strokeRoundRect(clipStartX + 0.5, clipY + 0.5, clipW - 1.0, clipH - 1.0, 4, 4);
 
-        // Echte Wellenform zeichnen (Gebündelter DAW-Stil mit RMS-Körper und Transienten-Spikes)
+        // 2. Subtile Nulllinie in der vertikalen Mitte
+        double waveCenterY = clipY + (clipH / 2.0);
+        double maxAmpH = (clipH / 2.0) - 3.0;
+
+        double drawStartX = Math.max(clipStartX, 0.0);
+        double drawEndX = Math.min(clipStartX + clipW, viewW);
+
+        gc.setStroke(Color.web("#1E1E24"));
+        gc.setLineWidth(1.0);
+        gc.strokeLine(drawStartX, waveCenterY, drawEndX, waveCenterY);
+
+        // 3. Rekordbox 3-Band Wellenform zeichnen
+        boolean has3Band = track.has3BandWaveform();
         float[] waveform = track.getWaveformData();
-        if (waveform != null && waveform.length > 0) {
-            double waveCenterY = clipY + (clipH / 2.0);
-            double maxAmpH = (clipH / 2.0) - 5.0;
 
-            double stepPx = 2.0;
-            double drawStartX = Math.max(clipStartX + 4, 0);
-            double drawEndX = Math.min(clipStartX + clipW - 4, viewW);
+        if (has3Band || (waveform != null && waveform.length > 0)) {
+            float[] lowBand = has3Band ? track.getLowBandData() : null;
+            float[] midBand = has3Band ? track.getMidBandData() : null;
+            float[] highBand = has3Band ? track.getHighBandData() : null;
 
-            if (drawEndX > drawStartX) {
-                // 1. Semi-transparenter DAW-Hüllkurvenkörper (flüssiges Füllen)
-                gc.setFill(Color.web("#059669", 0.35));
-                gc.beginPath();
-                gc.moveTo(drawStartX, waveCenterY);
-                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
-                    double progress = (wx - clipStartX) / clipW;
-                    int sampleIdx = (int) (progress * (waveform.length - 1));
-                    float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
-                    double ampHeight = Math.max(1.0, amp * maxAmpH);
-                    gc.lineTo(wx, waveCenterY - ampHeight);
-                }
-                for (double wx = drawEndX; wx >= drawStartX; wx -= stepPx) {
-                    double progress = (wx - clipStartX) / clipW;
-                    int sampleIdx = (int) (progress * (waveform.length - 1));
-                    float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
-                    double ampHeight = Math.max(1.0, amp * maxAmpH);
-                    gc.lineTo(wx, waveCenterY + ampHeight);
-                }
-                gc.closePath();
-                gc.fill();
+            int len = has3Band ? lowBand.length : waveform.length;
+            double stepPx = 1.5; // Feine, dichte Schrittweite
 
-                // 2. Transienten-Spikes als vertikale Striche in EINEM gebündelten Pfad
-                gc.setStroke(Color.web("#34D399"));
-                gc.setLineWidth(1.5);
+            if (drawEndX > drawStartX && len > 0) {
+                // A. Bass-Band (Blau / Electric Blue #2563EB)
+                gc.setStroke(Color.web("#2563EB"));
+                gc.setLineWidth(1.2);
                 gc.beginPath();
                 for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
                     double progress = (wx - clipStartX) / clipW;
-                    int sampleIdx = (int) (progress * (waveform.length - 1));
-                    float amp = waveform[Math.min(sampleIdx, waveform.length - 1)];
-                    double ampHeight = Math.max(1.0, amp * maxAmpH);
-                    gc.moveTo(wx, waveCenterY - ampHeight);
-                    gc.lineTo(wx, waveCenterY + ampHeight);
+                    int idx = Math.min((int) (progress * len), len - 1);
+                    float lowVal = has3Band ? lowBand[idx] : (waveform[idx] * 0.50f);
+                    double lowH = Math.min(maxAmpH, Math.max(0.5, lowVal * maxAmpH));
+                    gc.moveTo(wx, waveCenterY - lowH);
+                    gc.lineTo(wx, waveCenterY + lowH);
+                }
+                gc.stroke();
+
+                // B. Mitten-Band (Warmes Bernstein / Orange #F59E0B)
+                gc.setStroke(Color.web("#F59E0B"));
+                gc.setLineWidth(1.2);
+                gc.beginPath();
+                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
+                    double progress = (wx - clipStartX) / clipW;
+                    int idx = Math.min((int) (progress * len), len - 1);
+                    float lowVal = has3Band ? lowBand[idx] : (waveform[idx] * 0.50f);
+                    float midVal = has3Band ? midBand[idx] : (waveform[idx] * 0.35f);
+                    double lowH = Math.min(maxAmpH, Math.max(0.5, lowVal * maxAmpH));
+                    double midTotalH = Math.min(maxAmpH, lowH + (midVal * maxAmpH * 0.7));
+                    if (midTotalH > lowH) {
+                        gc.moveTo(wx, waveCenterY - midTotalH);
+                        gc.lineTo(wx, waveCenterY - lowH);
+                        gc.moveTo(wx, waveCenterY + lowH);
+                        gc.lineTo(wx, waveCenterY + midTotalH);
+                    }
+                }
+                gc.stroke();
+
+                // C. Höhen-Band (Strahlendes Weiß / Ice Cyan #FFFFFF)
+                gc.setStroke(Color.web("#FFFFFF"));
+                gc.setLineWidth(1.2);
+                gc.beginPath();
+                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
+                    double progress = (wx - clipStartX) / clipW;
+                    int idx = Math.min((int) (progress * len), len - 1);
+                    float lowVal = has3Band ? lowBand[idx] : (waveform[idx] * 0.50f);
+                    float midVal = has3Band ? midBand[idx] : (waveform[idx] * 0.35f);
+                    float highVal = has3Band ? highBand[idx] : (waveform[idx] * 0.15f);
+                    double lowH = Math.min(maxAmpH, Math.max(0.5, lowVal * maxAmpH));
+                    double midTotalH = Math.min(maxAmpH, lowH + (midVal * maxAmpH * 0.7));
+                    double highTotalH = Math.min(maxAmpH, midTotalH + (highVal * maxAmpH * 0.6));
+                    if (highTotalH > midTotalH) {
+                        gc.moveTo(wx, waveCenterY - highTotalH);
+                        gc.lineTo(wx, waveCenterY - midTotalH);
+                        gc.moveTo(wx, waveCenterY + midTotalH);
+                        gc.lineTo(wx, waveCenterY + highTotalH);
+                    }
                 }
                 gc.stroke();
             }
-        } else {
-            // Subtile Mittellinie als visueller Anker, falls noch keine Wellenform berechnet
-            gc.setStroke(Color.web("#059669"));
-            gc.setLineWidth(1.0);
-            double waveCenterY = clipY + (clipH / 2.0);
-            gc.strokeLine(Math.max(clipStartX + 8, 0), waveCenterY, Math.min(clipStartX + clipW - 8, viewW), waveCenterY);
         }
 
-        // Song-Titel Header mit Formatierung der Laufzeit und optionalem Startversatz
-        gc.setFill(Color.web("#F3F4F6"));
+        // 4. Song-Titel Header mit Studio-Pill für perfekte Lesbarkeit
         String durationStr = formatDuration(durationMs);
         String label = track.getSongName() + " (" + durationStr + ")";
         if (track.getStartTimeMs() > 0) {
             label += " @" + formatDuration(track.getStartTimeMs());
         }
-        double textX = Math.max(clipStartX + 12, 12);
+
+        double textX = Math.max(clipStartX + 10, 10);
         if (textX < viewW - 20) {
-            gc.fillText(label, textX, clipY + 14);
+            // Hintergrund-Pill für den Text
+            double textW = Math.min(viewW - textX - 10, (label.length() * 6.5) + 12);
+            gc.setFill(Color.web("#09090B", 0.75));
+            gc.fillRoundRect(textX - 4, clipY + 3, textW, 16, 4, 4);
+
+            gc.setFill(Color.web("#F4F4F5"));
+            gc.fillText(label, textX, clipY + 15);
         }
     }
 
