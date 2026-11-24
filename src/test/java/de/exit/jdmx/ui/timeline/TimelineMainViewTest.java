@@ -223,27 +223,52 @@ class TimelineMainViewTest {
     }
 
     @Test
-    @DisplayName("Sollte beim Follow-Scrolling auch auf feine 1-Pixel-Verschiebungen ohne Chunk-Sprünge reagieren")
-    void shouldScrollSmoothlyOnSubPixelPlaybackUpdatesWithoutChunking() {
+    @DisplayName("Sollte beim Page-Turn Follow ruhig bleiben und erst kurz vor dem rechten Rand umblättern")
+    void shouldPageTurnOnlyWhenPlayheadApproachesRightEdge() {
         TimelineService service = new TimelineService();
-        // Sehr langer Track (10 Minuten = 36.000 px), sodass 0.0005 Hvalue sonst ~18 Pixel Chunk-Sprünge wäre!
-        service.getTracks().get(0).setDurationMs(600_000L);
+        service.getTracks().get(0).setDurationMs(600_000L); // 36.000 px breite Timeline
         TimelineMainView view = new TimelineMainView(service);
         view.resize(1000, 500);
         view.layout();
         view.getTimelineGridView().setViewportSize(800, 450);
 
         service.startPlayback();
-        // Playhead mitten im Follow-Bereich (bei 10.000ms)
+
+        // 1. Innerhalb des ruhigen Bereichs (z. B. 10.000ms = 600px < rightThreshold 755px) -> scrollX bleibt 0!
         service.setPositionMs(10_000L);
         view.updatePlaybackFrame(10_000L);
-        double s1 = view.getTimelineGridView().getScrollX();
+        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(0.0);
 
-        // Nur um 35 ms vorwärts (= ~2.1 Pixel bei 60 px/s)
-        view.updatePlaybackFrame(10_035L);
-        double s2 = view.getTimelineGridView().getScrollX();
+        // 2. Kurz vor dem rechten Rand (12.600ms = 756px >= 755px) -> blättert genau einmal um!
+        // Ziel: Playhead landet links bei 10% von 800px (= 80px), also scrollX = 756 - 80 = 676px
+        service.setPositionMs(12_600L);
+        view.updatePlaybackFrame(12_600L);
+        assertThat(view.getTimelineGridView().getScrollX()).isBetween(670.0, 682.0);
+        assertThat(view.getHorizontalScrollBar().getValue()).isBetween(670.0, 682.0);
 
-        assertThat(s2).isGreaterThan(s1);
+        // 3. Nächste Frames danach (z. B. 15.000ms = 900px, auf Bildschirm bei 224px) -> scrollX bleibt exakt stehen!
+        double pageScrollX = view.getTimelineGridView().getScrollX();
+        service.setPositionMs(15_000L);
+        view.updatePlaybackFrame(15_000L);
+        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(pageScrollX);
+
+        // 4. Seek zurück an den Anfang (1.000ms = 60px < pageScrollX) -> springt zurück auf 0!
+        service.setPositionMs(1_000L);
+        view.updatePlaybackFrame(1_000L);
+        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(0.0);
+
         service.stopPlayback();
+    }
+
+    @Test
+    @DisplayName("Sollte lblTimeDisplay als feste Relayout-Boundary konfigurieren")
+    void shouldIsolateTimeDisplayLayoutBoundary() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        assertThat(view.getLblTimeDisplay().getMinWidth()).isEqualTo(view.getLblTimeDisplay().getPrefWidth());
+        assertThat(view.getLblTimeDisplay().getMaxWidth()).isEqualTo(view.getLblTimeDisplay().getPrefWidth());
+        assertThat(view.getLblTimeDisplay().getMinHeight()).isEqualTo(view.getLblTimeDisplay().getPrefHeight());
+        assertThat(view.getLblTimeDisplay().getMaxHeight()).isEqualTo(view.getLblTimeDisplay().getPrefHeight());
     }
 }

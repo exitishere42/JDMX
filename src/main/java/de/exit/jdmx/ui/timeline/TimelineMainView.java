@@ -110,8 +110,9 @@ public class TimelineMainView extends VBox {
 
         this.lblTimeDisplay = new Label("00:00.000");
         lblTimeDisplay.getStyleClass().add("timeline-time-display");
-        lblTimeDisplay.setMinWidth(155.0);
-        lblTimeDisplay.setPrefWidth(155.0);
+        lblTimeDisplay.setMinSize(155.0, 24.0);
+        lblTimeDisplay.setPrefSize(155.0, 24.0);
+        lblTimeDisplay.setMaxSize(155.0, 24.0);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -382,15 +383,24 @@ public class TimelineMainView extends VBox {
         if (timelineGridView == null) {
             return -1.0;
         }
-        double viewW = timelineGridView.getWidth() > 0.0 ? timelineGridView.getWidth() : 800.0;
+        double viewW = timelineGridView.getViewportWidth();
         double maxScrollX = timelineGridView.getMaxScrollX();
-        if (maxScrollX <= 0.0) {
+        if (maxScrollX <= 0.0 || viewW <= 0.0) {
             return -1.0;
         }
         double playheadX = timelineGridView.millisToX(curPosMs);
-        double targetScrollX = Math.max(0.0, Math.min(maxScrollX, playheadX - (viewW * 0.45)));
         double currentScrollX = timelineGridView.getScrollX();
-        if (Math.abs(currentScrollX - targetScrollX) > 0.05) {
+        double playheadScreenX = playheadX - currentScrollX;
+        double rightThreshold = Math.max(viewW * 0.85, viewW - 45.0);
+
+        // Solange der Playhead zwischen linkem Rand und Auslösegrenze läuft: Viewport komplett ruhig halten
+        if (playheadScreenX >= 0.0 && playheadScreenX < rightThreshold) {
+            return -1.0;
+        }
+
+        // Kurz vor dem rechten Rand (oder bei Seek/Start außerhalb): einmalig umblättern (Playhead bei 10% links)
+        double targetScrollX = Math.max(0.0, Math.min(maxScrollX, playheadX - (viewW * 0.10)));
+        if (Math.abs(currentScrollX - targetScrollX) > 0.5) {
             return targetScrollX;
         }
         return -1.0;
@@ -403,22 +413,38 @@ public class TimelineMainView extends VBox {
         updatingScrollBars = true;
         try {
             double maxX = timelineGridView.getMaxScrollX();
-            double viewW = timelineGridView.getWidth() > 0.0 ? timelineGridView.getWidth() : 800.0;
-            hScrollBar.setMin(0.0);
-            hScrollBar.setMax(Math.max(0.0, maxX));
-            hScrollBar.setVisibleAmount(maxX > 0.0 ? Math.max(20.0, viewW) : 0.0);
-            hScrollBar.setValue(Math.max(0.0, Math.min(maxX, timelineGridView.getScrollX())));
-            hScrollBar.setVisible(maxX > 0.0);
-            hScrollBar.setManaged(maxX > 0.0);
+            double viewW = timelineGridView.getViewportWidth();
+            double safeMaxX = Math.max(0.0, maxX);
+            double visW = maxX > 0.0 ? Math.max(20.0, viewW) : 0.0;
+            if (Math.abs(hScrollBar.getMax() - safeMaxX) > 0.5) {
+                hScrollBar.setMin(0.0);
+                hScrollBar.setMax(safeMaxX);
+                hScrollBar.setVisibleAmount(visW);
+                boolean showH = maxX > 0.0;
+                hScrollBar.setVisible(showH);
+                hScrollBar.setManaged(showH);
+            }
+            double targetHVal = Math.max(0.0, Math.min(safeMaxX, timelineGridView.getScrollX()));
+            if (Math.abs(hScrollBar.getValue() - targetHVal) >= 0.01) {
+                hScrollBar.setValue(targetHVal);
+            }
 
             double maxY = timelineGridView.getMaxScrollY();
             double viewH = timelineGridView.getHeight() > 0.0 ? timelineGridView.getHeight() : 600.0;
-            vScrollBar.setMin(0.0);
-            vScrollBar.setMax(Math.max(0.0, maxY));
-            vScrollBar.setVisibleAmount(maxY > 0.0 ? Math.max(20.0, viewH) : 0.0);
-            vScrollBar.setValue(Math.max(0.0, Math.min(maxY, timelineGridView.getScrollY())));
-            vScrollBar.setVisible(maxY > 0.0);
-            vScrollBar.setManaged(maxY > 0.0);
+            double safeMaxY = Math.max(0.0, maxY);
+            double visH = maxY > 0.0 ? Math.max(20.0, viewH) : 0.0;
+            if (Math.abs(vScrollBar.getMax() - safeMaxY) > 0.5) {
+                vScrollBar.setMin(0.0);
+                vScrollBar.setMax(safeMaxY);
+                vScrollBar.setVisibleAmount(visH);
+                boolean showV = maxY > 0.0;
+                vScrollBar.setVisible(showV);
+                vScrollBar.setManaged(showV);
+            }
+            double targetVVal = Math.max(0.0, Math.min(safeMaxY, timelineGridView.getScrollY()));
+            if (Math.abs(vScrollBar.getValue() - targetVVal) >= 0.01) {
+                vScrollBar.setValue(targetVVal);
+            }
         } finally {
             updatingScrollBars = false;
         }

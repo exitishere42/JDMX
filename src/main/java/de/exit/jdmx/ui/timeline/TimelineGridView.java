@@ -149,6 +149,8 @@ public class TimelineGridView extends Pane {
         this.canvas = new Canvas(1200, 600);
         this.canvas.setManaged(false);
         this.canvas.setMouseTransparent(true);
+        this.canvas.setCache(true);
+        this.canvas.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         this.waveformLayer.setManaged(false);
         this.waveformLayer.setMouseTransparent(true);
@@ -165,6 +167,8 @@ public class TimelineGridView extends Pane {
         this.playheadGroup.getChildren().addAll(playheadLine, playheadHead);
         this.playheadGroup.setManaged(false);
         this.playheadGroup.setMouseTransparent(true);
+        this.playheadGroup.setCache(true);
+        this.playheadGroup.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         getChildren().addAll(canvas, waveformLayer, playheadGroup);
         setClip(viewportClip);
@@ -512,6 +516,15 @@ public class TimelineGridView extends Pane {
 
     public ReadOnlyDoubleProperty contentHeightProperty() {
         return contentHeightProperty;
+    }
+
+    /**
+     * Liefert die aktuelle effektive Viewport-Breite in Pixeln.
+     *
+     * @return Viewport-Breite (px)
+     */
+    public double getViewportWidth() {
+        return resolveViewportWidth();
     }
 
     public double getContentWidth() {
