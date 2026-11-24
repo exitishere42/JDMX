@@ -1720,6 +1720,17 @@
     -fx-background-color: #1A1A1A;
 }
 
+.timeline-zoom-reset-btn {
+    -fx-text-fill: #A1A1AA;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 6;
+}
+
+.timeline-zoom-reset-btn:hover {
+    -fx-text-fill: #F4F4F5;
+}
+
 .timeline-time-display {
     -fx-text-fill: #E4E4E7;
     -fx-font-size: 13px;

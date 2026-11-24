@@ -156,4 +156,22 @@ class TimelineMainViewTest {
         assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
         assertThat(view.getGridScrollPane().getHvalue()).isEqualTo(0.0);
     }
+
+    @Test
+    @DisplayName("Sollte Zoom-Buttons in der Toolbar bereitstellen und steuern")
+    void shouldProvideZoomControlsInToolbar() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        assertThat(view.getTimelineGridView().getPixelsPerSecond()).isEqualTo(TimelineGridView.DEFAULT_PIXELS_PER_SECOND);
+        assertThat(view.getTopToolbar().getChildren()).isNotEmpty();
+
+        // Zoom In testen
+        view.getTimelineGridView().zoomIn();
+        assertThat(view.getTimelineGridView().getPixelsPerSecond()).isEqualTo(72.0);
+
+        // Zoom Reset testen
+        view.getTimelineGridView().resetZoom();
+        assertThat(view.getTimelineGridView().getPixelsPerSecond()).isEqualTo(60.0);
+    }
 }

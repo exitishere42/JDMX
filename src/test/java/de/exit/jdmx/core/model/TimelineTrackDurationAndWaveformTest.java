@@ -78,4 +78,13 @@ class TimelineTrackDurationAndWaveformTest {
         assertThat(track.getMidBandData()[0]).isEqualTo(0.4f);
         assertThat(track.getHighBandData()[0]).isEqualTo(0.1f);
     }
+
+    @Test
+    @DisplayName("Sollte Standard-Spurhöhe mit 76 Pixeln initialisieren (Pioneer Rekordbox Skalierung)")
+    void shouldInitializeWithDefaultHeightOf76Px() {
+        TimelineTrack track = new TimelineTrack("track-1", "Spur 1");
+
+        assertThat(TimelineTrack.DEFAULT_TRACK_HEIGHT).isEqualTo(76.0);
+        assertThat(track.getHeight()).isEqualTo(76.0);
+    }
 }

@@ -15,8 +15,8 @@ import java.util.Objects;
  */
 public class TimelineTrack {
 
-    /** Standardhöhe eines Tracks in Pixeln für die FL Studio Playlist-Ansicht. */
-    public static final double DEFAULT_TRACK_HEIGHT = 48.0;
+    /** Standardhöhe eines Tracks in Pixeln für die Show-Timeline (76px für Pioneer Rekordbox Skalierung). */
+    public static final double DEFAULT_TRACK_HEIGHT = 76.0;
 
     /** Eindeutige Kennung des Tracks. */
     private final String id;

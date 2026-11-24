@@ -105,11 +105,37 @@ public class TimelineMainView extends VBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        this.topToolbar = new HBox(6, btnPlay, btnStop, lblTimeDisplay, spacer);
+        // 2. Rechtes Timeline-Grid (vor Toolbar-Initialisierung für Zoom-Actions)
+        this.timelineGridView = new TimelineGridView(service);
+        HBox.setHgrow(timelineGridView, Priority.ALWAYS);
+        VBox.setVgrow(timelineGridView, Priority.ALWAYS);
+
+        // Zoom-Steuerung für die horizontale Zeitleiste
+        Button btnZoomOut = new Button();
+        btnZoomOut.getStyleClass().add("timeline-transport-btn");
+        btnZoomOut.setGraphic(new LucideIcon("zoom-out", 12, StudioTheme.COLOR_ICON_TIMELINE));
+        btnZoomOut.setTooltip(new Tooltip("Verkleinern (Zoom Out)"));
+        btnZoomOut.setOnAction(e -> timelineGridView.zoomOut());
+
+        Button btnZoomReset = new Button("100%");
+        btnZoomReset.getStyleClass().addAll("timeline-transport-btn", "timeline-zoom-reset-btn");
+        btnZoomReset.setTooltip(new Tooltip("Standard-Zoom (100%)"));
+        btnZoomReset.setOnAction(e -> timelineGridView.resetZoom());
+
+        Button btnZoomIn = new Button();
+        btnZoomIn.getStyleClass().add("timeline-transport-btn");
+        btnZoomIn.setGraphic(new LucideIcon("zoom-in", 12, StudioTheme.COLOR_ICON_TIMELINE));
+        btnZoomIn.setTooltip(new Tooltip("Vergrößern (Zoom In)"));
+        btnZoomIn.setOnAction(e -> timelineGridView.zoomIn());
+
+        HBox zoomBox = new HBox(4, btnZoomOut, btnZoomReset, btnZoomIn);
+        zoomBox.setAlignment(Pos.CENTER_RIGHT);
+
+        this.topToolbar = new HBox(6, btnPlay, btnStop, lblTimeDisplay, spacer, zoomBox);
         topToolbar.setAlignment(Pos.CENTER_LEFT);
         topToolbar.getStyleClass().add("timeline-top-toolbar");
 
-        // 2. Linke Track-Header-Leiste
+        // 3. Linke Track-Header-Leiste
         this.trackBoxesContainer = new VBox(0);
         trackBoxesContainer.getStyleClass().add("timeline-tracks-container");
 
@@ -136,11 +162,7 @@ public class TimelineMainView extends VBox {
         tracksScrollPane.setPrefWidth(HEADER_PANE_WIDTH);
         tracksScrollPane.setMaxWidth(HEADER_PANE_WIDTH);
 
-        // 3. Rechtes Timeline-Grid
-        this.timelineGridView = new TimelineGridView(service);
-        HBox.setHgrow(timelineGridView, Priority.ALWAYS);
-        VBox.setVgrow(timelineGridView, Priority.ALWAYS);
-
+        // 4. Rechtes Timeline-Grid ScrollPane
         this.gridScrollPane = new ScrollPane(timelineGridView);
         gridScrollPane.getStyleClass().addAll("timeline-grid-scroll", "edge-to-edge");
         gridScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
@@ -324,6 +346,15 @@ public class TimelineMainView extends VBox {
      */
     public TimelineGridView getTimelineGridView() {
         return timelineGridView;
+    }
+
+    /**
+     * Liefert die obere Toolbar.
+     *
+     * @return die {@link HBox} der oberen Toolbar
+     */
+    public HBox getTopToolbar() {
+        return topToolbar;
     }
 
     /**

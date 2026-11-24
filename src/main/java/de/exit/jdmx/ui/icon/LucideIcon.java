@@ -205,6 +205,15 @@ public class LucideIcon extends StackPane {
             case "plus" ->
                 // Lucide plus
                 "M5 12h14 M12 5v14";
+            case "minus" ->
+                // Lucide minus
+                "M5 12h14";
+            case "zoom-in" ->
+                // Lucide zoom-in
+                "M11 8v6 M8 11h6 M21 21l-4.35-4.35 M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z";
+            case "zoom-out" ->
+                // Lucide zoom-out
+                "M8 11h6 M21 21l-4.35-4.35 M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z";
             case "lightbulb", "lamp" ->
                 // Lucide lightbulb
                 "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4";

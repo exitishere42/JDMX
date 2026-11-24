@@ -31,9 +31,10 @@ class TimelineGridPlayheadTest {
         TimelineService service = new TimelineService();
         TimelineGridView grid = new TimelineGridView(service);
 
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(TimelineGridView.DEFAULT_PIXELS_PER_SECOND);
         assertThat(grid.millisToX(0L)).isEqualTo(0.0);
-        assertThat(grid.millisToX(1000L)).isEqualTo(TimelineGridView.PIXELS_PER_SECOND);
-        assertThat(grid.millisToX(2000L)).isEqualTo(TimelineGridView.PIXELS_PER_SECOND * 2.0);
+        assertThat(grid.millisToX(1000L)).isEqualTo(grid.getPixelsPerSecond());
+        assertThat(grid.millisToX(2000L)).isEqualTo(grid.getPixelsPerSecond() * 2.0);
     }
 
     @Test
@@ -43,8 +44,8 @@ class TimelineGridPlayheadTest {
         TimelineGridView grid = new TimelineGridView(service);
 
         assertThat(grid.xToMillis(0.0)).isEqualTo(0L);
-        assertThat(grid.xToMillis(TimelineGridView.PIXELS_PER_SECOND)).isEqualTo(1000L);
-        assertThat(grid.xToMillis(TimelineGridView.PIXELS_PER_SECOND * 3.5)).isEqualTo(3500L);
+        assertThat(grid.xToMillis(grid.getPixelsPerSecond())).isEqualTo(1000L);
+        assertThat(grid.xToMillis(grid.getPixelsPerSecond() * 3.5)).isEqualTo(3500L);
     }
 
     @Test
@@ -63,18 +64,19 @@ class TimelineGridPlayheadTest {
         de.exit.jdmx.core.model.TimelineTrack track1 = service.getTracks().get(0);
         track1.setSongName("test.mp3");
         track1.setDurationMs(30_000L);
-        track1.setStartTimeMs(5_000L); // Clip von 5s (240px) bis 35s (1680px), y von 0 bis 48px
+        track1.setStartTimeMs(5_000L); // Clip von 5s bis 35s
 
         TimelineGridView grid = new TimelineGridView(service);
+        double startX = grid.millisToX(5_000L);
 
-        // Innerhalb des Clips
-        assertThat(grid.findClipTrackAt(300.0, 20.0)).isEqualTo(track1);
+        // Innerhalb des Clips (startX + 50px)
+        assertThat(grid.findClipTrackAt(startX + 50.0, 20.0)).isEqualTo(track1);
 
-        // Vor dem Clip (x < 240)
-        assertThat(grid.findClipTrackAt(100.0, 20.0)).isNull();
+        // Vor dem Clip (startX - 50px)
+        assertThat(grid.findClipTrackAt(Math.max(0.0, startX - 50.0), 20.0)).isNull();
 
-        // Unterhalb des Tracks (y > 48)
-        assertThat(grid.findClipTrackAt(300.0, 80.0)).isNull();
+        // Unterhalb des Tracks (y > track1.getHeight())
+        assertThat(grid.findClipTrackAt(startX + 50.0, track1.getHeight() + 10.0)).isNull();
     }
 
     @Test
@@ -103,9 +105,10 @@ class TimelineGridPlayheadTest {
         );
         grid.fireEvent(handlePress);
 
+        double targetX = grid.millisToX(5000L);
         javafx.scene.input.MouseEvent handleDrag = new javafx.scene.input.MouseEvent(
                 javafx.scene.input.MouseEvent.MOUSE_DRAGGED,
-                240.0, 10.0, 240.0, 10.0,
+                targetX, 10.0, targetX, 10.0,
                 javafx.scene.input.MouseButton.PRIMARY, 1,
                 false, false, false, false, true, false, false, false, false, false, null
         );
@@ -267,10 +270,11 @@ class TimelineGridPlayheadTest {
         // Während des Draggings ist Playback pausiert (kein Audio-Stacking)
         assertThat(service.isPlaying()).isFalse();
 
-        // Drag an Sekunde 5 (x = 240)
+        // Drag an Sekunde 5 (5000L)
+        double targetX = grid.millisToX(5000L);
         MouseEvent handleDrag = new MouseEvent(
                 MouseEvent.MOUSE_DRAGGED,
-                240.0, 10.0, 240.0, 10.0,
+                targetX, 10.0, targetX, 10.0,
                 MouseButton.PRIMARY, 1,
                 false, false, false, false, true, false, false, false, false, false, null
         );
@@ -281,7 +285,7 @@ class TimelineGridPlayheadTest {
         // Loslassen des Griffs -> Wiedergabe setzt an Zielposition nahtlos fort
         MouseEvent handleRelease = new MouseEvent(
                 MouseEvent.MOUSE_RELEASED,
-                240.0, 10.0, 240.0, 10.0,
+                targetX, 10.0, targetX, 10.0,
                 MouseButton.PRIMARY, 1,
                 false, false, false, false, false, false, false, false, false, false, null
         );
@@ -289,5 +293,82 @@ class TimelineGridPlayheadTest {
 
         assertThat(service.getCurrentPositionMs()).isEqualTo(5000L);
         assertThat(service.isPlaying()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte dynamischen horizontalen Zoom (In, Out, Reset) unterstützen")
+    void shouldSupportDynamicHorizontalZoom() {
+        TimelineService service = new TimelineService();
+        TimelineGridView grid = new TimelineGridView(service);
+
+        // Standard 60.0 px/s
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(TimelineGridView.DEFAULT_PIXELS_PER_SECOND);
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(60.0);
+
+        // Zoom In (+20%: 60.0 * 1.2 = 72.0)
+        grid.zoomIn();
+        assertThat(grid.getPixelsPerSecond()).isGreaterThan(60.0);
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(72.0);
+
+        // Zoom Out (72.0 / 1.2 = 60.0, stellt Ausgangszustand wieder her)
+        grid.zoomOut();
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(60.0);
+
+        // Weiteres Zoom Out (60.0 / 1.2 = 50.0)
+        grid.zoomOut();
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(50.0);
+
+        // Reset auf 100% (60.0)
+        grid.resetZoom();
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(60.0);
+    }
+
+    @Test
+    @DisplayName("Sollte Zoom-Werte strikt zwischen MIN und MAX begrenzen")
+    void shouldClampZoomBetweenMinAndMax() {
+        TimelineService service = new TimelineService();
+        TimelineGridView grid = new TimelineGridView(service);
+
+        // Exzessiver Zoom-In -> Deckelung bei MAX_PIXELS_PER_SECOND (160.0)
+        for (int i = 0; i < 30; i++) {
+            grid.zoomIn();
+        }
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(TimelineGridView.MAX_PIXELS_PER_SECOND);
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(160.0);
+
+        // Exzessiver Zoom-Out -> Deckelung bei MIN_PIXELS_PER_SECOND (24.0)
+        for (int i = 0; i < 30; i++) {
+            grid.zoomOut();
+        }
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(TimelineGridView.MIN_PIXELS_PER_SECOND);
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(24.0);
+
+        // Manuelles Setzen außerhalb der Grenzen
+        grid.setPixelsPerSecond(500.0);
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(160.0);
+
+        grid.setPixelsPerSecond(5.0);
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(24.0);
+    }
+
+    @Test
+    @DisplayName("Sollte Koordinatenberechnungen nach Zoom-Änderung dynamisch anpassen")
+    void shouldRecalculateCoordinatesDynamicallyAfterZoom() {
+        TimelineService service = new TimelineService();
+        TimelineGridView grid = new TimelineGridView(service);
+
+        // Standard: 60 px/s -> 2000ms = 120px
+        assertThat(grid.millisToX(2000L)).isEqualTo(120.0);
+        assertThat(grid.xToMillis(120.0)).isEqualTo(2000L);
+
+        // Zoom auf 120 px/s (doppelt so breit)
+        grid.setPixelsPerSecond(120.0);
+        assertThat(grid.millisToX(2000L)).isEqualTo(240.0);
+        assertThat(grid.xToMillis(240.0)).isEqualTo(2000L);
+
+        // Zoom auf 30 px/s (halb so breit)
+        grid.setPixelsPerSecond(30.0);
+        assertThat(grid.millisToX(2000L)).isEqualTo(60.0);
+        assertThat(grid.xToMillis(60.0)).isEqualTo(2000L);
     }
 }

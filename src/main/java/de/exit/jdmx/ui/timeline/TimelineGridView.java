@@ -48,8 +48,20 @@ public class TimelineGridView extends Pane {
     /** Raster-Unterteilung pro Viertel-Beat in Pixeln. */
     public static final double BEAT_WIDTH = BAR_WIDTH / 4.0;
 
-    /** Zeitmaßstab: Anzahl Pixel pro Sekunde (48px = 1 Sekunde). */
-    public static final double PIXELS_PER_SECOND = 48.0;
+    /** Standard-Zeitmaßstab: Anzahl Pixel pro Sekunde bei 100% Zoom (60px = 1 Sekunde). */
+    public static final double DEFAULT_PIXELS_PER_SECOND = 60.0;
+
+    /** Abwärtskompatible Konstante für statische Zugriffe (entspricht 100% Standard-Zoom). */
+    public static final double PIXELS_PER_SECOND = DEFAULT_PIXELS_PER_SECOND;
+
+    /** Minimaler Zoom: 24 Pixel pro Sekunde (Überblicks-Zoom für lange Shows). */
+    public static final double MIN_PIXELS_PER_SECOND = 24.0;
+
+    /** Maximaler Zoom: 160 Pixel pro Sekunde (Detail-Zoom für präzises Beat-Matching). */
+    public static final double MAX_PIXELS_PER_SECOND = 160.0;
+
+    /** Zoom-Faktor pro Stufe (+/- 20%). */
+    public static final double ZOOM_FACTOR = 1.2;
 
     /** Maximale sichere Canvas-Breite für GPU-Texturen (verhindert HiDPI 16384px Überlauf). */
     public static final double MAX_CANVAS_SAFE_DIM = 4096.0;
@@ -57,6 +69,9 @@ public class TimelineGridView extends Pane {
     private final TimelineService service;
     private final Canvas canvas;
     private ScrollPane attachedScrollPane;
+
+    /** Dynamischer Zeitmaßstab: Aktuelle Pixel pro Sekunde (horizontaler Zoom). */
+    private double pixelsPerSecond = DEFAULT_PIXELS_PER_SECOND;
 
     private boolean isDraggingPlayhead = false;
     private boolean wasPlayingBeforePlayheadDrag = false;
@@ -139,7 +154,7 @@ public class TimelineGridView extends Pane {
                     return;
                 }
                 double deltaPx = e.getX() - dragStartMouseX;
-                long deltaMs = Math.round((deltaPx / PIXELS_PER_SECOND) * 1000.0);
+                long deltaMs = Math.round((deltaPx / pixelsPerSecond) * 1000.0);
                 long newStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
                 service.setTrackStartTimeMs(draggingClipTrack.getId(), newStartMs);
                 updateGridDimensions();
@@ -164,6 +179,18 @@ public class TimelineGridView extends Pane {
 
         setOnMouseMoved(e -> updateCursorForPosition(e.getX(), e.getY()));
 
+        // Ctrl + Mausrad Zoom (Standard-DAW-Verhalten wie in FL Studio, Ableton, Cubase)
+        addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
+            if (e.isControlDown()) {
+                if (e.getDeltaY() > 0) {
+                    zoomIn();
+                } else if (e.getDeltaY() < 0) {
+                    zoomOut();
+                }
+                e.consume();
+            }
+        });
+
         // Kontextmenü & Drag & Drop für Audio-Songs aus dem Explorer auf Spuren
         setupContextMenu();
         setupDragAndDrop();
@@ -181,6 +208,18 @@ public class TimelineGridView extends Pane {
             scrollPane.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> redraw());
             scrollPane.hvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
             scrollPane.vvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
+
+            // Auch auf ScrollPane-Ebene Ctrl + Mausrad Zoom abfangen
+            scrollPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
+                if (e.isControlDown()) {
+                    if (e.getDeltaY() > 0) {
+                        zoomIn();
+                    } else if (e.getDeltaY() < 0) {
+                        zoomOut();
+                    }
+                    e.consume();
+                }
+            });
         }
         redraw();
     }
@@ -374,7 +413,7 @@ public class TimelineGridView extends Pane {
      * @return X-Koordinate in Pixeln
      */
     public double millisToX(long ms) {
-        return (Math.max(0L, ms) / 1000.0) * PIXELS_PER_SECOND;
+        return (Math.max(0L, ms) / 1000.0) * pixelsPerSecond;
     }
 
     /**
@@ -385,7 +424,53 @@ public class TimelineGridView extends Pane {
      */
     public long xToMillis(double x) {
         if (x <= 0.0) return 0L;
-        return Math.round((x / PIXELS_PER_SECOND) * 1000.0);
+        return Math.round((x / pixelsPerSecond) * 1000.0);
+    }
+
+    /**
+     * Liefert den aktuellen horizontalen Zoom-Wert in Pixeln pro Sekunde.
+     *
+     * @return Zeitmaßstab in Pixeln pro Sekunde
+     */
+    public double getPixelsPerSecond() {
+        return pixelsPerSecond;
+    }
+
+    /**
+     * Setzt den horizontalen Zoom-Wert in Pixeln pro Sekunde, strikt begrenzt zwischen
+     * {@link #MIN_PIXELS_PER_SECOND} und {@link #MAX_PIXELS_PER_SECOND}.
+     *
+     * @param pps der neue Zeitmaßstab in Pixeln pro Sekunde
+     */
+    public void setPixelsPerSecond(double pps) {
+        double clamped = Math.max(MIN_PIXELS_PER_SECOND, Math.min(MAX_PIXELS_PER_SECOND, pps));
+        if (Math.abs(this.pixelsPerSecond - clamped) > 0.001) {
+            this.pixelsPerSecond = clamped;
+            updateGridDimensions();
+            requestLayout();
+            redraw();
+        }
+    }
+
+    /**
+     * Vergrößert die Zeitleiste horizontal um 20% (Zoom In).
+     */
+    public void zoomIn() {
+        setPixelsPerSecond(pixelsPerSecond * ZOOM_FACTOR);
+    }
+
+    /**
+     * Verkleinert die Zeitleiste horizontal um 20% (Zoom Out).
+     */
+    public void zoomOut() {
+        setPixelsPerSecond(pixelsPerSecond / ZOOM_FACTOR);
+    }
+
+    /**
+     * Setzt den Zoom auf den Standardwert (100% = 60.0 px/s) zurück.
+     */
+    public void resetZoom() {
+        setPixelsPerSecond(DEFAULT_PIXELS_PER_SECOND);
     }
 
     /**
@@ -394,7 +479,8 @@ public class TimelineGridView extends Pane {
     public void updateGridDimensions() {
         long maxDurationMs = service.getMaxTimelineDurationMs();
         double targetWidth = Math.max(1200.0, millisToX(maxDurationMs) + (BAR_WIDTH * 8));
-        double targetHeight = Math.max(600.0, (service.getTracks().size() * 48.0) + 300.0);
+        double totalTracksH = service.getTracks().stream().mapToDouble(TimelineTrack::getHeight).sum();
+        double targetHeight = Math.max(600.0, totalTracksH + 300.0);
         setMinWidth(targetWidth);
         setPrefWidth(targetWidth);
         setMinHeight(targetHeight);
@@ -602,31 +688,6 @@ public class TimelineGridView extends Pane {
                 gc.stroke();
             }
         }
-
-        // 4. Song-Titel Header mit Studio-Pill für perfekte Lesbarkeit
-        String durationStr = formatDuration(durationMs);
-        String label = track.getSongName() + " (" + durationStr + ")";
-        if (track.getStartTimeMs() > 0) {
-            label += " @" + formatDuration(track.getStartTimeMs());
-        }
-
-        double textX = Math.max(clipStartX + 10, 10);
-        if (textX < viewW - 20) {
-            // Hintergrund-Pill für den Text
-            double textW = Math.min(viewW - textX - 10, (label.length() * 6.5) + 12);
-            gc.setFill(Color.web("#09090B", 0.75));
-            gc.fillRoundRect(textX - 4, clipY + 3, textW, 16, 4, 4);
-
-            gc.setFill(Color.web("#F4F4F5"));
-            gc.fillText(label, textX, clipY + 15);
-        }
-    }
-
-    private String formatDuration(long ms) {
-        long totalSec = ms / 1000;
-        long mins = totalSec / 60;
-        long secs = totalSec % 60;
-        return String.format("%02d:%02d", mins, secs);
     }
 
     /**
