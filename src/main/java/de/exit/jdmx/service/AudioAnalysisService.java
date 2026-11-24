@@ -199,8 +199,7 @@ public class AudioAnalysisService {
             ThreeBandFilter filter = null;
             float[] bands = new float[3];
             int sampleRate = 44100;
-            long totalFrames = 0;
-            double msPerFrame = 26.122; // Standard für 44.1kHz Layer 3
+            double exactDurationMs = 0.0;
 
             while (true) {
                 Header header;
@@ -217,9 +216,8 @@ public class AudioAnalysisService {
                     break;
                 }
 
-                totalFrames++;
                 sampleRate = header.frequency();
-                msPerFrame = header.ms_per_frame();
+                exactDurationMs += header.ms_per_frame();
                 if (filter == null) {
                     filter = new ThreeBandFilter(sampleRate);
                 }
@@ -268,7 +266,7 @@ public class AudioAnalysisService {
                 }
             }
 
-            long durationMs = Math.round(totalFrames * msPerFrame);
+            long durationMs = Math.round(exactDurationMs);
             if (durationMs <= 0 && mp3File.length() > 0) {
                 // Heuristik: 192 kbit/s = ~24.000 Bytes/s
                 durationMs = Math.max(10_000L, (mp3File.length() * 1000L) / 24000L);

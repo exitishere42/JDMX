@@ -691,7 +691,7 @@ public class TimelineGridView extends Pane {
         boolean first = true;
         for (double x = drawStartX; x <= drawEndX; x += stepPx) {
             double progress = (x - clipStartX) / clipW;
-            int idx = Math.min((int) (progress * len), len - 1);
+            int idx = Math.min(len - 1, Math.max(0, (int) Math.round(progress * (len - 1))));
             float val = bandData[idx];
             double amp = Math.min(maxAmpH, Math.max(0.5, val * maxAmpH * scaleFactor));
             double yTop = waveCenterY - amp;
@@ -707,7 +707,7 @@ public class TimelineGridView extends Pane {
         // 2. Untere Hüllkurve: Von rechts nach links (drawEndX zurück zu drawStartX)
         for (double x = drawEndX; x >= drawStartX; x -= stepPx) {
             double progress = (x - clipStartX) / clipW;
-            int idx = Math.min((int) (progress * len), len - 1);
+            int idx = Math.min(len - 1, Math.max(0, (int) Math.round(progress * (len - 1))));
             float val = bandData[idx];
             double amp = Math.min(maxAmpH, Math.max(0.5, val * maxAmpH * scaleFactor));
             double yBottom = waveCenterY + amp;

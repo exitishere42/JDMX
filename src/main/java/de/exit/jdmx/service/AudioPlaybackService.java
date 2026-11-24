@@ -2,12 +2,19 @@ package de.exit.jdmx.service;
 
 import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
-import javazoom.jl.player.advanced.AdvancedPlayer;
+import javazoom.jl.decoder.Bitstream;
+import javazoom.jl.decoder.Decoder;
+import javazoom.jl.decoder.Header;
+import javazoom.jl.decoder.SampleBuffer;
 
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.DataLine;
 import javax.sound.sampled.FloatControl;
+import javax.sound.sampled.Line;
+import javax.sound.sampled.SourceDataLine;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <ul>
  *     <li><b>Multitrack Audio:</b> Gleichzeitiges Abspielen beliebig vieler paralleler Audiospuren</li>
  *     <li><b>Zeitversatz (startTimeMs):</b> Dynamischer Start jedes Songs zum exakten Timeline-Zeitpunkt</li>
- *     <li><b>MP3:</b> Reine, native Java-Dekodierung und parallele Wiedergabe über JLayer {@link AdvancedPlayer}</li>
+ *     <li><b>MP3:</b> Reine, native Java-Dekodierung via JLayer {@link Bitstream}/{@link Decoder} mit {@link SourceDataLine} Hardware-Clock</li>
  *     <li><b>WAV:</b> Hardwarebeschleunigte PCM-Wiedergabe über Java Sound {@link Clip}</li>
  *     <li>Unterbrechungsfreies Pausieren, Stoppen und nahtloses Scrubben (Seek) zu beliebigen Millisekunden</li>
  *     <li>Plattformübergreifend stabil auf Windows und Linux (PipeWire / ALSA / PulseAudio)</li>
@@ -39,9 +46,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * </p>
  */
 public class AudioPlaybackService implements AutoCloseable {
-
-    /** Durchschnittliche Dauer eines MP3-Layer-III Frames bei 44.1 kHz in Millisekunden. */
-    private static final double MP3_MS_PER_FRAME = 26.122;
 
     private final AtomicBoolean playing = new AtomicBoolean(false);
     private final AtomicLong currentPositionMs = new AtomicLong(0L);
@@ -68,10 +72,12 @@ public class AudioPlaybackService implements AutoCloseable {
         private final long durationMs;
         private final AtomicBoolean active = new AtomicBoolean(false);
 
-        private volatile AdvancedPlayer mp3Player;
+        private volatile SourceDataLine mp3Line;
         private volatile Clip wavClip;
         private volatile InputStream stream;
         private volatile Thread thread;
+        private volatile long clipSeekOffsetMs = 0L;
+        private volatile boolean hardwareStarted = false;
 
         TrackAudioChannel(String trackId, File audioFile, long startTimeMs, long durationMs) {
             this.trackId = trackId;
@@ -84,11 +90,42 @@ public class AudioPlaybackService implements AutoCloseable {
             return active.get();
         }
 
+        /**
+         * Liefert die aktuelle Hardware-Wiedergabeposition dieses Kanals bezogen auf die Timeline (in ms).
+         * Verhindert Startlatenz-Versatz und Audio-Clock-Drift vollständig.
+         */
+        long getCurrentTimelinePositionMs() {
+            if (!active.get()) {
+                return -1L;
+            }
+            Clip clip = wavClip;
+            if (clip != null && clip.isOpen()) {
+                long us = clip.getMicrosecondPosition();
+                if (us > 0 || clip.isRunning()) {
+                    hardwareStarted = true;
+                    return startTimeMs + (us / 1000L);
+                }
+                return startTimeMs + clipSeekOffsetMs;
+            }
+            SourceDataLine line = mp3Line;
+            if (line != null && line.isOpen()) {
+                long us = line.getMicrosecondPosition();
+                if (us > 0 || line.isRunning()) {
+                    hardwareStarted = true;
+                    return startTimeMs + clipSeekOffsetMs + (us / 1000L);
+                }
+            }
+            // Während Header-Load / Seek noch nicht abgeschlossen ist -> Position am Seek-Punkt einfrieren
+            return startTimeMs + clipSeekOffsetMs;
+        }
+
         void start(long offsetWithinClipMs, long generation, AtomicLong sessionGen, double currentVolume) {
             stop();
             if (audioFile == null || !audioFile.exists() || !audioFile.isFile() || audioFile.length() == 0) {
                 return;
             }
+            this.clipSeekOffsetMs = Math.max(0L, offsetWithinClipMs);
+            this.hardwareStarted = false;
             active.set(true);
 
             String name = audioFile.getName().toLowerCase();
@@ -98,7 +135,7 @@ public class AudioPlaybackService implements AutoCloseable {
             if (name.endsWith(".wav")) {
                 playWav(offsetWithinClipMs, generation, sessionGen, currentVolume);
             } else {
-                playMp3(offsetWithinClipMs, generation, sessionGen);
+                playMp3(offsetWithinClipMs, generation, sessionGen, currentVolume);
             }
         }
 
@@ -143,24 +180,107 @@ public class AudioPlaybackService implements AutoCloseable {
             }
         }
 
-        private void playMp3(long offsetMs, long generation, AtomicLong sessionGen) {
-            int startFrame = (int) Math.round(offsetMs / MP3_MS_PER_FRAME);
-
+        private void playMp3(long offsetMs, long generation, AtomicLong sessionGen, double currentVolume) {
             thread = new Thread(() -> {
-                AdvancedPlayer playerToPlay = null;
+                SourceDataLine line = null;
                 try (InputStream in = new BufferedInputStream(new FileInputStream(audioFile))) {
-                    synchronized (this) {
+                    Bitstream bitstream = new Bitstream(in);
+                    Decoder decoder = new Decoder();
+
+                    // 1. Schnelles, exaktes Frame-Skipping ohne PCM-Dekodierung (CBR, VBR & 48kHz-sicher)
+                    double accumulatedMs = 0.0;
+                    Header header = null;
+                    while (true) {
                         if (sessionGen.get() != generation || !active.get()) {
                             return;
                         }
-                        this.stream = in;
-                        AdvancedPlayer player = new AdvancedPlayer(in);
-                        this.mp3Player = player;
-                        playerToPlay = player;
+                        try {
+                            header = bitstream.readFrame();
+                        } catch (Exception e) {
+                            try { bitstream.closeFrame(); } catch (Exception ignored) {}
+                            continue;
+                        }
+                        if (header == null) {
+                            return; // Dateiende vor Seek-Offset erreicht
+                        }
+                        double frameMs = header.ms_per_frame();
+                        if (accumulatedMs + (frameMs * 0.5) >= offsetMs) {
+                            break;
+                        }
+                        accumulatedMs += frameMs;
+                        bitstream.closeFrame();
                     }
 
-                    if (playerToPlay != null) {
-                        playerToPlay.play(startFrame, Integer.MAX_VALUE);
+                    // Exakten Start-Offset an das erreichte MP3-Frame-Timing binden
+                    this.clipSeekOffsetMs = Math.round(accumulatedMs);
+
+                    // 2. Ersten Frame dekodieren für AudioFormat (SampleRate & Channels)
+                    SampleBuffer firstOutput = (SampleBuffer) decoder.decodeFrame(header, bitstream);
+                    bitstream.closeFrame();
+                    if (firstOutput == null || sessionGen.get() != generation || !active.get()) {
+                        return;
+                    }
+
+                    int sampleRate = decoder.getOutputFrequency();
+                    int channels = decoder.getOutputChannels();
+                    AudioFormat format = new AudioFormat(
+                            AudioFormat.Encoding.PCM_SIGNED,
+                            sampleRate,
+                            16,
+                            channels,
+                            channels * 2,
+                            sampleRate,
+                            false
+                    );
+
+                    DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+                    line = (SourceDataLine) AudioSystem.getLine(info);
+                    int bufferBytes = Math.max(4096, (int) (sampleRate * channels * 2 * 0.10));
+                    line.open(format, bufferBytes);
+                    applyVolume(line, currentVolume);
+
+                    synchronized (this) {
+                        if (sessionGen.get() != generation || !active.get()) {
+                            line.close();
+                            return;
+                        }
+                        this.stream = in;
+                        this.mp3Line = line;
+                        line.start();
+                    }
+
+                    byte[] pcmBuf = new byte[4608 * 2];
+                    writePcmSamples(line, firstOutput.getBuffer(), firstOutput.getBufferLength(), pcmBuf);
+
+                    // 3. Kontinuierliche Echtzeit-Dekodierung
+                    while (active.get() && sessionGen.get() == generation) {
+                        Header nextHeader;
+                        try {
+                            nextHeader = bitstream.readFrame();
+                        } catch (Exception e) {
+                            try { bitstream.closeFrame(); } catch (Exception ignored) {}
+                            continue;
+                        }
+                        if (nextHeader == null) {
+                            break;
+                        }
+                        try {
+                            SampleBuffer output = (SampleBuffer) decoder.decodeFrame(nextHeader, bitstream);
+                            if (output != null && output.getBufferLength() > 0) {
+                                int len = output.getBufferLength();
+                                if (pcmBuf.length < len * 2) {
+                                    pcmBuf = new byte[len * 2];
+                                }
+                                writePcmSamples(line, output.getBuffer(), len, pcmBuf);
+                            }
+                        } catch (Exception ignored) {
+                        } finally {
+                            bitstream.closeFrame();
+                        }
+                    }
+
+                    if (active.get() && sessionGen.get() == generation) {
+                        line.drain();
                     }
                 } catch (Exception e) {
                     if (active.get() && sessionGen.get() == generation) {
@@ -169,17 +289,28 @@ public class AudioPlaybackService implements AutoCloseable {
                 } finally {
                     synchronized (this) {
                         active.set(false);
-                        if (mp3Player != null) {
+                        if (line != null) {
                             try {
-                                mp3Player.close();
+                                line.stop();
+                                line.close();
                             } catch (Exception ignored) {}
-                            mp3Player = null;
                         }
+                        mp3Line = null;
                     }
                 }
             }, "MP3-Channel-" + trackId);
             thread.setDaemon(true);
             thread.start();
+        }
+
+        private static void writePcmSamples(SourceDataLine line, short[] samples, int length, byte[] buf) {
+            int byteIdx = 0;
+            for (int i = 0; i < length; i++) {
+                short s = samples[i];
+                buf[byteIdx++] = (byte) (s & 0xFF);
+                buf[byteIdx++] = (byte) ((s >> 8) & 0xFF);
+            }
+            line.write(buf, 0, byteIdx);
         }
 
         void stop() {
@@ -192,11 +323,12 @@ public class AudioPlaybackService implements AutoCloseable {
                     } catch (Exception ignored) {}
                     wavClip = null;
                 }
-                if (mp3Player != null) {
+                if (mp3Line != null) {
                     try {
-                        mp3Player.close();
+                        mp3Line.stop();
+                        mp3Line.close();
                     } catch (Exception ignored) {}
-                    mp3Player = null;
+                    mp3Line = null;
                 }
                 if (stream != null) {
                     try {
@@ -211,10 +343,10 @@ public class AudioPlaybackService implements AutoCloseable {
             }
         }
 
-        private void applyVolume(Clip clip, double vol) {
+        private void applyVolume(Line line, double vol) {
             try {
-                if (clip != null && clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-                    FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+                if (line != null && line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                    FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
                     float min = gainControl.getMinimum();
                     float max = gainControl.getMaximum();
                     if (vol <= 0.0) {
@@ -469,6 +601,27 @@ public class AudioPlaybackService implements AutoCloseable {
      */
     public int getActiveChannelCount() {
         return activeChannels.size();
+    }
+
+    /**
+     * Liefert die aktuelle Hardware-Master-Position in Millisekunden bezogen auf die Timeline
+     * vom führenden (zuerst gestarteten) aktiven Audio-Kanal.
+     *
+     * @return Hardware-Position in ms oder {@code -1L}, falls aktuell kein Audio-Kanal aktiv tönt
+     */
+    public long getMasterPlaybackPositionMs() {
+        if (!playing.get() || activeChannels.isEmpty()) {
+            return -1L;
+        }
+        TrackAudioChannel master = null;
+        for (TrackAudioChannel ch : activeChannels.values()) {
+            if (ch.isPlaying()) {
+                if (master == null || ch.startTimeMs < master.startTimeMs) {
+                    master = ch;
+                }
+            }
+        }
+        return master != null ? master.getCurrentTimelinePositionMs() : -1L;
     }
 
     /**

@@ -53,7 +53,8 @@ public class TimelineService {
 
     /** Scheduled Executor für den Playback-Takt. */
     private ScheduledExecutorService playbackExecutor;
-    private volatile long lastTickNanos = 0L;
+    private volatile long clockAnchorMs = 0L;
+    private volatile long clockAnchorNanos = 0L;
 
     /** Audioanalyse-Service für Laufzeit- und Wellenform-Berechnungen. */
     private final AudioAnalysisService audioAnalysisService;
@@ -475,7 +476,7 @@ public class TimelineService {
     public void setPositionMs(long positionMs) {
         long safeMs = Math.max(0L, positionMs);
         currentPositionMs.set(safeMs);
-        lastTickNanos = System.nanoTime();
+        resetClockAnchor(safeMs, System.nanoTime());
         audioPlaybackService.setPosition(safeMs);
         notifyChange();
     }
@@ -485,9 +486,9 @@ public class TimelineService {
      */
     public synchronized void startPlayback() {
         if (playing.compareAndSet(false, true)) {
-            lastTickNanos = System.nanoTime();
-            startPlaybackTimer();
+            resetClockAnchor(currentPositionMs.get(), System.nanoTime());
             audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
+            startPlaybackTimer();
             notifyChange();
         }
     }
@@ -543,6 +544,7 @@ public class TimelineService {
         stopPlaybackTimer();
         audioPlaybackService.stop();
         currentPositionMs.set(0L);
+        resetClockAnchor(0L, System.nanoTime());
         notifyChange();
     }
 
@@ -555,6 +557,60 @@ public class TimelineService {
         return audioPlaybackService;
     }
 
+    /**
+     * Setzt den Zeitanker der verlustfreien Fallback-Clock zurück.
+     *
+     * @param anchorMs    Timeline-Position in Millisekunden
+     * @param anchorNanos Monotoner Nanosekunden-Zeitstempel
+     */
+    void resetClockAnchor(long anchorMs, long anchorNanos) {
+        this.clockAnchorMs = Math.max(0L, anchorMs);
+        this.clockAnchorNanos = anchorNanos;
+    }
+
+    /**
+     * Hilfsmethode für deterministische Unit-Tests ohne echte Thread-Timer.
+     *
+     * @param startNanos Startzeitstempel in Nanosekunden
+     */
+    void startPlaybackForTest(long startNanos) {
+        playing.set(true);
+        resetClockAnchor(currentPositionMs.get(), startNanos);
+    }
+
+    /**
+     * Führt einen einzelnen Clock-Tick aus. Rastet bei aktivem Audio auf die
+     * Soundkarten-Hardware-Clock ein (Zero-Drift Phase-Lock) und nutzt in
+     * Stille-Passagen die verlustfreie Anchor-Nano-Clock.
+     *
+     * @param nowNanos aktueller {@link System#nanoTime()} Wert
+     */
+    void advanceClockTick(long nowNanos) {
+        if (!playing.get()) return;
+
+        long hardwareMasterMs = audioPlaybackService.getMasterPlaybackPositionMs();
+        long newPos;
+        if (hardwareMasterMs >= 0L) {
+            newPos = hardwareMasterMs;
+            clockAnchorMs = newPos;
+            clockAnchorNanos = nowNanos;
+        } else {
+            long elapsedNanos = Math.max(0L, nowNanos - clockAnchorNanos);
+            newPos = clockAnchorMs + (elapsedNanos / 1_000_000L);
+        }
+
+        currentPositionMs.set(newPos);
+        audioPlaybackService.onTimelineTick(newPos);
+
+        long maxDuration = getMaxTimelineDurationMs();
+        if (maxDuration > 0 && newPos >= maxDuration) {
+            currentPositionMs.set(maxDuration);
+            pausePlayback();
+        } else {
+            notifyChange();
+        }
+    }
+
     private void startPlaybackTimer() {
         stopPlaybackTimer();
         playbackExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -565,23 +621,8 @@ public class TimelineService {
 
         playbackExecutor.scheduleAtFixedRate(() -> {
             if (!playing.get()) return;
-            long now = System.nanoTime();
-            long elapsedNanos = now - lastTickNanos;
-            lastTickNanos = now;
-
-            long deltaMs = elapsedNanos / 1_000_000L;
-            if (deltaMs > 0) {
-                long newPos = currentPositionMs.addAndGet(deltaMs);
-                audioPlaybackService.onTimelineTick(newPos);
-                long maxDuration = getMaxTimelineDurationMs();
-                if (maxDuration > 0 && newPos >= maxDuration) {
-                    currentPositionMs.set(maxDuration);
-                    pausePlayback();
-                } else {
-                    notifyChange();
-                }
-            }
-        }, 25, 25, TimeUnit.MILLISECONDS);
+            advanceClockTick(System.nanoTime());
+        }, 20, 20, TimeUnit.MILLISECONDS);
     }
 
     private void stopPlaybackTimer() {
