@@ -1731,6 +1731,11 @@
     -fx-text-fill: #F4F4F5;
 }
 
+.timeline-follow-btn:selected {
+    -fx-background-color: rgba(251, 146, 60, 0.14);
+    -fx-border-color: #FB923C;
+}
+
 .timeline-time-display {
     -fx-text-fill: #E4E4E7;
     -fx-font-size: 13px;

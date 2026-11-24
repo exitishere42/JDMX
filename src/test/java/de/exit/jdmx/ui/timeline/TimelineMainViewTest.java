@@ -174,4 +174,50 @@ class TimelineMainViewTest {
         view.getTimelineGridView().resetZoom();
         assertThat(view.getTimelineGridView().getPixelsPerSecond()).isEqualTo(60.0);
     }
+
+    @Test
+    @DisplayName("Sollte Follow-Playhead Button in der Toolbar bereitstellen (standardmäßig aktiviert)")
+    void shouldProvideFollowPlayheadToggleButtonActiveByDefault() {
+        TimelineService service = new TimelineService();
+        TimelineMainView view = new TimelineMainView(service);
+
+        assertThat(view.getBtnFollowPlayhead()).isNotNull();
+        assertThat(view.getBtnFollowPlayhead().isSelected()).isTrue();
+        assertThat(view.isFollowPlayheadEnabled()).isTrue();
+
+        view.getBtnFollowPlayhead().fire();
+        assertThat(view.getBtnFollowPlayhead().isSelected()).isFalse();
+        assertThat(view.isFollowPlayheadEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Sollte Viewport beim Abspielen automatisch mit dem Playhead mitscrollen wenn Follow aktiv ist")
+    void shouldAutoScrollPlayheadWhenFollowIsEnabledAndPlaying() {
+        TimelineService service = new TimelineService();
+        service.getTracks().get(0).setDurationMs(120_000L); // 2 Minuten Song -> 7200px breit
+        TimelineMainView view = new TimelineMainView(service);
+
+        // Viewport-Größe explizit simulieren (800px Breite)
+        view.resize(1000, 500);
+        view.layout();
+        view.getGridScrollPane().resize(800, 450);
+
+        // Follow aktiv, Playback starten und Position auf 60.000ms (3600px) setzen
+        assertThat(view.isFollowPlayheadEnabled()).isTrue();
+        service.startPlayback();
+        service.setPositionMs(60_000L);
+        view.updateFromService();
+
+        // ScrollPane muss deutlich nach rechts gescrollt sein
+        assertThat(view.getGridScrollPane().getHvalue()).isGreaterThan(0.2);
+
+        // Follow deaktivieren -> ScrollPane bleibt bei weiterem Fortschritt stehen
+        double savedHvalue = view.getGridScrollPane().getHvalue();
+        view.getBtnFollowPlayhead().setSelected(false);
+        service.setPositionMs(90_000L);
+        view.updateFromService();
+
+        assertThat(view.getGridScrollPane().getHvalue()).isEqualTo(savedHvalue);
+        service.stopPlayback();
+    }
 }

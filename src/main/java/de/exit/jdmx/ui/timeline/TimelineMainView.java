@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextInputControl;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -50,6 +51,7 @@ public class TimelineMainView extends VBox {
     private final Button btnPlay;
     private final Button btnStop;
     private final Label lblTimeDisplay;
+    private final ToggleButton btnFollowPlayhead;
 
     private final VBox trackBoxesContainer;
     private final Button btnAddTrack;
@@ -110,6 +112,19 @@ public class TimelineMainView extends VBox {
         HBox.setHgrow(timelineGridView, Priority.ALWAYS);
         VBox.setVgrow(timelineGridView, Priority.ALWAYS);
 
+        // Follow-Playhead Toggle (automatisches Verfolgen des Timeline-Strichs, standardmäßig aktiv)
+        this.btnFollowPlayhead = new ToggleButton();
+        btnFollowPlayhead.getStyleClass().addAll("timeline-transport-btn", "timeline-follow-btn");
+        btnFollowPlayhead.setSelected(true);
+        btnFollowPlayhead.setTooltip(new Tooltip("Timeline verfolgen"));
+        updateFollowButtonIcon();
+        btnFollowPlayhead.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            updateFollowButtonIcon();
+            if (Boolean.TRUE.equals(newVal) && service.isPlaying()) {
+                scrollToFollowPlayhead(service.getCurrentPositionMs());
+            }
+        });
+
         // Zoom-Steuerung für die horizontale Zeitleiste
         Button btnZoomOut = new Button();
         btnZoomOut.getStyleClass().add("timeline-transport-btn");
@@ -131,7 +146,7 @@ public class TimelineMainView extends VBox {
         HBox zoomBox = new HBox(4, btnZoomOut, btnZoomReset, btnZoomIn);
         zoomBox.setAlignment(Pos.CENTER_RIGHT);
 
-        this.topToolbar = new HBox(6, btnPlay, btnStop, lblTimeDisplay, spacer, zoomBox);
+        this.topToolbar = new HBox(6, btnPlay, btnStop, lblTimeDisplay, spacer, btnFollowPlayhead, zoomBox);
         topToolbar.setAlignment(Pos.CENTER_LEFT);
         topToolbar.getStyleClass().add("timeline-top-toolbar");
 
@@ -266,6 +281,41 @@ public class TimelineMainView extends VBox {
         }
 
         updatePlayButtonVisual();
+
+        if (service.isPlaying() && isFollowPlayheadEnabled()) {
+            scrollToFollowPlayhead(curPos);
+        }
+    }
+
+    private void updateFollowButtonIcon() {
+        javafx.scene.paint.Color iconColor = btnFollowPlayhead.isSelected()
+                ? javafx.scene.paint.Color.web("#FB923C")
+                : javafx.scene.paint.Color.web("#9CA3AF");
+        btnFollowPlayhead.setGraphic(new LucideIcon("crosshair", 12, iconColor));
+    }
+
+    private void scrollToFollowPlayhead(long curPosMs) {
+        if (gridScrollPane == null || timelineGridView == null) {
+            return;
+        }
+        double vpW = gridScrollPane.getViewportBounds() != null
+                ? gridScrollPane.getViewportBounds().getWidth()
+                : 0.0;
+        double viewW = vpW > 0.0 ? vpW : gridScrollPane.getWidth();
+        if (viewW <= 0.0) {
+            return;
+        }
+        double totalW = Math.max(viewW, timelineGridView.getPrefWidth());
+        double maxScrollX = Math.max(0.0, totalW - viewW);
+        if (maxScrollX <= 0.0) {
+            return;
+        }
+        double playheadX = timelineGridView.millisToX(curPosMs);
+        double targetScrollX = Math.max(0.0, Math.min(maxScrollX, playheadX - (viewW * 0.45)));
+        double targetHvalue = targetScrollX / maxScrollX;
+        if (Math.abs(gridScrollPane.getHvalue() - targetHvalue) > 0.0005) {
+            gridScrollPane.setHvalue(targetHvalue);
+        }
     }
 
     /**
@@ -355,6 +405,24 @@ public class TimelineMainView extends VBox {
      */
     public HBox getTopToolbar() {
         return topToolbar;
+    }
+
+    /**
+     * Liefert den Follow-Playhead Toggle-Button.
+     *
+     * @return der {@link ToggleButton} zum Verfolgen des Timeline-Strichs
+     */
+    public ToggleButton getBtnFollowPlayhead() {
+        return btnFollowPlayhead;
+    }
+
+    /**
+     * Prüft, ob das automatische Verfolgen des Playheads aktiviert ist.
+     *
+     * @return {@code true}, wenn die Ansicht beim Abspielen mitscrollt
+     */
+    public boolean isFollowPlayheadEnabled() {
+        return btnFollowPlayhead != null && btnFollowPlayhead.isSelected();
     }
 
     /**

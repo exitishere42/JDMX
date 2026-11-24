@@ -188,17 +188,8 @@ public class TimelineGridView extends Pane {
 
         setOnMouseMoved(e -> updateCursorForPosition(e.getX(), e.getY()));
 
-        // Ctrl + Mausrad Zoom (Standard-DAW-Verhalten wie in FL Studio, Ableton, Cubase)
-        addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
-            if (e.isControlDown()) {
-                if (e.getDeltaY() > 0) {
-                    zoomIn();
-                } else if (e.getDeltaY() < 0) {
-                    zoomOut();
-                }
-                e.consume();
-            }
-        });
+        // Ctrl + Mausrad Zoom (Standard-DAW-Verhalten: Maus-zentriert)
+        addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> handleCtrlScroll(e, false));
 
         // Kontextmenü & Drag & Drop für Audio-Songs aus dem Explorer auf Spuren
         setupContextMenu();
@@ -218,19 +209,41 @@ public class TimelineGridView extends Pane {
             scrollPane.hvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
             scrollPane.vvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
 
-            // Auch auf ScrollPane-Ebene Ctrl + Mausrad Zoom abfangen
-            scrollPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> {
-                if (e.isControlDown()) {
-                    if (e.getDeltaY() > 0) {
-                        zoomIn();
-                    } else if (e.getDeltaY() < 0) {
-                        zoomOut();
-                    }
-                    e.consume();
-                }
-            });
+            // Auch auf ScrollPane-Ebene Ctrl + Mausrad Zoom abfangen (inkl. Linux/Trackpad Support)
+            scrollPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> handleCtrlScroll(e, true));
         }
         redraw();
+    }
+
+    private double resolveViewportWidth() {
+        if (attachedScrollPane == null) {
+            return Math.max(100.0, getWidth() > 0.0 ? getWidth() : 800.0);
+        }
+        double vpW = attachedScrollPane.getViewportBounds() != null ? attachedScrollPane.getViewportBounds().getWidth() : 0.0;
+        if (vpW > 0.0) {
+            return vpW;
+        }
+        return attachedScrollPane.getWidth() > 0.0 ? attachedScrollPane.getWidth() : 800.0;
+    }
+
+    private void handleCtrlScroll(javafx.scene.input.ScrollEvent e, boolean viewportRelative) {
+        if (!e.isControlDown()) {
+            return;
+        }
+        double delta = Math.abs(e.getDeltaY()) > 0.001 ? e.getDeltaY() : e.getTextDeltaY();
+        if (Math.abs(delta) > 0.001) {
+            double factor = delta > 0 ? ZOOM_FACTOR : (1.0 / ZOOM_FACTOR);
+            double screenX = e.getX();
+            if (!viewportRelative && attachedScrollPane != null) {
+                double viewW = resolveViewportWidth();
+                double totalW = Math.max(1200.0, getPrefWidth());
+                double maxScrollX = Math.max(0.0, totalW - viewW);
+                double scrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
+                screenX = e.getX() - scrollX;
+            }
+            zoomAtScreenX(factor, screenX);
+            e.consume();
+        }
     }
 
     @Override
@@ -462,17 +475,74 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Vergrößert die Zeitleiste horizontal um 20% (Zoom In).
+     * Vergrößert die Zeitleiste horizontal um 20% (Zoom In), zentriert auf den Playhead oder die Viewport-Mitte.
      */
     public void zoomIn() {
-        setPixelsPerSecond(pixelsPerSecond * ZOOM_FACTOR);
+        if (attachedScrollPane != null && attachedScrollPane.getViewportBounds() != null) {
+            zoomAtPlayheadOrCenter(ZOOM_FACTOR);
+        } else {
+            setPixelsPerSecond(pixelsPerSecond * ZOOM_FACTOR);
+        }
     }
 
     /**
-     * Verkleinert die Zeitleiste horizontal um 20% (Zoom Out).
+     * Verkleinert die Zeitleiste horizontal um 20% (Zoom Out), zentriert auf den Playhead oder die Viewport-Mitte.
      */
     public void zoomOut() {
-        setPixelsPerSecond(pixelsPerSecond / ZOOM_FACTOR);
+        if (attachedScrollPane != null && attachedScrollPane.getViewportBounds() != null) {
+            zoomAtPlayheadOrCenter(1.0 / ZOOM_FACTOR);
+        } else {
+            setPixelsPerSecond(pixelsPerSecond / ZOOM_FACTOR);
+        }
+    }
+
+    /**
+     * Zoomt mit dem angegebenen Faktor und hält dabei den Zeitpunkt unter der gegebenen
+     * Bildschirm-X-Koordinate im Viewport exakt fixiert (kein Wegspringen der Waveform).
+     *
+     * @param factor            Zoom-Faktor (> 1 für Zoom In, < 1 für Zoom Out)
+     * @param screenXInViewport X-Position im sichtbaren Viewport (z. B. Mausposition)
+     */
+    public void zoomAtScreenX(double factor, double screenXInViewport) {
+        if (factor <= 0.0) {
+            return;
+        }
+        double viewW = resolveViewportWidth();
+        double oldScrollX = 0.0;
+        if (attachedScrollPane != null) {
+            double totalW = Math.max(1200.0, getPrefWidth());
+            double maxScrollX = Math.max(0.0, totalW - viewW);
+            oldScrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
+        }
+
+        double clampedScreenX = Math.max(0.0, Math.min(viewW, screenXInViewport));
+        long anchorMs = xToMillis(oldScrollX + clampedScreenX);
+
+        double oldPps = this.pixelsPerSecond;
+        setPixelsPerSecond(oldPps * factor);
+
+        if (attachedScrollPane != null && Math.abs(this.pixelsPerSecond - oldPps) > 0.001) {
+            double newTotalW = Math.max(1200.0, getPrefWidth());
+            double newMaxScrollX = Math.max(0.0, newTotalW - viewW);
+            if (newMaxScrollX > 0.0) {
+                double newAnchorContentX = millisToX(anchorMs);
+                double newScrollX = Math.max(0.0, Math.min(newMaxScrollX, newAnchorContentX - clampedScreenX));
+                attachedScrollPane.setHvalue(newScrollX / newMaxScrollX);
+            } else {
+                attachedScrollPane.setHvalue(0.0);
+            }
+            redraw();
+        }
+    }
+
+    private void zoomAtPlayheadOrCenter(double factor) {
+        double viewW = resolveViewportWidth();
+        double totalW = Math.max(1200.0, getPrefWidth());
+        double maxScrollX = Math.max(0.0, totalW - viewW);
+        double scrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
+        double playheadScreenX = millisToX(service.getCurrentPositionMs()) - scrollX;
+        double anchorScreenX = (playheadScreenX >= 0 && playheadScreenX <= viewW) ? playheadScreenX : (viewW * 0.5);
+        zoomAtScreenX(factor, anchorScreenX);
     }
 
     /**

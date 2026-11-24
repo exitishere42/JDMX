@@ -371,4 +371,50 @@ class TimelineGridPlayheadTest {
         assertThat(grid.millisToX(2000L)).isEqualTo(60.0);
         assertThat(grid.xToMillis(60.0)).isEqualTo(2000L);
     }
+
+    @Test
+    @DisplayName("Sollte beim Ctrl+Scroll Event zoomen und Event konsumieren")
+    void shouldTriggerZoomOnCtrlScrollEvent() {
+        TimelineService service = new TimelineService();
+        TimelineGridView grid = new TimelineGridView(service);
+        double before = grid.getPixelsPerSecond();
+
+        javafx.scene.input.ScrollEvent ctrlScrollUp = new javafx.scene.input.ScrollEvent(
+                javafx.scene.input.ScrollEvent.SCROLL,
+                200.0, 50.0, 200.0, 50.0,
+                false, true, false, false, // controlDown = true
+                false, false,
+                0.0, 40.0, 0.0, 40.0,
+                javafx.scene.input.ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                javafx.scene.input.ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0, null
+        );
+
+        grid.fireEvent(ctrlScrollUp);
+
+        assertThat(grid.getPixelsPerSecond()).isGreaterThan(before);
+    }
+
+    @Test
+    @DisplayName("Sollte bei zoomAtScreenX den Zielzeitpunkt unter der Mausposition fixieren")
+    void shouldZoomCenteredOnMouseAnchor() {
+        TimelineService service = new TimelineService();
+        service.getTracks().get(0).setDurationMs(120_000L);
+        TimelineGridView grid = new TimelineGridView(service);
+        javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(grid);
+        scrollPane.resize(800, 400);
+        scrollPane.layout();
+        grid.attachScrollPane(scrollPane);
+
+        // Start: hvalue = 0.0, screenX = 300px -> bei 60 px/s entspricht das 5.000 ms
+        grid.zoomAtScreenX(TimelineGridView.ZOOM_FACTOR, 300.0);
+
+        // Neuer Zoom: 72 px/s -> 5.000 ms liegen nun bei 360px Content-X -> Scroll-Position muss exakt 60px sein!
+        assertThat(grid.getPixelsPerSecond()).isEqualTo(72.0);
+        double maxScrollX = Math.max(0.0, grid.getPrefWidth() - scrollPane.getWidth());
+        if (maxScrollX > 0) {
+            double actualScrollX = scrollPane.getHvalue() * maxScrollX;
+            assertThat(actualScrollX).isBetween(55.0, 65.0);
+        }
+    }
 }
