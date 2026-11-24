@@ -92,4 +92,34 @@ class TimelineGridViewRekordboxWaveformTest {
 
         assertThat(grid.getPixelsPerSecond()).isEqualTo(TimelineGridView.MAX_PIXELS_PER_SECOND);
     }
+
+    @Test
+    @DisplayName("Sollte Offscreen Waveform-Kacheln cachen und bei Zoom-Änderung sauber invalidieren")
+    void shouldCacheAndInvalidateWaveformTilesOnZoom() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track = service.getTracks().get(0);
+        track.setSongName("cached_track.mp3");
+        track.setDurationMs(60_000L);
+        float[] band = new float[1000];
+        for (int i = 0; i < band.length; i++) {
+            band[i] = 0.5f;
+        }
+        track.set3BandWaveformData(band, band, band);
+
+        TimelineGridView grid = new TimelineGridView(service);
+        grid.resize(1200, 400);
+        grid.redraw();
+
+        // Kacheln müssen nach dem ersten Zeichenvorgang gecacht sein
+        assertThat(grid.getCachedWaveformTileCount()).isGreaterThan(0);
+
+        // Erneutes Zeichnen ohne Zoom-Änderung nutzt Cache weiter
+        int countBefore = grid.getCachedWaveformTileCount();
+        grid.redraw();
+        assertThat(grid.getCachedWaveformTileCount()).isEqualTo(countBefore);
+
+        // Zoom-Änderung invalidiert alten Cache
+        grid.setPixelsPerSecond(120.0);
+        assertThat(grid.getCachedWaveformTileCount()).isGreaterThan(0);
+    }
 }

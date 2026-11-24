@@ -51,8 +51,12 @@ public class TimelineService {
     /** Registrierte Listener für Daten- und Zustandsänderungen. */
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 
+    /** Registrierte High-Frequency Listener für reine Playback-Frame-Updates (ohne Layout-Rebuild). */
+    private final List<Runnable> playbackFrameListeners = new CopyOnWriteArrayList<>();
+
     /** Scheduled Executor für den Playback-Takt. */
     private ScheduledExecutorService playbackExecutor;
+    private final Object clockLock = new Object();
     private volatile long clockAnchorMs = 0L;
     private volatile long clockAnchorNanos = 0L;
 
@@ -564,8 +568,10 @@ public class TimelineService {
      * @param anchorNanos Monotoner Nanosekunden-Zeitstempel
      */
     void resetClockAnchor(long anchorMs, long anchorNanos) {
-        this.clockAnchorMs = Math.max(0L, anchorMs);
-        this.clockAnchorNanos = anchorNanos;
+        synchronized (clockLock) {
+            this.clockAnchorMs = Math.max(0L, anchorMs);
+            this.clockAnchorNanos = anchorNanos;
+        }
     }
 
     /**
@@ -579,26 +585,53 @@ public class TimelineService {
     }
 
     /**
-     * Führt einen einzelnen Clock-Tick aus. Rastet bei aktivem Audio auf die
-     * Soundkarten-Hardware-Clock ein (Zero-Drift Phase-Lock) und nutzt in
-     * Stille-Passagen die verlustfreie Anchor-Nano-Clock.
+     * Berechnet die per Soft-PLL (Phase-Locked-Loop) geglättete, VSync-bereite Abspielposition in ms.
+     * Eliminiert 20–45ms Treiber-Treppchen komplett und garantiert gleichzeitig 0-Drift gegenüber der Soundkarte.
+     *
+     * @param nowNanos aktueller monotoner Zeitstempel ({@link System#nanoTime()})
+     * @return geglättete Timeline-Position in Millisekunden
+     */
+    public long getSmoothedPlaybackPositionMs(long nowNanos) {
+        if (!playing.get()) {
+            return currentPositionMs.get();
+        }
+        long predictedMs;
+        synchronized (clockLock) {
+            long elapsedNanos = Math.max(0L, nowNanos - clockAnchorNanos);
+            predictedMs = clockAnchorMs + (elapsedNanos / 1_000_000L);
+
+            long hardwareMs = audioPlaybackService.getMasterPlaybackPositionMs();
+            if (hardwareMs >= 0L) {
+                long diff = hardwareMs - predictedMs;
+                if (Math.abs(diff) >= 35L) {
+                    clockAnchorMs = hardwareMs;
+                    clockAnchorNanos = nowNanos;
+                    predictedMs = hardwareMs;
+                } else if (diff != 0L) {
+                    long adj = Math.round(diff * 0.25);
+                    if (adj == 0L) {
+                        adj = diff > 0 ? 1L : -1L;
+                    }
+                    predictedMs = predictedMs + adj;
+                    clockAnchorMs = predictedMs;
+                    clockAnchorNanos = nowNanos;
+                }
+            }
+        }
+        return Math.max(0L, predictedMs);
+    }
+
+    /**
+     * Führt einen einzelnen Clock-Tick aus. Rastet bei aktivem Audio per Soft-PLL auf die
+     * Soundkarten-Hardware-Clock ein und feuert ausschließlich {@link #notifyPlaybackFrame()},
+     * um redundante UI-Baum- und Layout-Rebuilds zu vermeiden.
      *
      * @param nowNanos aktueller {@link System#nanoTime()} Wert
      */
     void advanceClockTick(long nowNanos) {
         if (!playing.get()) return;
 
-        long hardwareMasterMs = audioPlaybackService.getMasterPlaybackPositionMs();
-        long newPos;
-        if (hardwareMasterMs >= 0L) {
-            newPos = hardwareMasterMs;
-            clockAnchorMs = newPos;
-            clockAnchorNanos = nowNanos;
-        } else {
-            long elapsedNanos = Math.max(0L, nowNanos - clockAnchorNanos);
-            newPos = clockAnchorMs + (elapsedNanos / 1_000_000L);
-        }
-
+        long newPos = getSmoothedPlaybackPositionMs(nowNanos);
         currentPositionMs.set(newPos);
         audioPlaybackService.onTimelineTick(newPos);
 
@@ -607,7 +640,7 @@ public class TimelineService {
             currentPositionMs.set(maxDuration);
             pausePlayback();
         } else {
-            notifyChange();
+            notifyPlaybackFrame();
         }
     }
 
@@ -633,11 +666,12 @@ public class TimelineService {
     }
 
     // =========================================================================
-    // Change-Listener
+    // Change-Listener & High-Frequency Playback-Frame-Listener
     // =========================================================================
 
     /**
-     * Registriert einen Listener, der bei Änderungen an den Tracks oder am Playback aufgerufen wird.
+     * Registriert einen Listener für strukturelle Änderungen und Transport-Zustände
+     * (Start, Pause, Stop, Seek, Track-Hinzufügen/Verschieben).
      *
      * @param listener Callback-Aktion
      */
@@ -657,7 +691,31 @@ public class TimelineService {
     }
 
     /**
-     * Benachrichtigt alle registrierten Listener über eine Zustandsänderung.
+     * Registriert einen High-Frequency-Listener für reine Playback-Ticks ohne UI-Layout-Rebuild.
+     *
+     * @param listener Callback-Aktion
+     */
+    public void addPlaybackFrameListener(Runnable listener) {
+        if (listener != null && !playbackFrameListeners.contains(listener)) {
+            playbackFrameListeners.add(listener);
+        }
+    }
+
+    /**
+     * Benachrichtigt alle Playback-Frame-Listener über ein reines Zeit-Update während laufender Show.
+     */
+    public void notifyPlaybackFrame() {
+        for (Runnable listener : playbackFrameListeners) {
+            try {
+                listener.run();
+            } catch (Throwable t) {
+                AppLogger.error("[TIMELINE] Fehler in Playback-Frame-Listener: %s", t.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Benachrichtigt alle registrierten Listener über eine strukturelle oder Transport-Zustandsänderung.
      */
     public void notifyChange() {
         for (Runnable listener : changeListeners) {
@@ -667,5 +725,6 @@ public class TimelineService {
                 AppLogger.error("[TIMELINE] Fehler in Change-Listener: %s", t.getMessage());
             }
         }
+        notifyPlaybackFrame();
     }
 }

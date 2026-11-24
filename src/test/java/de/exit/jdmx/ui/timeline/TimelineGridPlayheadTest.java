@@ -417,4 +417,33 @@ class TimelineGridPlayheadTest {
             assertThat(actualScrollX).isBetween(55.0, 65.0);
         }
     }
+
+    @Test
+    @DisplayName("Sollte beim horizontalen Scrollen (Shift+Scroll) in feinen Pixel-Schritten statt großen Chunks scrollen")
+    void shouldScrollHorizontallyInFinePixelStepsWithoutChunking() {
+        TimelineService service = new TimelineService();
+        service.getTracks().get(0).setDurationMs(600_000L); // 36.000 px breite Timeline
+        TimelineGridView grid = new TimelineGridView(service);
+        javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(grid);
+        scrollPane.resize(800, 400);
+        scrollPane.layout();
+        grid.attachScrollPane(scrollPane);
+
+        // Shift + Mausrad nach unten (deltaY = -40) -> bewegt Timeline um exakt ~48px vorwärts (nicht 400px!)
+        javafx.scene.input.ScrollEvent shiftScrollDown = new javafx.scene.input.ScrollEvent(
+                javafx.scene.input.ScrollEvent.SCROLL,
+                200.0, 50.0, 200.0, 50.0,
+                true, false, false, false, // shiftDown = true
+                false, false,
+                0.0, -40.0, 0.0, -40.0,
+                javafx.scene.input.ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                javafx.scene.input.ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0, null
+        );
+        grid.fireEvent(shiftScrollDown);
+
+        double maxScrollX = Math.max(0.0, grid.getPrefWidth() - scrollPane.getWidth());
+        double scrolledPx = scrollPane.getHvalue() * maxScrollX;
+        assertThat(scrolledPx).isBetween(40.0, 60.0);
+    }
 }

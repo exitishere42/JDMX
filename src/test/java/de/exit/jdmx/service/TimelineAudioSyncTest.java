@@ -95,4 +95,54 @@ class TimelineAudioSyncTest {
         AudioPlaybackService playback = new AudioPlaybackService();
         assertThat(playback.getMasterPlaybackPositionMs()).isEqualTo(-1L);
     }
+
+    @Test
+    @DisplayName("Sollte kleine Hardware-Treiber-Treppchen via Soft-PLL sanft glätten und große Sprünge sofort einrasten")
+    void shouldSmoothSmallAudioHardwareJitterViaSoftPll() {
+        AudioPlaybackService mockAudio = Mockito.mock(AudioPlaybackService.class);
+        TimelineService service = new TimelineService(new AudioAnalysisService(), mockAudio);
+        TimelineTrack track = service.getTracks().get(0);
+        track.setDurationMs(120_000L);
+
+        long t0 = 10_000_000_000L;
+        service.startPlaybackForTest(t0);
+        service.resetClockAnchor(10_000L, t0);
+
+        // 16.6ms später: Nano-Prediction ist 10.016ms, Audio-Hardware meldet 10.028ms (+12ms Treiber-Treppchen < 30ms Schwelle)
+        when(mockAudio.getMasterPlaybackPositionMs()).thenReturn(10_028L);
+        long smoothed = service.getSmoothedPlaybackPositionMs(t0 + 16_666_667L);
+
+        // Soft-PLL zieht sanft in Richtung 10.028ms (kein abrupter +12ms Sprung!)
+        assertThat(smoothed).isBetween(10_017L, 10_026L);
+
+        // Großer Offset >= 35ms (z. B. 10.080ms) rastet sofort hart ein!
+        when(mockAudio.getMasterPlaybackPositionMs()).thenReturn(10_080L);
+        long snapped = service.getSmoothedPlaybackPositionMs(t0 + 33_333_334L);
+        assertThat(snapped).isEqualTo(10_080L);
+    }
+
+    @Test
+    @DisplayName("Sollte während normaler Playback-Ticks keine strukturellen Change-Listener (Explorer/Layout) feuern")
+    void shouldNotFireStructuralChangeListenersDuringPlaybackTicks() {
+        AudioPlaybackService mockAudio = Mockito.mock(AudioPlaybackService.class);
+        when(mockAudio.getMasterPlaybackPositionMs()).thenReturn(-1L);
+
+        TimelineService service = new TimelineService(new AudioAnalysisService(), mockAudio);
+        service.getTracks().get(0).setDurationMs(120_000L);
+
+        int[] structuralChanges = {0};
+        int[] frameTicks = {0};
+        service.addChangeListener(() -> structuralChanges[0]++);
+        service.addPlaybackFrameListener(() -> frameTicks[0]++);
+
+        long t0 = 1_000_000_000L;
+        service.startPlaybackForTest(t0);
+        structuralChanges[0] = 0;
+
+        service.advanceClockTick(t0 + 20_000_000L);
+        service.advanceClockTick(t0 + 40_000_000L);
+
+        assertThat(structuralChanges[0]).isZero();
+        assertThat(frameTicks[0]).isEqualTo(2);
+    }
 }

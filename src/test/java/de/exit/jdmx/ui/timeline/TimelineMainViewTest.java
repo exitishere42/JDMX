@@ -220,4 +220,29 @@ class TimelineMainViewTest {
         assertThat(view.getGridScrollPane().getHvalue()).isEqualTo(savedHvalue);
         service.stopPlayback();
     }
+
+    @Test
+    @DisplayName("Sollte beim Follow-Scrolling auch auf feine 1-Pixel-Verschiebungen ohne Chunk-Sprünge reagieren")
+    void shouldScrollSmoothlyOnSubPixelPlaybackUpdatesWithoutChunking() {
+        TimelineService service = new TimelineService();
+        // Sehr langer Track (10 Minuten = 36.000 px), sodass 0.0005 Hvalue sonst ~18 Pixel Chunk-Sprünge wäre!
+        service.getTracks().get(0).setDurationMs(600_000L);
+        TimelineMainView view = new TimelineMainView(service);
+        view.resize(1000, 500);
+        view.layout();
+        view.getGridScrollPane().resize(800, 450);
+
+        service.startPlayback();
+        // Playhead mitten im Follow-Bereich (bei 10.000ms)
+        service.setPositionMs(10_000L);
+        view.updatePlaybackFrame(10_000L);
+        double h1 = view.getGridScrollPane().getHvalue();
+
+        // Nur um 35 ms vorwärts (= ~2.1 Pixel bei 60 px/s; 2.1px / 35200px = 0.00006 Hvalue < alte 0.0005 Schwelle!)
+        view.updatePlaybackFrame(10_035L);
+        double h2 = view.getGridScrollPane().getHvalue();
+
+        assertThat(h2).isGreaterThan(h1);
+        service.stopPlayback();
+    }
 }

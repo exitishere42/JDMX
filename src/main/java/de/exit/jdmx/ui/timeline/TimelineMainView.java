@@ -52,6 +52,7 @@ public class TimelineMainView extends VBox {
     private final Button btnStop;
     private final Label lblTimeDisplay;
     private final ToggleButton btnFollowPlayhead;
+    private final javafx.animation.AnimationTimer vsyncPlaybackTimer;
 
     private final VBox trackBoxesContainer;
     private final Button btnAddTrack;
@@ -200,6 +201,19 @@ public class TimelineMainView extends VBox {
 
         getChildren().addAll(topToolbar, contentBox);
 
+        timelineGridView.setVsyncControlled(true);
+        this.vsyncPlaybackTimer = new javafx.animation.AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                if (!service.isPlaying()) {
+                    stop();
+                    return;
+                }
+                long smoothedPos = service.getSmoothedPlaybackPositionMs(now);
+                updatePlaybackFrame(smoothedPos);
+            }
+        };
+
         // Initialer Aufbau der Trackboxen und Playback-Zustand
         updateFromService();
 
@@ -269,7 +283,37 @@ public class TimelineMainView extends VBox {
             rebuildTrackBoxes();
         }
 
-        long curPos = service.getCurrentPositionMs();
+        updatePlayButtonVisual();
+
+        if (service.isPlaying()) {
+            if (getScene() != null) {
+                vsyncPlaybackTimer.start();
+            } else {
+                updatePlaybackFrame(service.getCurrentPositionMs());
+            }
+        } else {
+            vsyncPlaybackTimer.stop();
+            timelineGridView.redrawAtPosition(-1L);
+            updateTimeLabel(service.getCurrentPositionMs());
+        }
+    }
+
+    /**
+     * Aktualisiert Zeitanzeige, Subpixel-Follow-Scrolling und Grid-Rendering für einen einzelnen
+     * VSync-Playback-Frame ohne Layout-Invalidierung.
+     *
+     * @param curPosMs aktuelle (ggf. Soft-PLL geglättete) Position in Millisekunden
+     */
+    public void updatePlaybackFrame(long curPosMs) {
+        updateTimeLabel(curPosMs);
+
+        if (service.isPlaying() && isFollowPlayheadEnabled()) {
+            scrollToFollowPlayhead(curPosMs);
+        }
+        timelineGridView.redrawAtPosition(curPosMs);
+    }
+
+    private void updateTimeLabel(long curPos) {
         long maxDuration = service.getMaxTimelineDurationMs();
         boolean hasSong = service.getTracks().stream().anyMatch(TimelineTrack::hasSong);
         String formatted = (hasSong || maxDuration > 60_000L)
@@ -278,12 +322,6 @@ public class TimelineMainView extends VBox {
 
         if (!formatted.equals(lblTimeDisplay.getText())) {
             lblTimeDisplay.setText(formatted);
-        }
-
-        updatePlayButtonVisual();
-
-        if (service.isPlaying() && isFollowPlayheadEnabled()) {
-            scrollToFollowPlayhead(curPos);
         }
     }
 
@@ -312,9 +350,10 @@ public class TimelineMainView extends VBox {
         }
         double playheadX = timelineGridView.millisToX(curPosMs);
         double targetScrollX = Math.max(0.0, Math.min(maxScrollX, playheadX - (viewW * 0.45)));
-        double targetHvalue = targetScrollX / maxScrollX;
-        if (Math.abs(gridScrollPane.getHvalue() - targetHvalue) > 0.0005) {
-            gridScrollPane.setHvalue(targetHvalue);
+        double currentScrollX = gridScrollPane.getHvalue() * maxScrollX;
+        // Subpixel-genaues Mitführen ohne Chunk-Schwelle (reagiert bereits ab > 0.05 Pixel!)
+        if (Math.abs(currentScrollX - targetScrollX) > 0.05) {
+            gridScrollPane.setHvalue(targetScrollX / maxScrollX);
         }
     }
 
