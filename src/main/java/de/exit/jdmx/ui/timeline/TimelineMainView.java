@@ -391,14 +391,14 @@ public class TimelineMainView extends VBox {
         double playheadX = timelineGridView.millisToX(curPosMs);
         double currentScrollX = timelineGridView.getScrollX();
         double playheadScreenX = playheadX - currentScrollX;
-        double rightThreshold = Math.max(viewW * 0.85, viewW - 45.0);
+        double rightThreshold = viewW;
 
-        // Solange der Playhead zwischen linkem Rand und Auslösegrenze läuft: Viewport komplett ruhig halten
+        // Solange der Playhead zwischen linkem Rand und Viewport-Ende läuft: Viewport komplett ruhig halten
         if (playheadScreenX >= 0.0 && playheadScreenX < rightThreshold) {
             return -1.0;
         }
 
-        // Kurz vor dem rechten Rand (oder bei Seek/Start außerhalb): einmalig umblättern (Playhead bei 10% links)
+        // Am Ende angelangt (oder bei Seek/Start außerhalb): einmalig umblättern (Playhead bei 10% links)
         double targetScrollX = Math.max(0.0, Math.min(maxScrollX, playheadX - (viewW * 0.10)));
         if (Math.abs(currentScrollX - targetScrollX) > 0.5) {
             return targetScrollX;

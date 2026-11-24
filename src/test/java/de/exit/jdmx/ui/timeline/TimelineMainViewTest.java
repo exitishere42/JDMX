@@ -223,7 +223,7 @@ class TimelineMainViewTest {
     }
 
     @Test
-    @DisplayName("Sollte beim Page-Turn Follow ruhig bleiben und erst kurz vor dem rechten Rand umblättern")
+    @DisplayName("Sollte beim Page-Turn Follow ruhig bleiben und erst am rechten Rand (Viewport-Ende) umblättern")
     void shouldPageTurnOnlyWhenPlayheadApproachesRightEdge() {
         TimelineService service = new TimelineService();
         service.getTracks().get(0).setDurationMs(600_000L); // 36.000 px breite Timeline
@@ -234,19 +234,19 @@ class TimelineMainViewTest {
 
         service.startPlayback();
 
-        // 1. Innerhalb des ruhigen Bereichs (z. B. 10.000ms = 600px < rightThreshold 755px) -> scrollX bleibt 0!
-        service.setPositionMs(10_000L);
-        view.updatePlaybackFrame(10_000L);
-        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(0.0);
-
-        // 2. Kurz vor dem rechten Rand (12.600ms = 756px >= 755px) -> blättert genau einmal um!
-        // Ziel: Playhead landet links bei 10% von 800px (= 80px), also scrollX = 756 - 80 = 676px
+        // 1. Bis kurz vor dem Viewport-Ende (z. B. 12.600ms = 756px < viewW 800px) -> scrollX bleibt 0!
         service.setPositionMs(12_600L);
         view.updatePlaybackFrame(12_600L);
-        assertThat(view.getTimelineGridView().getScrollX()).isBetween(670.0, 682.0);
-        assertThat(view.getHorizontalScrollBar().getValue()).isBetween(670.0, 682.0);
+        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(0.0);
 
-        // 3. Nächste Frames danach (z. B. 15.000ms = 900px, auf Bildschirm bei 224px) -> scrollX bleibt exakt stehen!
+        // 2. Erreicht das Ende des Viewports (13.340ms = 800.4px >= 800px) -> blättert genau einmal um!
+        // Ziel: Playhead landet links bei 10% von 800px (= 80px), also scrollX ≈ 800 - 80 = 720px
+        service.setPositionMs(13_340L);
+        view.updatePlaybackFrame(13_340L);
+        assertThat(view.getTimelineGridView().getScrollX()).isBetween(715.0, 725.0);
+        assertThat(view.getHorizontalScrollBar().getValue()).isBetween(715.0, 725.0);
+
+        // 3. Nächste Frames danach (z. B. 15.000ms = 900px, auf Bildschirm bei ~180px) -> scrollX bleibt exakt stehen!
         double pageScrollX = view.getTimelineGridView().getScrollX();
         service.setPositionMs(15_000L);
         view.updatePlaybackFrame(15_000L);
