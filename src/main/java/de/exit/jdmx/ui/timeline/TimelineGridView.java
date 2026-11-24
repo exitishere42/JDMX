@@ -63,6 +63,15 @@ public class TimelineGridView extends Pane {
     /** Zoom-Faktor pro Stufe (+/- 20%). */
     public static final double ZOOM_FACTOR = 1.2;
 
+    /** Original Pioneer Rekordbox Farbton für Tiefen/Bass (< 250 Hz, Royal Blue). */
+    public static final Color COLOR_REKORDBOX_LOW = Color.web("#2253D9");
+
+    /** Original Pioneer Rekordbox Farbton für Mitten (250 Hz - 3 kHz, Amber Gold / Warmes Orange). */
+    public static final Color COLOR_REKORDBOX_MID = Color.web("#D97706");
+
+    /** Original Pioneer Rekordbox Farbton für Höhen/Transienten (> 3 kHz, Strahlendes Pure White). */
+    public static final Color COLOR_REKORDBOX_HIGH = Color.web("#FFFFFF");
+
     /** Maximale sichere Canvas-Breite für GPU-Texturen (verhindert HiDPI 16384px Überlauf). */
     public static final double MAX_CANVAS_SAFE_DIM = 4096.0;
 
@@ -618,76 +627,97 @@ public class TimelineGridView extends Pane {
         gc.setLineWidth(1.0);
         gc.strokeLine(drawStartX, waveCenterY, drawEndX, waveCenterY);
 
-        // 3. Rekordbox 3-Band Wellenform zeichnen
+        // 3. Rekordbox 3-Band Solid-Wellenform zeichnen (Drei eigenständige Layer deckend aufeinandergelegt)
         boolean has3Band = track.has3BandWaveform();
         float[] waveform = track.getWaveformData();
 
-        if (has3Band || (waveform != null && waveform.length > 0)) {
-            float[] lowBand = has3Band ? track.getLowBandData() : null;
-            float[] midBand = has3Band ? track.getMidBandData() : null;
-            float[] highBand = has3Band ? track.getHighBandData() : null;
+        if (has3Band) {
+            // Layer 1: Bass / Low-Band (Royal Blue) als Fundament
+            drawSingleBandSolidWaveform(gc, track.getLowBandData(), clipStartX, clipW, drawStartX, drawEndX,
+                    waveCenterY, maxAmpH, 1.0, COLOR_REKORDBOX_LOW);
 
-            int len = has3Band ? lowBand.length : waveform.length;
-            double stepPx = 1.5; // Feine, dichte Schrittweite
+            // Layer 2: Mitten / Mid-Band (Warmes Amber Gold / Orange) direkt über das Blau gelegt
+            drawSingleBandSolidWaveform(gc, track.getMidBandData(), clipStartX, clipW, drawStartX, drawEndX,
+                    waveCenterY, maxAmpH, 0.75, COLOR_REKORDBOX_MID);
 
-            if (drawEndX > drawStartX && len > 0) {
-                // A. Bass-Band (Blau / Electric Blue #2563EB)
-                gc.setStroke(Color.web("#2563EB"));
-                gc.setLineWidth(1.2);
-                gc.beginPath();
-                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
-                    double progress = (wx - clipStartX) / clipW;
-                    int idx = Math.min((int) (progress * len), len - 1);
-                    float lowVal = has3Band ? lowBand[idx] : (waveform[idx] * 0.50f);
-                    double lowH = Math.min(maxAmpH, Math.max(0.5, lowVal * maxAmpH));
-                    gc.moveTo(wx, waveCenterY - lowH);
-                    gc.lineTo(wx, waveCenterY + lowH);
-                }
-                gc.stroke();
+            // Layer 3: Höhen / Transienten / High-Band (Pure White) ganz oben drauf gelegt
+            drawSingleBandSolidWaveform(gc, track.getHighBandData(), clipStartX, clipW, drawStartX, drawEndX,
+                    waveCenterY, maxAmpH, 0.45, COLOR_REKORDBOX_HIGH);
+        } else if (waveform != null && waveform.length > 0) {
+            // Fallback für Monochrom-Wellenformen: Solides Polygon in Studio-Blau
+            drawSingleBandSolidWaveform(gc, waveform, clipStartX, clipW, drawStartX, drawEndX,
+                    waveCenterY, maxAmpH, 1.0, COLOR_REKORDBOX_LOW);
+        }
+    }
 
-                // B. Mitten-Band (Warmes Bernstein / Orange #F59E0B)
-                gc.setStroke(Color.web("#F59E0B"));
-                gc.setLineWidth(1.2);
-                gc.beginPath();
-                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
-                    double progress = (wx - clipStartX) / clipW;
-                    int idx = Math.min((int) (progress * len), len - 1);
-                    float lowVal = has3Band ? lowBand[idx] : (waveform[idx] * 0.50f);
-                    float midVal = has3Band ? midBand[idx] : (waveform[idx] * 0.35f);
-                    double lowH = Math.min(maxAmpH, Math.max(0.5, lowVal * maxAmpH));
-                    double midTotalH = Math.min(maxAmpH, lowH + (midVal * maxAmpH * 0.7));
-                    if (midTotalH > lowH) {
-                        gc.moveTo(wx, waveCenterY - midTotalH);
-                        gc.lineTo(wx, waveCenterY - lowH);
-                        gc.moveTo(wx, waveCenterY + lowH);
-                        gc.lineTo(wx, waveCenterY + midTotalH);
-                    }
-                }
-                gc.stroke();
+    /**
+     * Zeichnet einen einzelnen Frequenzband-Wellenformkörper als massives, geschlossenes 2D-Polygon
+     * (Solid Mesh) ohne Zwischenräume oder Einzelstriche, identisch zum Pioneer Rekordbox DJ-System.
+     *
+     * @param gc          der JavaFX {@link GraphicsContext}
+     * @param bandData    die normalisierten Amplituden-Werte (0.0 bis 1.0)
+     * @param clipStartX  Startposition des Clips in Bildschirmkoordinaten
+     * @param clipW       Gesamtbreite des Clips in Pixeln
+     * @param drawStartX  linke Begrenzung des sichtbaren Bereichs
+     * @param drawEndX    rechte Begrenzung des sichtbaren Bereichs
+     * @param waveCenterY vertikale Mittellinie des Clips
+     * @param maxAmpH     maximale halbe Amplitude in Pixeln
+     * @param scaleFactor Amplituden-Skalierungsfaktor dieses Frequenzbandes
+     * @param fillColor   Füllfarbe des Polygons
+     */
+    private void drawSingleBandSolidWaveform(
+            GraphicsContext gc,
+            float[] bandData,
+            double clipStartX,
+            double clipW,
+            double drawStartX,
+            double drawEndX,
+            double waveCenterY,
+            double maxAmpH,
+            double scaleFactor,
+            Color fillColor
+    ) {
+        if (bandData == null || bandData.length == 0 || drawEndX <= drawStartX || clipW <= 0) {
+            return;
+        }
 
-                // C. Höhen-Band (Strahlendes Weiß / Ice Cyan #FFFFFF)
-                gc.setStroke(Color.web("#FFFFFF"));
-                gc.setLineWidth(1.2);
-                gc.beginPath();
-                for (double wx = drawStartX; wx <= drawEndX; wx += stepPx) {
-                    double progress = (wx - clipStartX) / clipW;
-                    int idx = Math.min((int) (progress * len), len - 1);
-                    float lowVal = has3Band ? lowBand[idx] : (waveform[idx] * 0.50f);
-                    float midVal = has3Band ? midBand[idx] : (waveform[idx] * 0.35f);
-                    float highVal = has3Band ? highBand[idx] : (waveform[idx] * 0.15f);
-                    double lowH = Math.min(maxAmpH, Math.max(0.5, lowVal * maxAmpH));
-                    double midTotalH = Math.min(maxAmpH, lowH + (midVal * maxAmpH * 0.7));
-                    double highTotalH = Math.min(maxAmpH, midTotalH + (highVal * maxAmpH * 0.6));
-                    if (highTotalH > midTotalH) {
-                        gc.moveTo(wx, waveCenterY - highTotalH);
-                        gc.lineTo(wx, waveCenterY - midTotalH);
-                        gc.moveTo(wx, waveCenterY + midTotalH);
-                        gc.lineTo(wx, waveCenterY + highTotalH);
-                    }
-                }
-                gc.stroke();
+        int len = bandData.length;
+        double stepPx = 1.0; // 1-Pixel-Schritte für maximale Schärfe und Glätte
+
+        gc.setFill(fillColor);
+        gc.beginPath();
+
+        // 1. Obere Hüllkurve: Von links nach rechts (drawStartX bis drawEndX)
+        boolean first = true;
+        for (double x = drawStartX; x <= drawEndX; x += stepPx) {
+            double progress = (x - clipStartX) / clipW;
+            int idx = Math.min((int) (progress * len), len - 1);
+            float val = bandData[idx];
+            double amp = Math.min(maxAmpH, Math.max(0.5, val * maxAmpH * scaleFactor));
+            double yTop = waveCenterY - amp;
+
+            if (first) {
+                gc.moveTo(x, yTop);
+                first = false;
+            } else {
+                gc.lineTo(x, yTop);
             }
         }
+
+        // 2. Untere Hüllkurve: Von rechts nach links (drawEndX zurück zu drawStartX)
+        for (double x = drawEndX; x >= drawStartX; x -= stepPx) {
+            double progress = (x - clipStartX) / clipW;
+            int idx = Math.min((int) (progress * len), len - 1);
+            float val = bandData[idx];
+            double amp = Math.min(maxAmpH, Math.max(0.5, val * maxAmpH * scaleFactor));
+            double yBottom = waveCenterY + amp;
+
+            gc.lineTo(x, yBottom);
+        }
+
+        // 3. Pfad schließen und vollflächig füllen
+        gc.closePath();
+        gc.fill();
     }
 
     /**

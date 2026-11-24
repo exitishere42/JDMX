@@ -37,8 +37,8 @@ public class AudioAnalysisService {
 
     private static final Logger log = LoggerFactory.getLogger(AudioAnalysisService.class);
 
-    /** Standardanzahl von Wellenform-Punkten für die gerenderte Hüllkurve. */
-    public static final int DEFAULT_WAVEFORM_POINTS = 1000;
+    /** Standardanzahl von Wellenform-Punkten für die gerenderte Hüllkurve (4000 für hochauflösende Rekordbox-Kurven). */
+    public static final int DEFAULT_WAVEFORM_POINTS = 4000;
 
     /** Hintergrund-Executor für nicht blockierende Audioanalysen. */
     private static final ExecutorService ANALYSIS_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
