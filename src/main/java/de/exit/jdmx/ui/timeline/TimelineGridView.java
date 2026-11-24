@@ -4,19 +4,28 @@ import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Cursor;
+import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 
 import java.io.File;
@@ -85,8 +94,33 @@ public class TimelineGridView extends Pane {
 
     private final TimelineService service;
     private final Canvas canvas;
+    private final Group waveformLayer = new Group();
+    private final Group playheadGroup = new Group();
+    private final Line playheadLine = new Line();
+    private final Polygon playheadHead = new Polygon(-8.0, 0.0, 8.0, 0.0, 0.0, 12.0);
+    private final Rectangle viewportClip = new Rectangle(1200, 600);
+
     private final Map<String, Image> waveformTileCache = new HashMap<>();
+    private final Map<String, ImageView> activeTileViews = new HashMap<>();
+    private final Map<String, Rectangle> activeEmptyClipNodes = new HashMap<>();
+
+    private final DoubleProperty scrollXProperty = new SimpleDoubleProperty(0.0);
+    private final DoubleProperty scrollYProperty = new SimpleDoubleProperty(0.0);
+    private final DoubleProperty contentWidthProperty = new SimpleDoubleProperty(1200.0);
+    private final DoubleProperty contentHeightProperty = new SimpleDoubleProperty(600.0);
+
     private ScrollPane attachedScrollPane;
+
+    private double explicitViewportW = -1.0;
+    private double explicitViewportH = -1.0;
+
+    private double lastBgViewW = -1.0;
+    private double lastBgViewH = -1.0;
+    private double lastBgScrollY = Double.NaN;
+    private double lastBgZoom = Double.NaN;
+    private boolean bgDirty = true;
+    private boolean waveformLayerDirty = true;
+    private long gridRedrawCount = 0L;
 
     /** Dynamischer Zeitmaßstab: Aktuelle Pixel pro Sekunde (horizontaler Zoom). */
     private double pixelsPerSecond = DEFAULT_PIXELS_PER_SECOND;
@@ -115,15 +149,48 @@ public class TimelineGridView extends Pane {
         this.canvas = new Canvas(1200, 600);
         this.canvas.setManaged(false);
         this.canvas.setMouseTransparent(true);
-        getChildren().add(canvas);
+
+        this.waveformLayer.setManaged(false);
+        this.waveformLayer.setMouseTransparent(true);
+
+        this.playheadLine.setStartX(0.0);
+        this.playheadLine.setEndX(0.0);
+        this.playheadLine.setStartY(0.0);
+        this.playheadLine.setEndY(600.0);
+        this.playheadLine.setStroke(Color.web("#FB923C"));
+        this.playheadLine.setStrokeWidth(2.0);
+        this.playheadHead.setFill(Color.web("#FB923C"));
+        this.playheadHead.setStroke(Color.web("#C2410C"));
+        this.playheadHead.setStrokeWidth(1.0);
+        this.playheadGroup.getChildren().addAll(playheadLine, playheadHead);
+        this.playheadGroup.setManaged(false);
+        this.playheadGroup.setMouseTransparent(true);
+
+        getChildren().addAll(canvas, waveformLayer, playheadGroup);
+        setClip(viewportClip);
+        setMinSize(0.0, 0.0);
+        setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+
+        widthProperty().addListener((obs, oldV, newV) -> {
+            if (attachedScrollPane == null) {
+                redraw();
+            }
+        });
+        heightProperty().addListener((obs, oldV, newV) -> {
+            if (attachedScrollPane == null) {
+                redraw();
+            }
+        });
 
         updateGridDimensions();
 
         service.addChangeListener(() -> {
             Runnable action = () -> {
                 clearWaveformCache();
+                bgDirty = true;
+                waveformLayerDirty = true;
                 boolean sizeChanged = updateGridDimensions();
-                if (sizeChanged) {
+                if (sizeChanged && attachedScrollPane != null) {
                     requestLayout();
                 }
                 redraw();
@@ -141,9 +208,9 @@ public class TimelineGridView extends Pane {
             }
             // Reine Playback-Ticks ohne Layout-Invalidierung und ohne Cache-Löschung!
             if (Platform.isFxApplicationThread() || getScene() == null) {
-                redraw();
+                updatePlaybackView(service.getCurrentPositionMs(), -1.0);
             } else {
-                Platform.runLater(this::redraw);
+                Platform.runLater(() -> updatePlaybackView(service.getCurrentPositionMs(), -1.0));
             }
         });
 
@@ -151,20 +218,22 @@ public class TimelineGridView extends Pane {
         setOnMousePressed(e -> {
             if (!e.isPrimaryButtonDown()) return;
 
+            double worldX = toWorldX(e.getX());
+            double worldY = toWorldY(e.getY());
             double playheadContentX = millisToX(service.getCurrentPositionMs());
-            // Prüfen ob Klick auf das obere Playhead-Dreieck erfolgte (y <= 24px und im Radius von 16px um den Playhead)
-            if (e.getY() <= 24.0 && Math.abs(e.getX() - playheadContentX) <= 16.0) {
+            // Prüfen ob Klick auf das obere Playhead-Dreieck erfolgte (y <= 24px im Viewport und im Radius von 16px um den Playhead)
+            if (e.getY() <= 24.0 && Math.abs(worldX - playheadContentX) <= 16.0) {
                 isDraggingPlayhead = true;
                 wasPlayingBeforePlayheadDrag = service.isPlaying();
                 if (wasPlayingBeforePlayheadDrag) {
                     service.pausePlayback();
                 }
-                handleSeek(e.getX());
+                handleSeek(worldX);
                 return;
             }
 
             // Prüfen ob Klick auf einen Song-Clip erfolgte
-            TimelineTrack hitTrack = findClipTrackAt(e.getX(), e.getY());
+            TimelineTrack hitTrack = findClipTrackAt(worldX, worldY);
             if (hitTrack != null) {
                 if (service.isPlaying()) {
                     // Während aktiver Show-Wiedergabe ist das Verschieben von Tracks gesperrt!
@@ -172,7 +241,7 @@ public class TimelineGridView extends Pane {
                     return;
                 }
                 draggingClipTrack = hitTrack;
-                dragStartMouseX = e.getX();
+                dragStartMouseX = worldX;
                 dragStartClipTimeMs = hitTrack.getStartTimeMs();
                 setCursor(Cursor.MOVE);
                 return;
@@ -186,17 +255,19 @@ public class TimelineGridView extends Pane {
         setOnMouseDragged(e -> {
             if (!e.isPrimaryButtonDown()) return;
 
+            double worldX = toWorldX(e.getX());
             if (isDraggingPlayhead) {
-                handleSeek(e.getX());
+                handleSeek(worldX);
             } else if (draggingClipTrack != null) {
                 if (service.isPlaying()) {
                     draggingClipTrack = null;
                     return;
                 }
-                double deltaPx = e.getX() - dragStartMouseX;
+                double deltaPx = worldX - dragStartMouseX;
                 long deltaMs = Math.round((deltaPx / pixelsPerSecond) * 1000.0);
                 long newStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
                 service.setTrackStartTimeMs(draggingClipTrack.getId(), newStartMs);
+                waveformLayerDirty = true;
                 updateGridDimensions();
                 redraw();
             }
@@ -214,10 +285,10 @@ public class TimelineGridView extends Pane {
             }
             isDraggingPlayhead = false;
             draggingClipTrack = null;
-            updateCursorForPosition(e.getX(), e.getY());
+            updateCursorForPosition(toWorldX(e.getX()), toWorldY(e.getY()));
         });
 
-        setOnMouseMoved(e -> updateCursorForPosition(e.getX(), e.getY()));
+        setOnMouseMoved(e -> updateCursorForPosition(toWorldX(e.getX()), toWorldY(e.getY())));
 
         // Ctrl + Mausrad Zoom (Standard-DAW-Verhalten: Maus-zentriert)
         addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> handleCtrlScroll(e, false));
@@ -228,17 +299,29 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Verknüpft das umschließende {@link ScrollPane}, um die Canvas auf den sichtbaren Viewport
-     * zu begrenzen und GPU-Textur-Überläufe auf HiDPI-Displays zu verhindern.
+     * Verknüpft optional ein umschließendes {@link ScrollPane} (Legacy-/Test-Kompatibilität).
+     * Im Standardbetrieb arbeitet {@link TimelineGridView} als entkoppelter GPU-Viewport ohne ScrollPane.
      *
      * @param scrollPane das umschließende ScrollPane
      */
     public void attachScrollPane(ScrollPane scrollPane) {
         this.attachedScrollPane = scrollPane;
         if (scrollPane != null) {
+            updateGridDimensions();
             scrollPane.viewportBoundsProperty().addListener((obs, oldVal, newVal) -> redraw());
-            scrollPane.hvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
-            scrollPane.vvalueProperty().addListener((obs, oldVal, newVal) -> redraw());
+            scrollPane.hvalueProperty().addListener((obs, oldVal, newVal) -> {
+                double maxScrollX = getMaxScrollX();
+                double sx = maxScrollX * Math.max(0.0, Math.min(1.0, newVal.doubleValue()));
+                scrollXProperty.set(sx);
+                applyGpuFrame(activeRenderPositionMs);
+            });
+            scrollPane.vvalueProperty().addListener((obs, oldVal, newVal) -> {
+                double maxScrollY = getMaxScrollY();
+                double sy = maxScrollY * Math.max(0.0, Math.min(1.0, newVal.doubleValue()));
+                scrollYProperty.set(sy);
+                bgDirty = true;
+                redraw();
+            });
 
             // Auch auf ScrollPane-Ebene Ctrl + Mausrad Zoom abfangen (inkl. Linux/Trackpad Support)
             scrollPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, e -> handleCtrlScroll(e, true));
@@ -247,6 +330,9 @@ public class TimelineGridView extends Pane {
     }
 
     private double resolveViewportWidth() {
+        if (explicitViewportW > 0.0) {
+            return explicitViewportW;
+        }
         if (attachedScrollPane == null) {
             return Math.max(100.0, getWidth() > 0.0 ? getWidth() : 800.0);
         }
@@ -257,6 +343,28 @@ public class TimelineGridView extends Pane {
         return attachedScrollPane.getWidth() > 0.0 ? attachedScrollPane.getWidth() : 800.0;
     }
 
+    private double resolveViewportHeight() {
+        if (explicitViewportH > 0.0) {
+            return explicitViewportH;
+        }
+        if (attachedScrollPane == null) {
+            return Math.max(100.0, getHeight() > 0.0 ? getHeight() : 600.0);
+        }
+        double vpH = attachedScrollPane.getViewportBounds() != null ? attachedScrollPane.getViewportBounds().getHeight() : 0.0;
+        if (vpH > 0.0) {
+            return vpH;
+        }
+        return attachedScrollPane.getHeight() > 0.0 ? attachedScrollPane.getHeight() : 600.0;
+    }
+
+    private double toWorldX(double eventX) {
+        return attachedScrollPane != null ? eventX : (eventX + scrollXProperty.get());
+    }
+
+    private double toWorldY(double eventY) {
+        return attachedScrollPane != null ? eventY : (eventY + scrollYProperty.get());
+    }
+
     private void handleCtrlScroll(javafx.scene.input.ScrollEvent e, boolean viewportRelative) {
         double deltaY = Math.abs(e.getDeltaY()) > 0.001 ? e.getDeltaY() : e.getTextDeltaY();
         if (e.isControlDown()) {
@@ -264,11 +372,7 @@ public class TimelineGridView extends Pane {
                 double factor = deltaY > 0 ? ZOOM_FACTOR : (1.0 / ZOOM_FACTOR);
                 double screenX = e.getX();
                 if (!viewportRelative && attachedScrollPane != null) {
-                    double viewW = resolveViewportWidth();
-                    double totalW = Math.max(1200.0, getPrefWidth());
-                    double maxScrollX = Math.max(0.0, totalW - viewW);
-                    double scrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
-                    screenX = e.getX() - scrollX;
+                    screenX = e.getX() - getScrollX();
                 }
                 zoomAtScreenX(factor, screenX);
                 e.consume();
@@ -276,39 +380,186 @@ public class TimelineGridView extends Pane {
             return;
         }
 
-        // Glattes, pixel-genaues horizontales Scrollen (verhindert grobe JavaFX ScrollPane-Sprünge bei langen Shows)
-        if (attachedScrollPane != null) {
-            double totalH = Math.max(600.0, getPrefHeight());
-            double vpH = attachedScrollPane.getViewportBounds() != null ? attachedScrollPane.getViewportBounds().getHeight() : attachedScrollPane.getHeight();
-            boolean verticalFits = vpH > 0.0 && totalH <= vpH + 2.0;
-            if (e.isShiftDown() || Math.abs(e.getDeltaX()) > 0.001 || (verticalFits && Math.abs(deltaY) > 0.001)) {
-                double rawDelta = Math.abs(e.getDeltaX()) > 0.001 ? e.getDeltaX() : deltaY;
-                if (Math.abs(rawDelta) > 0.001) {
-                    double viewW = resolveViewportWidth();
-                    double totalW = Math.max(1200.0, getPrefWidth());
-                    double maxScrollX = Math.max(0.0, totalW - viewW);
-                    if (maxScrollX > 0.0) {
-                        double currentScrollX = attachedScrollPane.getHvalue() * maxScrollX;
-                        double nextScrollX = Math.max(0.0, Math.min(maxScrollX, currentScrollX - (rawDelta * 1.2)));
-                        attachedScrollPane.setHvalue(nextScrollX / maxScrollX);
-                    }
-                    e.consume();
+        // Glattes, pixel-genaues horizontales & vertikales Scrollen ohne grobe ScrollPane-Sprünge
+        double viewH = resolveViewportHeight();
+        double totalH = getContentHeight();
+        boolean verticalFits = viewH > 0.0 && totalH <= viewH + 2.0;
+
+        if (e.isShiftDown() || Math.abs(e.getDeltaX()) > 0.001 || (verticalFits && Math.abs(deltaY) > 0.001)) {
+            double rawDelta = Math.abs(e.getDeltaX()) > 0.001 ? e.getDeltaX() : deltaY;
+            if (Math.abs(rawDelta) > 0.001) {
+                double maxScrollX = getMaxScrollX();
+                if (maxScrollX > 0.0) {
+                    double nextScrollX = Math.max(0.0, Math.min(maxScrollX, getScrollX() - (rawDelta * 1.2)));
+                    setScrollX(nextScrollX);
                 }
+                e.consume();
             }
+        } else if (attachedScrollPane == null && Math.abs(deltaY) > 0.001) {
+            double maxScrollY = getMaxScrollY();
+            if (maxScrollY > 0.0) {
+                double nextScrollY = Math.max(0.0, Math.min(maxScrollY, getScrollY() - (deltaY * 1.2)));
+                setScrollY(nextScrollY);
+            }
+            e.consume();
         }
     }
 
     @Override
     protected void layoutChildren() {
         super.layoutChildren();
+        double viewW = resolveViewportWidth();
+        double viewH = resolveViewportHeight();
+        if (attachedScrollPane == null) {
+            viewportClip.setX(0.0);
+            viewportClip.setY(0.0);
+            viewportClip.setWidth(viewW);
+            viewportClip.setHeight(viewH);
+        } else {
+            viewportClip.setX(getScrollX());
+            viewportClip.setY(getScrollY());
+            viewportClip.setWidth(viewW);
+            viewportClip.setHeight(viewH);
+        }
+    }
+
+    /**
+     * Setzt die Viewport-Größe explizit (z. B. für Headless-Unit-Tests ohne Stage).
+     *
+     * @param width  Viewport-Breite in Pixeln
+     * @param height Viewport-Höhe in Pixeln
+     */
+    public void setViewportSize(double width, double height) {
+        this.explicitViewportW = Math.max(100.0, width);
+        this.explicitViewportH = Math.max(100.0, height);
+        this.bgDirty = true;
+        this.waveformLayerDirty = true;
         redraw();
     }
 
     /**
-     * Berechnet die Viewport-Koordinaten und aktualisiert die Canvas-Position und -Zeichnung.
+     * Liefert die aktuelle horizontale Scroll-Position in Pixeln.
+     *
+     * @return horizontale Scroll-Position (px)
+     */
+    public double getScrollX() {
+        if (attachedScrollPane != null) {
+            return getMaxScrollX() * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
+        }
+        return scrollXProperty.get();
+    }
+
+    /**
+     * Setzt die horizontale Scroll-Position in Pixeln (reine GPU-Translation ohne Grid-Neuzeichnung).
+     *
+     * @param targetScrollX neue horizontale Scroll-Position (px)
+     */
+    public void setScrollX(double targetScrollX) {
+        double maxScrollX = getMaxScrollX();
+        double clamped = maxScrollX > 0.0 ? Math.max(0.0, Math.min(maxScrollX, targetScrollX)) : 0.0;
+        if (attachedScrollPane != null) {
+            attachedScrollPane.setHvalue(maxScrollX > 0.0 ? (clamped / maxScrollX) : 0.0);
+            return;
+        }
+        if (Math.abs(scrollXProperty.get() - clamped) > 0.001) {
+            scrollXProperty.set(clamped);
+            applyGpuFrame(activeRenderPositionMs);
+        }
+    }
+
+    /**
+     * Liefert die aktuelle vertikale Scroll-Position in Pixeln.
+     *
+     * @return vertikale Scroll-Position (px)
+     */
+    public double getScrollY() {
+        if (attachedScrollPane != null) {
+            return getMaxScrollY() * Math.max(0.0, Math.min(1.0, attachedScrollPane.getVvalue()));
+        }
+        return scrollYProperty.get();
+    }
+
+    /**
+     * Setzt die vertikale Scroll-Position in Pixeln.
+     *
+     * @param targetScrollY neue vertikale Scroll-Position (px)
+     */
+    public void setScrollY(double targetScrollY) {
+        double maxScrollY = getMaxScrollY();
+        double clamped = maxScrollY > 0.0 ? Math.max(0.0, Math.min(maxScrollY, targetScrollY)) : 0.0;
+        if (attachedScrollPane != null) {
+            attachedScrollPane.setVvalue(maxScrollY > 0.0 ? (clamped / maxScrollY) : 0.0);
+            return;
+        }
+        if (Math.abs(scrollYProperty.get() - clamped) > 0.001) {
+            scrollYProperty.set(clamped);
+            bgDirty = true;
+            redraw();
+        }
+    }
+
+    public ReadOnlyDoubleProperty scrollXProperty() {
+        return scrollXProperty;
+    }
+
+    public ReadOnlyDoubleProperty scrollYProperty() {
+        return scrollYProperty;
+    }
+
+    public ReadOnlyDoubleProperty contentWidthProperty() {
+        return contentWidthProperty;
+    }
+
+    public ReadOnlyDoubleProperty contentHeightProperty() {
+        return contentHeightProperty;
+    }
+
+    public double getContentWidth() {
+        return contentWidthProperty.get();
+    }
+
+    public double getContentHeight() {
+        return contentHeightProperty.get();
+    }
+
+    public double getMaxScrollX() {
+        return Math.max(0.0, getContentWidth() - resolveViewportWidth());
+    }
+
+    public double getMaxScrollY() {
+        return Math.max(0.0, getContentHeight() - resolveViewportHeight());
+    }
+
+    /**
+     * Aktualisiert Playhead und optionales horizontales Follow-Scrolling in einem einzigen
+     * GPU-Frame-Durchlauf ohne Grid-Canvas-Neuzeichnung oder Layout-Pass.
+     *
+     * @param smoothedPositionMs aktuelle Playhead-Position in Millisekunden (oder {@code -1L})
+     * @param targetScrollX      neue horizontale Scroll-Position in Pixeln, oder {@code < 0}, um {@code scrollX} beizubehalten
+     */
+    public void updatePlaybackView(long smoothedPositionMs, double targetScrollX) {
+        this.activeRenderPositionMs = smoothedPositionMs;
+        if (targetScrollX >= 0.0) {
+            double maxScrollX = getMaxScrollX();
+            double clamped = maxScrollX > 0.0 ? Math.max(0.0, Math.min(maxScrollX, targetScrollX)) : 0.0;
+            if (attachedScrollPane != null) {
+                double nextH = maxScrollX > 0.0 ? (clamped / maxScrollX) : 0.0;
+                if (Math.abs(attachedScrollPane.getHvalue() - nextH) > 1e-7) {
+                    attachedScrollPane.setHvalue(nextH);
+                    return;
+                }
+            } else if (Math.abs(scrollXProperty.get() - clamped) > 0.001) {
+                scrollXProperty.set(clamped);
+            }
+        }
+        applyGpuFrame(smoothedPositionMs);
+    }
+
+    /**
+     * Berechnet die Viewport-Koordinaten und aktualisiert alle GPU-Layer.
      */
     public void redraw() {
-        redrawAtPosition(-1L);
+        redrawAtPosition(activeRenderPositionMs);
     }
 
     /**
@@ -318,42 +569,7 @@ public class TimelineGridView extends Pane {
      */
     public void redrawAtPosition(long smoothedPositionMs) {
         this.activeRenderPositionMs = smoothedPositionMs;
-        double totalW = Math.max(1200.0, getPrefWidth());
-        double totalH = Math.max(600.0, getPrefHeight());
-
-        double viewW;
-        double viewH;
-        double scrollX = 0;
-        double scrollY = 0;
-
-        if (attachedScrollPane != null && attachedScrollPane.getViewportBounds() != null) {
-            double vpW = attachedScrollPane.getViewportBounds().getWidth();
-            double vpH = attachedScrollPane.getViewportBounds().getHeight();
-            viewW = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, vpW > 0 ? vpW : resolveViewportWidth()));
-            viewH = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, vpH > 0 ? vpH : (attachedScrollPane.getHeight() > 0 ? attachedScrollPane.getHeight() : 600.0)));
-            double maxScrollX = Math.max(0.0, totalW - viewW);
-            double maxScrollY = Math.max(0.0, totalH - viewH);
-            scrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
-            scrollY = maxScrollY * Math.max(0.0, Math.min(1.0, attachedScrollPane.getVvalue()));
-        } else {
-            viewW = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, getWidth() > 0 ? getWidth() : totalW));
-            viewH = Math.min(MAX_CANVAS_SAFE_DIM, Math.max(100.0, getHeight() > 0 ? getHeight() : totalH));
-        }
-
-        // Canvas exakt synchron (subpixel-genau) via GPU-Translate positionieren (triggert 0 Layout-Passes!)
-        if (Math.abs(canvas.getTranslateX() - scrollX) >= 0.001) {
-            canvas.setTranslateX(scrollX);
-        }
-        if (Math.abs(canvas.getTranslateY() - scrollY) >= 0.001) {
-            canvas.setTranslateY(scrollY);
-        }
-
-        if (Math.abs(canvas.getWidth() - viewW) >= 1.0 || Math.abs(canvas.getHeight() - viewH) >= 1.0) {
-            canvas.setWidth(viewW);
-            canvas.setHeight(viewH);
-        }
-
-        drawGrid(scrollX, scrollY, viewW, viewH, totalW, totalH);
+        applyGpuFrame(smoothedPositionMs);
     }
 
     private void setupContextMenu() {
@@ -531,8 +747,12 @@ public class TimelineGridView extends Pane {
         if (Math.abs(this.pixelsPerSecond - clamped) > 0.001) {
             this.pixelsPerSecond = clamped;
             clearWaveformCache();
+            this.bgDirty = true;
+            this.waveformLayerDirty = true;
             updateGridDimensions();
-            requestLayout();
+            if (attachedScrollPane != null) {
+                requestLayout();
+            }
             redraw();
         }
     }
@@ -541,22 +761,14 @@ public class TimelineGridView extends Pane {
      * Vergrößert die Zeitleiste horizontal um 20% (Zoom In), zentriert auf den Playhead oder die Viewport-Mitte.
      */
     public void zoomIn() {
-        if (attachedScrollPane != null && attachedScrollPane.getViewportBounds() != null) {
-            zoomAtPlayheadOrCenter(ZOOM_FACTOR);
-        } else {
-            setPixelsPerSecond(pixelsPerSecond * ZOOM_FACTOR);
-        }
+        zoomAtPlayheadOrCenter(ZOOM_FACTOR);
     }
 
     /**
      * Verkleinert die Zeitleiste horizontal um 20% (Zoom Out), zentriert auf den Playhead oder die Viewport-Mitte.
      */
     public void zoomOut() {
-        if (attachedScrollPane != null && attachedScrollPane.getViewportBounds() != null) {
-            zoomAtPlayheadOrCenter(1.0 / ZOOM_FACTOR);
-        } else {
-            setPixelsPerSecond(pixelsPerSecond / ZOOM_FACTOR);
-        }
+        zoomAtPlayheadOrCenter(1.0 / ZOOM_FACTOR);
     }
 
     /**
@@ -571,12 +783,7 @@ public class TimelineGridView extends Pane {
             return;
         }
         double viewW = resolveViewportWidth();
-        double oldScrollX = 0.0;
-        if (attachedScrollPane != null) {
-            double totalW = Math.max(1200.0, getPrefWidth());
-            double maxScrollX = Math.max(0.0, totalW - viewW);
-            oldScrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
-        }
+        double oldScrollX = getScrollX();
 
         double clampedScreenX = Math.max(0.0, Math.min(viewW, screenXInViewport));
         long anchorMs = xToMillis(oldScrollX + clampedScreenX);
@@ -584,25 +791,21 @@ public class TimelineGridView extends Pane {
         double oldPps = this.pixelsPerSecond;
         setPixelsPerSecond(oldPps * factor);
 
-        if (attachedScrollPane != null && Math.abs(this.pixelsPerSecond - oldPps) > 0.001) {
-            double newTotalW = Math.max(1200.0, getPrefWidth());
-            double newMaxScrollX = Math.max(0.0, newTotalW - viewW);
+        if (Math.abs(this.pixelsPerSecond - oldPps) > 0.001) {
+            double newMaxScrollX = getMaxScrollX();
             if (newMaxScrollX > 0.0) {
                 double newAnchorContentX = millisToX(anchorMs);
                 double newScrollX = Math.max(0.0, Math.min(newMaxScrollX, newAnchorContentX - clampedScreenX));
-                attachedScrollPane.setHvalue(newScrollX / newMaxScrollX);
+                setScrollX(newScrollX);
             } else {
-                attachedScrollPane.setHvalue(0.0);
+                setScrollX(0.0);
             }
-            redraw();
         }
     }
 
     private void zoomAtPlayheadOrCenter(double factor) {
         double viewW = resolveViewportWidth();
-        double totalW = Math.max(1200.0, getPrefWidth());
-        double maxScrollX = Math.max(0.0, totalW - viewW);
-        double scrollX = maxScrollX * Math.max(0.0, Math.min(1.0, attachedScrollPane.getHvalue()));
+        double scrollX = getScrollX();
         double playheadScreenX = millisToX(service.getCurrentPositionMs()) - scrollX;
         double anchorScreenX = (playheadScreenX >= 0 && playheadScreenX <= viewW) ? playheadScreenX : (viewW * 0.5);
         zoomAtScreenX(factor, anchorScreenX);
@@ -616,7 +819,7 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Aktualisiert die Gesamtbreite des Grid-Panes passend zur Maximallaufzeit der Timeline.
+     * Aktualisiert die virtuellen Gesamtabmessungen der Timeline passend zur Maximallaufzeit.
      *
      * @return {@code true}, wenn sich die Abmessungen geändert haben
      */
@@ -625,12 +828,20 @@ public class TimelineGridView extends Pane {
         double targetWidth = Math.max(1200.0, millisToX(maxDurationMs) + (BAR_WIDTH * 8));
         double totalTracksH = service.getTracks().stream().mapToDouble(TimelineTrack::getHeight).sum();
         double targetHeight = Math.max(600.0, totalTracksH + 300.0);
-        boolean changed = Math.abs(getPrefWidth() - targetWidth) > 0.5 || Math.abs(getPrefHeight() - targetHeight) > 0.5;
+        boolean changed = Math.abs(contentWidthProperty.get() - targetWidth) > 0.5
+                || Math.abs(contentHeightProperty.get() - targetHeight) > 0.5;
         if (changed) {
-            setMinWidth(targetWidth);
-            setPrefWidth(targetWidth);
-            setMinHeight(targetHeight);
-            setPrefHeight(targetHeight);
+            contentWidthProperty.set(targetWidth);
+            contentHeightProperty.set(targetHeight);
+        }
+        if (attachedScrollPane != null) {
+            boolean prefChanged = Math.abs(getPrefWidth() - targetWidth) > 0.5 || Math.abs(getPrefHeight() - targetHeight) > 0.5;
+            if (prefChanged) {
+                setMinWidth(targetWidth);
+                setPrefWidth(targetWidth);
+                setMinHeight(targetHeight);
+                setPrefHeight(targetHeight);
+            }
         }
         return changed;
     }
@@ -640,6 +851,10 @@ public class TimelineGridView extends Pane {
      */
     public void clearWaveformCache() {
         waveformTileCache.clear();
+        activeTileViews.clear();
+        activeEmptyClipNodes.clear();
+        waveformLayer.getChildren().clear();
+        waveformLayerDirty = true;
     }
 
     /**
@@ -652,35 +867,88 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Abwärtskompatible Methode: Zeichnet das Playlist-Raster.
+     * Abwärtskompatible Methode: Aktualisiert alle GPU-Layer.
      */
     public void drawGrid() {
         redraw();
     }
 
     /**
-     * Zeichnet das Playlist-Raster, die Song-Clips und die Timeline-Linie im sichtbaren Viewport.
-     *
-     * @param scrollX  horizontale Scroll-Position
-     * @param scrollY  vertikale Scroll-Position
-     * @param viewW    sichtbare Viewport-Breite
-     * @param viewH    sichtbare Viewport-Höhe
-     * @param totalW   Gesamtbreite des Rasters
-     * @param totalH   Gesamthöhe des Rasters
+     * Wendet den GPU-Scenegraph-Update-Zyklus für den aktuellen Viewport-Zustand an:
+     * <ul>
+     *     <li><b>Layer 1 (Grid-Canvas):</b> Wird nur bei Resize, Zoom, vertikalem Scroll oder Track-Änderung neu gezeichnet;
+     *     horizontales Scrollen verschiebt lediglich {@code canvas.setTranslateX(-(scrollX % BAR_WIDTH))}.</li>
+     *     <li><b>Layer 2 (Waveform-Layer):</b> Gecachte 1024px-{@link ImageView}-Kacheln im GPU-Scenegraph,
+     *     verschoben via {@code waveformLayer.setTranslateX(-scrollX)}.</li>
+     *     <li><b>Layer 3 (Playhead):</b> Direkte {@code playheadGroup.setTranslateX(...)}-Verschiebung ohne Redraw.</li>
+     * </ul>
      */
-    private void drawGrid(double scrollX, double scrollY, double viewW, double viewH, double totalW, double totalH) {
-        if (viewW <= 0 || viewH <= 0) return;
+    private void applyGpuFrame(long smoothedPositionMs) {
+        double viewW = Math.min(MAX_CANVAS_SAFE_DIM, resolveViewportWidth());
+        double viewH = Math.min(MAX_CANVAS_SAFE_DIM, resolveViewportHeight());
+        if (viewW <= 0 || viewH <= 0) {
+            return;
+        }
 
+        double scrollX = getScrollX();
+        double scrollY = getScrollY();
+        double baseX = attachedScrollPane != null ? scrollX : 0.0;
+        double baseY = attachedScrollPane != null ? scrollY : 0.0;
+
+        viewportClip.setX(baseX);
+        viewportClip.setY(baseY);
+        viewportClip.setWidth(viewW);
+        viewportClip.setHeight(viewH);
+
+        // Layer 1: Periodisches Beat-/Track-Hintergrund-Muster (nur neu zeichnen wenn nötig!)
+        double patternW = Math.min(MAX_CANVAS_SAFE_DIM, viewW + BAR_WIDTH);
+        boolean needBgRedraw = bgDirty
+                || Math.abs(lastBgViewW - viewW) >= 1.0
+                || Math.abs(lastBgViewH - viewH) >= 1.0
+                || Math.abs(lastBgScrollY - scrollY) >= 0.5
+                || Math.abs(lastBgZoom - pixelsPerSecond) > 0.001;
+
+        if (needBgRedraw) {
+            if (Math.abs(canvas.getWidth() - patternW) >= 1.0 || Math.abs(canvas.getHeight() - viewH) >= 1.0) {
+                canvas.setWidth(patternW);
+                canvas.setHeight(viewH);
+            }
+            drawGridBackgroundPattern(scrollY, patternW, viewH);
+            lastBgViewW = viewW;
+            lastBgViewH = viewH;
+            lastBgScrollY = scrollY;
+            lastBgZoom = pixelsPerSecond;
+            bgDirty = false;
+            gridRedrawCount++;
+        }
+
+        double patternOffset = scrollX % BAR_WIDTH;
+        canvas.setTranslateX(baseX - patternOffset);
+        canvas.setTranslateY(baseY);
+
+        // Layer 2: GPU-Waveform-Kacheln (reine Translation + Kachel-Visibility-Sync)
+        syncWaveformLayer(scrollX, scrollY, viewW, viewH);
+        waveformLayer.setTranslateX(baseX - scrollX);
+        waveformLayer.setTranslateY(baseY - scrollY);
+
+        // Layer 3: GPU-Playhead (reine Translation)
+        updatePlayheadNode(smoothedPositionMs, scrollX, viewW, viewH, baseX, baseY);
+    }
+
+    /**
+     * Zeichnet das periodische Hintergrund- und Beat-Muster auf das Hintergrund-Canvas.
+     */
+    private void drawGridBackgroundPattern(double scrollY, double patternW, double viewH) {
         GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, viewW, viewH);
+        gc.clearRect(0, 0, patternW, viewH);
 
         List<TimelineTrack> tracks = service.getTracks();
 
-        // 1. Hintergrund für die gesamte sichtbare Fläche
+        // 1. Hintergrund
         gc.setFill(Color.web("#101010"));
-        gc.fillRect(0, 0, viewW, viewH);
+        gc.fillRect(0, 0, patternW, viewH);
 
-        // 2. Horizontale Spuren und Hintergrund-Streifen
+        // 2. Horizontale Spur-Streifen
         double currentY = 0;
         for (int i = 0; i < tracks.size(); i++) {
             TimelineTrack track = tracks.get(i);
@@ -688,31 +956,23 @@ public class TimelineGridView extends Pane {
             double screenY = currentY - scrollY;
 
             if (screenY + trackH > 0 && screenY < viewH) {
-                if (i % 2 == 0) {
-                    gc.setFill(Color.web("#141414"));
-                } else {
-                    gc.setFill(Color.web("#171717"));
-                }
-                gc.fillRect(0, screenY, viewW, trackH);
+                gc.setFill(i % 2 == 0 ? Color.web("#141414") : Color.web("#171717"));
+                gc.fillRect(0, screenY, patternW, trackH);
             }
             currentY += trackH;
         }
 
-        // 3. Vertikale Takt- und Beat-Rasterlinien (nur für sichtbaren X-Bereich)
-        double startX = Math.floor(scrollX / BEAT_WIDTH) * BEAT_WIDTH;
-        double endX = scrollX + viewW;
-        for (double x = startX; x <= endX; x += BEAT_WIDTH) {
-            double screenX = x - scrollX;
+        // 3. Periodisches Takt- und Beat-Raster (ab x=0, da TranslateX das Modulo abbildet)
+        for (double x = 0; x <= patternW; x += BEAT_WIDTH) {
             boolean isBarLine = Math.abs(x % BAR_WIDTH) < 0.1;
             if (isBarLine) {
                 gc.setStroke(Color.web("#2A2A2A"));
                 gc.setLineWidth(1.0);
-                gc.strokeLine(screenX + 0.5, 0, screenX + 0.5, viewH);
             } else {
                 gc.setStroke(Color.web("#1B1B1B"));
                 gc.setLineWidth(0.5);
-                gc.strokeLine(screenX + 0.5, 0, screenX + 0.5, viewH);
             }
+            gc.strokeLine(x + 0.5, 0, x + 0.5, viewH);
         }
 
         // 4. Horizontale Trennlinien zwischen den Spuren
@@ -725,77 +985,113 @@ public class TimelineGridView extends Pane {
             if (screenY + trackH > 0 && screenY < viewH) {
                 gc.setStroke(Color.web("#252525"));
                 gc.setLineWidth(1.0);
-                gc.strokeLine(0, screenY + trackH - 0.5, viewW, screenY + trackH - 0.5);
+                gc.strokeLine(0, screenY + trackH - 0.5, patternW, screenY + trackH - 0.5);
             }
             currentY += trackH;
         }
+    }
 
-        // 5. Song-Clips AUF das Raster zeichnen (Vordergrund)
-        currentY = 0;
+    /**
+     * Synchronisiert die sichtbaren Waveform-{@link ImageView}-Kacheln im GPU-{@link Group}-Layer.
+     * Bestehende Kacheln bleiben erhalten; nur neu in den Viewport eintretende oder verlassende Kacheln werden angepasst.
+     */
+    private void syncWaveformLayer(double scrollX, double scrollY, double viewW, double viewH) {
+        List<TimelineTrack> tracks = service.getTracks();
+        java.util.Set<String> requiredTileKeys = new java.util.HashSet<>();
+        java.util.Set<String> requiredEmptyKeys = new java.util.HashSet<>();
+
+        double currentY = 0;
         for (int i = 0; i < tracks.size(); i++) {
             TimelineTrack track = tracks.get(i);
             double trackH = track.getHeight();
             double screenY = currentY - scrollY;
 
-            if (track.hasSong() && screenY + trackH > 0 && screenY < viewH) {
-                drawSongClip(gc, track, screenY, trackH, scrollX, viewW);
+            if (track.hasSong() && screenY + trackH > -100 && screenY < viewH + 100) {
+                long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
+                double clipWorldX = millisToX(track.getStartTimeMs());
+                double clipW = Math.max(80.0, millisToX(durationMs));
+                double clipH = trackH - 6;
+                double clipWorldY = currentY + 3;
+
+                if (clipWorldX + clipW >= scrollX - WAVEFORM_TILE_WIDTH && clipWorldX <= scrollX + viewW + WAVEFORM_TILE_WIDTH) {
+                    boolean has3Band = track.has3BandWaveform();
+                    float[] waveform = track.getWaveformData();
+
+                    if (has3Band || (waveform != null && waveform.length > 0)) {
+                        int totalClipPx = Math.max(1, (int) Math.ceil(clipW));
+                        int clipHeightPx = Math.max(4, (int) Math.round(clipH));
+                        double visibleLeft = Math.max(0.0, (scrollX - WAVEFORM_TILE_WIDTH) - clipWorldX);
+                        double visibleRight = Math.min(clipW, (scrollX + viewW + WAVEFORM_TILE_WIDTH) - clipWorldX);
+                        int firstTile = Math.max(0, (int) Math.floor(visibleLeft / WAVEFORM_TILE_WIDTH));
+                        int lastTile = Math.max(firstTile, (int) Math.floor(Math.max(0.0, visibleRight - 0.01) / WAVEFORM_TILE_WIDTH));
+
+                        for (int tileIdx = firstTile; tileIdx <= lastTile; tileIdx++) {
+                            int tileOffset = tileIdx * WAVEFORM_TILE_WIDTH;
+                            if (tileOffset >= totalClipPx) break;
+                            int tileW = Math.min(WAVEFORM_TILE_WIDTH, totalClipPx - tileOffset);
+                            String key = track.getId() + "|" + Math.round(pixelsPerSecond * 100.0)
+                                    + "|" + totalClipPx + "|" + clipHeightPx + "|" + tileIdx;
+                            requiredTileKeys.add(key);
+
+                            ImageView iv = activeTileViews.get(key);
+                            if (iv == null) {
+                                Image tileImg = getOrRenderWaveformTile(track, totalClipPx, clipHeightPx, tileIdx, tileW);
+                                iv = new ImageView(tileImg);
+                                iv.setSmooth(false);
+                                iv.setMouseTransparent(true);
+                                iv.setManaged(false);
+                                activeTileViews.put(key, iv);
+                                waveformLayer.getChildren().add(iv);
+                            }
+                            iv.setLayoutX(clipWorldX + tileOffset);
+                            iv.setLayoutY(clipWorldY);
+                        }
+                    } else {
+                        String emptyKey = track.getId() + "|empty";
+                        requiredEmptyKeys.add(emptyKey);
+                        Rectangle rect = activeEmptyClipNodes.get(emptyKey);
+                        if (rect == null) {
+                            rect = new Rectangle(clipW, clipH);
+                            rect.setFill(Color.web("#121215"));
+                            rect.setStroke(Color.web("#27272A"));
+                            rect.setStrokeWidth(1.0);
+                            rect.setArcWidth(4.0);
+                            rect.setArcHeight(4.0);
+                            rect.setMouseTransparent(true);
+                            rect.setManaged(false);
+                            activeEmptyClipNodes.put(emptyKey, rect);
+                            waveformLayer.getChildren().add(rect);
+                        }
+                        rect.setWidth(clipW);
+                        rect.setHeight(clipH);
+                        rect.setLayoutX(clipWorldX);
+                        rect.setLayoutY(clipWorldY);
+                    }
+                }
             }
             currentY += trackH;
         }
 
-        // 6. Timeline-Linie (Playhead) ganz oben zeichnen
-        drawPlayhead(gc, scrollX, viewW, viewH);
-    }
-
-    /**
-     * Zeichnet einen Song-Clip Block auf einer Spur im modernen Pioneer Rekordbox 3-Band DJ-Stil
-     * mithilfe gecachter 1024px-GPU-Kacheln für ruckelfreies 60/120 FPS Scrollen.
-     */
-    private void drawSongClip(GraphicsContext gc, TimelineTrack track, double screenY, double h, double scrollX, double viewW) {
-        long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
-        double clipStartX = millisToX(track.getStartTimeMs()) - scrollX;
-        double clipW = Math.max(80.0, millisToX(durationMs));
-        double clipH = h - 6;
-        double clipY = screenY + 3;
-
-        // Nur zeichnen, wenn zumindest teilweise im sichtbaren Viewport
-        if (clipStartX + clipW < 0 || clipStartX > viewW) {
-            return;
+        // Veraltete / nicht mehr sichtbare Kacheln entfernen
+        if (waveformLayerDirty || activeTileViews.size() > requiredTileKeys.size()) {
+            activeTileViews.entrySet().removeIf(entry -> {
+                if (!requiredTileKeys.contains(entry.getKey())) {
+                    waveformLayer.getChildren().remove(entry.getValue());
+                    return true;
+                }
+                return false;
+            });
         }
-
-        // 1. Gecachte Rekordbox 3-Band Solid-Waveform Kacheln zeichnen (< 0.05 ms GPU-Blit!)
-        boolean has3Band = track.has3BandWaveform();
-        float[] waveform = track.getWaveformData();
-
-        if (has3Band || (waveform != null && waveform.length > 0)) {
-            int totalClipPx = Math.max(1, (int) Math.ceil(clipW));
-            int clipHeightPx = Math.max(4, (int) Math.round(clipH));
-            double visibleLeft = Math.max(0.0, -clipStartX);
-            double visibleRight = Math.min(clipW, viewW - clipStartX);
-            int firstTile = Math.max(0, (int) Math.floor(visibleLeft / WAVEFORM_TILE_WIDTH));
-            int lastTile = Math.max(firstTile, (int) Math.floor(Math.max(0.0, visibleRight - 0.01) / WAVEFORM_TILE_WIDTH));
-
-            for (int tileIdx = firstTile; tileIdx <= lastTile; tileIdx++) {
-                int tileOffset = tileIdx * WAVEFORM_TILE_WIDTH;
-                if (tileOffset >= totalClipPx) break;
-                int tileW = Math.min(WAVEFORM_TILE_WIDTH, totalClipPx - tileOffset);
-                Image tileImg = getOrRenderWaveformTile(track, totalClipPx, clipHeightPx, tileIdx, tileW);
-                gc.drawImage(tileImg, clipStartX + tileOffset, clipY, tileW, clipH);
-            }
-        } else {
-            // Fallback Hintergrund ohne Audiodaten
-            gc.setFill(Color.web("#121215"));
-            gc.fillRoundRect(clipStartX, clipY, clipW, clipH, 4, 4);
-            double waveCenterY = clipY + (clipH / 2.0);
-            gc.setStroke(Color.web("#1E1E24"));
-            gc.setLineWidth(1.0);
-            gc.strokeLine(Math.max(clipStartX, 0.0), waveCenterY, Math.min(clipStartX + clipW, viewW), waveCenterY);
+        if (waveformLayerDirty || activeEmptyClipNodes.size() > requiredEmptyKeys.size()) {
+            activeEmptyClipNodes.entrySet().removeIf(entry -> {
+                if (!requiredEmptyKeys.contains(entry.getKey())) {
+                    waveformLayer.getChildren().remove(entry.getValue());
+                    return true;
+                }
+                return false;
+            });
         }
-
-        // 2. Crisp Clip-Rahmen darüber
-        gc.setStroke(Color.web("#27272A"));
-        gc.setLineWidth(1.0);
-        gc.strokeRoundRect(clipStartX + 0.5, clipY + 0.5, clipW - 1.0, clipH - 1.0, 4, 4);
+        waveformLayerDirty = false;
     }
 
     private Image getOrRenderWaveformTile(TimelineTrack track, int totalClipPx, int clipHeightPx, int tileIdx, int tileW) {
@@ -825,11 +1121,13 @@ public class TimelineGridView extends Pane {
         // Exakte ARGB Farbkomponenten
         final int bgR = 0x12, bgG = 0x12, bgB = 0x15;       // Studio Deck #121215
         final int lineR = 0x1E, lineG = 0x1E, lineB = 0x24;   // Nulllinie #1E1E24
+        final int borderR = 0x27, borderG = 0x27, borderB = 0x2A; // Clip-Rahmen #27272A
         final int lowR = 0x22, lowG = 0x53, lowB = 0xD9;      // Pioneer Royal Blue #2253D9
         final int midR = 0xD9, midG = 0x77, midB = 0x06;      // Amber Gold #D97706
         final int highR = 0xFF, highG = 0xFF, highB = 0xFF;   // Pure White #FFFFFF
 
         for (int px = 0; px < tileW; px++) {
+            boolean isLeftOrRightBorder = (tileOffsetPx + px == 0) || (tileOffsetPx + px == totalClipPx - 1);
             double progress = (tileOffsetPx + px) / (double) Math.max(1, totalClipPx - 1);
             float lowVal = sampleInterpolated(lowBand, progress);
             float midVal = has3Band ? sampleInterpolated(midBand, progress) : (lowVal * 0.65f);
@@ -840,13 +1138,17 @@ public class TimelineGridView extends Pane {
             double highAmp = Math.min(maxAmpH, Math.max(0.4, highVal * maxAmpH * 0.45));
 
             for (int py = 0; py < clipHeightPx; py++) {
+                if (isLeftOrRightBorder || py == 0 || py == clipHeightPx - 1) {
+                    pixels[py * tileW + px] = (0xFF << 24) | (borderR << 16) | (borderG << 8) | borderB;
+                    continue;
+                }
+
                 double dy = Math.abs((py + 0.5) - waveCenterY);
 
                 int r = (dy < 0.75) ? lineR : bgR;
                 int g = (dy < 0.75) ? lineG : bgG;
                 int b = (dy < 0.75) ? lineB : bgB;
 
-                // 1. Low Layer (Royal Blue) mit Anti-Aliased Coverage
                 double covLow = clampCoverage(lowAmp + 0.5 - dy);
                 if (covLow > 0.0) {
                     r = lerpInt(r, lowR, covLow);
@@ -854,7 +1156,6 @@ public class TimelineGridView extends Pane {
                     b = lerpInt(b, lowB, covLow);
                 }
 
-                // 2. Mid Layer (Amber Gold) darüberlegen
                 double covMid = clampCoverage(midAmp + 0.5 - dy);
                 if (covMid > 0.0) {
                     r = lerpInt(r, midR, covMid);
@@ -862,7 +1163,6 @@ public class TimelineGridView extends Pane {
                     b = lerpInt(b, midB, covMid);
                 }
 
-                // 3. High Layer (Pure White) als innerster Kern oben drauf
                 double covHigh = clampCoverage(highAmp + 0.5 - dy);
                 if (covHigh > 0.0) {
                     r = lerpInt(r, highR, covHigh);
@@ -899,30 +1199,15 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Zeichnet die vertikale Timeline-Linie (Playhead) mit Kopfanzeiger.
+     * Aktualisiert die GPU-Position des Playhead-Layers ohne Canvas-Neuzeichnung.
      */
-    private void drawPlayhead(GraphicsContext gc, double scrollX, double viewW, double viewH) {
-        long posMs = activeRenderPositionMs >= 0L ? activeRenderPositionMs : service.getCurrentPositionMs();
-        double playheadContentX = millisToX(posMs);
-        double playheadScreenX = playheadContentX - scrollX;
-
-        if (playheadScreenX < -10 || playheadScreenX > viewW + 10) {
-            return;
-        }
-
-        // Vertikale Linie (warm orange / amber für optimale Sichtbarkeit)
-        gc.setStroke(Color.web("#FB923C"));
-        gc.setLineWidth(2.0);
-        gc.strokeLine(playheadScreenX, 0, playheadScreenX, viewH);
-
-        // Oberer Pfeil-Indikator (Playhead-Kopf / Greifdreieck)
-        gc.setFill(Color.web("#FB923C"));
-        double[] xPoints = {playheadScreenX - 8, playheadScreenX + 8, playheadScreenX};
-        double[] yPoints = {0, 0, 12};
-        gc.fillPolygon(xPoints, yPoints, 3);
-        gc.setStroke(Color.web("#C2410C"));
-        gc.setLineWidth(1.0);
-        gc.strokePolygon(xPoints, yPoints, 3);
+    private void updatePlayheadNode(long smoothedPositionMs, double scrollX, double viewW, double viewH, double baseX, double baseY) {
+        long posMs = smoothedPositionMs >= 0L ? smoothedPositionMs : service.getCurrentPositionMs();
+        double playheadScreenX = millisToX(posMs) - scrollX;
+        playheadLine.setEndY(viewH);
+        playheadGroup.setVisible(playheadScreenX >= -12.0 && playheadScreenX <= viewW + 12.0);
+        playheadGroup.setTranslateX(baseX + playheadScreenX);
+        playheadGroup.setTranslateY(baseY);
     }
 
     /**
@@ -935,7 +1220,34 @@ public class TimelineGridView extends Pane {
     }
 
     /**
-     * Liefert die interne Canvas.
+     * Liefert die Anzahl der tatsächlichen Hintergrund-Grid-Canvas-Neuzeichnungen (zu Test-/Diagnosezwecken).
+     *
+     * @return Anzahl durchgeführter Hintergrund-Grid-Redraws
+     */
+    public long getGridRedrawCount() {
+        return gridRedrawCount;
+    }
+
+    /**
+     * Liefert den GPU-Waveform-Layer ({@link Group} mit gecachten {@link ImageView}-Kacheln).
+     *
+     * @return der Waveform-Layer
+     */
+    public Group getWaveformLayer() {
+        return waveformLayer;
+    }
+
+    /**
+     * Liefert die dedizierte GPU-Playhead-Node ({@link Group}).
+     *
+     * @return die Playhead-Node
+     */
+    public Node getPlayheadNode() {
+        return playheadGroup;
+    }
+
+    /**
+     * Liefert die interne Hintergrund-Grid-Canvas.
      *
      * @return die {@link Canvas}-Instanz
      */

@@ -5,10 +5,12 @@ import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.control.ToggleButton;
@@ -17,6 +19,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -59,7 +62,10 @@ public class TimelineMainView extends VBox {
     private final TimelineGridView timelineGridView;
 
     private final ScrollPane tracksScrollPane;
-    private final ScrollPane gridScrollPane;
+    private final BorderPane gridViewportContainer;
+    private final ScrollBar hScrollBar;
+    private final ScrollBar vScrollBar;
+    private boolean updatingScrollBars = false;
 
     private Boolean lastPlayVisualState = null;
     private String lastTrackSignature = "";
@@ -104,6 +110,8 @@ public class TimelineMainView extends VBox {
 
         this.lblTimeDisplay = new Label("00:00.000");
         lblTimeDisplay.getStyleClass().add("timeline-time-display");
+        lblTimeDisplay.setMinWidth(155.0);
+        lblTimeDisplay.setPrefWidth(155.0);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -178,24 +186,56 @@ public class TimelineMainView extends VBox {
         tracksScrollPane.setPrefWidth(HEADER_PANE_WIDTH);
         tracksScrollPane.setMaxWidth(HEADER_PANE_WIDTH);
 
-        // 4. Rechtes Timeline-Grid ScrollPane
-        this.gridScrollPane = new ScrollPane(timelineGridView);
-        gridScrollPane.getStyleClass().addAll("timeline-grid-scroll", "edge-to-edge");
-        gridScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        gridScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        gridScrollPane.setFitToWidth(false);
-        gridScrollPane.setFitToHeight(false);
-        HBox.setHgrow(gridScrollPane, Priority.ALWAYS);
-        VBox.setVgrow(gridScrollPane, Priority.ALWAYS);
+        // 4. Rechtes entkoppeltes GPU-Viewport-Container (ohne ScrollPane-Layout-Thrashing)
+        this.hScrollBar = new ScrollBar();
+        hScrollBar.setOrientation(Orientation.HORIZONTAL);
+        hScrollBar.getStyleClass().add("timeline-hbar");
 
-        // Hardware-Texture-Sicherheit: Viewport-Anbindung an das Grid
-        timelineGridView.attachScrollPane(gridScrollPane);
+        this.vScrollBar = new ScrollBar();
+        vScrollBar.setOrientation(Orientation.VERTICAL);
+        vScrollBar.getStyleClass().add("timeline-vbar");
 
-        // Vertikales Scrollen beider Bereiche synchronisieren
-        tracksScrollPane.vvalueProperty().bindBidirectional(gridScrollPane.vvalueProperty());
+        this.gridViewportContainer = new BorderPane();
+        gridViewportContainer.getStyleClass().add("timeline-grid-scroll");
+        gridViewportContainer.setCenter(timelineGridView);
+        gridViewportContainer.setBottom(hScrollBar);
+        gridViewportContainer.setRight(vScrollBar);
+        HBox.setHgrow(gridViewportContainer, Priority.ALWAYS);
+        VBox.setVgrow(gridViewportContainer, Priority.ALWAYS);
+
+        // ScrollBar-Synchronisation ohne Ping-Pong und ohne Layout-Invalidierung
+        hScrollBar.valueProperty().addListener((obs, oldV, newV) -> {
+            if (!updatingScrollBars) {
+                timelineGridView.setScrollX(newV.doubleValue());
+            }
+        });
+        vScrollBar.valueProperty().addListener((obs, oldV, newV) -> {
+            if (!updatingScrollBars) {
+                double sy = newV.doubleValue();
+                timelineGridView.setScrollY(sy);
+                double maxY = timelineGridView.getMaxScrollY();
+                tracksScrollPane.setVvalue(maxY > 0.0 ? (sy / maxY) : 0.0);
+            }
+        });
+        tracksScrollPane.vvalueProperty().addListener((obs, oldV, newV) -> {
+            if (!updatingScrollBars) {
+                double maxY = timelineGridView.getMaxScrollY();
+                double sy = maxY * Math.max(0.0, Math.min(1.0, newV.doubleValue()));
+                timelineGridView.setScrollY(sy);
+                syncScrollBarRanges();
+            }
+        });
+
+        timelineGridView.scrollXProperty().addListener((obs, oldV, newV) -> syncScrollBarRanges());
+        timelineGridView.scrollYProperty().addListener((obs, oldV, newV) -> syncScrollBarRanges());
+        timelineGridView.contentWidthProperty().addListener((obs, oldV, newV) -> syncScrollBarRanges());
+        timelineGridView.contentHeightProperty().addListener((obs, oldV, newV) -> syncScrollBarRanges());
+        timelineGridView.widthProperty().addListener((obs, oldV, newV) -> syncScrollBarRanges());
+        timelineGridView.heightProperty().addListener((obs, oldV, newV) -> syncScrollBarRanges());
+        syncScrollBarRanges();
 
         // 4. Zentraler Split/Content-Bereich
-        HBox contentBox = new HBox(0, tracksScrollPane, gridScrollPane);
+        HBox contentBox = new HBox(0, tracksScrollPane, gridViewportContainer);
         VBox.setVgrow(contentBox, Priority.ALWAYS);
         HBox.setHgrow(contentBox, Priority.ALWAYS);
 
@@ -246,15 +286,13 @@ public class TimelineMainView extends VBox {
      * Setzt die Scroll-Ansicht der Timeline vollständig an den Anfang (0, 0) zurück.
      */
     public void resetViewToBeginning() {
-        if (gridScrollPane != null) {
-            gridScrollPane.setHvalue(0.0);
-            gridScrollPane.setVvalue(0.0);
+        if (timelineGridView != null) {
+            timelineGridView.setScrollX(0.0);
+            timelineGridView.setScrollY(0.0);
+            timelineGridView.redraw();
         }
         if (tracksScrollPane != null) {
             tracksScrollPane.setVvalue(0.0);
-        }
-        if (timelineGridView != null) {
-            timelineGridView.redraw();
         }
     }
 
@@ -299,18 +337,19 @@ public class TimelineMainView extends VBox {
     }
 
     /**
-     * Aktualisiert Zeitanzeige, Subpixel-Follow-Scrolling und Grid-Rendering für einen einzelnen
-     * VSync-Playback-Frame ohne Layout-Invalidierung.
+     * Aktualisiert Zeitanzeige, Subpixel-Follow-Scrolling und GPU-Layer-Rendering in einem einzigen
+     * VSync-Durchlauf ohne doppelte Redraws oder Layout-Invalidierung.
      *
      * @param curPosMs aktuelle (ggf. Soft-PLL geglättete) Position in Millisekunden
      */
     public void updatePlaybackFrame(long curPosMs) {
         updateTimeLabel(curPosMs);
 
+        double targetScrollX = -1.0;
         if (service.isPlaying() && isFollowPlayheadEnabled()) {
-            scrollToFollowPlayhead(curPosMs);
+            targetScrollX = computeFollowScrollX(curPosMs);
         }
-        timelineGridView.redrawAtPosition(curPosMs);
+        timelineGridView.updatePlaybackView(curPosMs, targetScrollX);
     }
 
     private void updateTimeLabel(long curPos) {
@@ -333,27 +372,55 @@ public class TimelineMainView extends VBox {
     }
 
     private void scrollToFollowPlayhead(long curPosMs) {
-        if (gridScrollPane == null || timelineGridView == null) {
-            return;
+        double targetScrollX = computeFollowScrollX(curPosMs);
+        if (targetScrollX >= 0.0) {
+            timelineGridView.setScrollX(targetScrollX);
         }
-        double vpW = gridScrollPane.getViewportBounds() != null
-                ? gridScrollPane.getViewportBounds().getWidth()
-                : 0.0;
-        double viewW = vpW > 0.0 ? vpW : gridScrollPane.getWidth();
-        if (viewW <= 0.0) {
-            return;
+    }
+
+    private double computeFollowScrollX(long curPosMs) {
+        if (timelineGridView == null) {
+            return -1.0;
         }
-        double totalW = Math.max(viewW, timelineGridView.getPrefWidth());
-        double maxScrollX = Math.max(0.0, totalW - viewW);
+        double viewW = timelineGridView.getWidth() > 0.0 ? timelineGridView.getWidth() : 800.0;
+        double maxScrollX = timelineGridView.getMaxScrollX();
         if (maxScrollX <= 0.0) {
-            return;
+            return -1.0;
         }
         double playheadX = timelineGridView.millisToX(curPosMs);
         double targetScrollX = Math.max(0.0, Math.min(maxScrollX, playheadX - (viewW * 0.45)));
-        double currentScrollX = gridScrollPane.getHvalue() * maxScrollX;
-        // Subpixel-genaues Mitführen ohne Chunk-Schwelle (reagiert bereits ab > 0.05 Pixel!)
+        double currentScrollX = timelineGridView.getScrollX();
         if (Math.abs(currentScrollX - targetScrollX) > 0.05) {
-            gridScrollPane.setHvalue(targetScrollX / maxScrollX);
+            return targetScrollX;
+        }
+        return -1.0;
+    }
+
+    private void syncScrollBarRanges() {
+        if (updatingScrollBars || timelineGridView == null) {
+            return;
+        }
+        updatingScrollBars = true;
+        try {
+            double maxX = timelineGridView.getMaxScrollX();
+            double viewW = timelineGridView.getWidth() > 0.0 ? timelineGridView.getWidth() : 800.0;
+            hScrollBar.setMin(0.0);
+            hScrollBar.setMax(Math.max(0.0, maxX));
+            hScrollBar.setVisibleAmount(maxX > 0.0 ? Math.max(20.0, viewW) : 0.0);
+            hScrollBar.setValue(Math.max(0.0, Math.min(maxX, timelineGridView.getScrollX())));
+            hScrollBar.setVisible(maxX > 0.0);
+            hScrollBar.setManaged(maxX > 0.0);
+
+            double maxY = timelineGridView.getMaxScrollY();
+            double viewH = timelineGridView.getHeight() > 0.0 ? timelineGridView.getHeight() : 600.0;
+            vScrollBar.setMin(0.0);
+            vScrollBar.setMax(Math.max(0.0, maxY));
+            vScrollBar.setVisibleAmount(maxY > 0.0 ? Math.max(20.0, viewH) : 0.0);
+            vScrollBar.setValue(Math.max(0.0, Math.min(maxY, timelineGridView.getScrollY())));
+            vScrollBar.setVisible(maxY > 0.0);
+            vScrollBar.setManaged(maxY > 0.0);
+        } finally {
+            updatingScrollBars = false;
         }
     }
 
@@ -501,12 +568,21 @@ public class TimelineMainView extends VBox {
     }
 
     /**
-     * Liefert die ScrollPane des rechten Timeline-Grid.
+     * Liefert die horizontale ScrollBar des Timeline-Viewports.
      *
-     * @return die {@link ScrollPane} für das Grid
+     * @return die horizontale {@link ScrollBar}
      */
-    public ScrollPane getGridScrollPane() {
-        return gridScrollPane;
+    public ScrollBar getHorizontalScrollBar() {
+        return hScrollBar;
+    }
+
+    /**
+     * Liefert die vertikale ScrollBar des Timeline-Viewports.
+     *
+     * @return die vertikale {@link ScrollBar}
+     */
+    public ScrollBar getVerticalScrollBar() {
+        return vScrollBar;
     }
 
     /**

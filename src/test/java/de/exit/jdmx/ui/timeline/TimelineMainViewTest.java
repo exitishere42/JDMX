@@ -137,9 +137,10 @@ class TimelineMainViewTest {
         TimelineMainView view = new TimelineMainView(service);
 
         // Position simulieren und Viewport verschieben
+        view.getTimelineGridView().setViewportSize(800, 450);
         service.setPositionMs(15000L);
         service.startPlayback();
-        view.getGridScrollPane().setHvalue(0.8);
+        view.getTimelineGridView().setScrollX(400.0);
 
         assertThat(service.isPlaying()).isTrue();
         assertThat(service.getCurrentPositionMs()).isEqualTo(15000L);
@@ -154,7 +155,7 @@ class TimelineMainViewTest {
 
         assertThat(service.isPlaying()).isFalse();
         assertThat(service.getCurrentPositionMs()).isEqualTo(0L);
-        assertThat(view.getGridScrollPane().getHvalue()).isEqualTo(0.0);
+        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(0.0);
     }
 
     @Test
@@ -200,7 +201,7 @@ class TimelineMainViewTest {
         // Viewport-Größe explizit simulieren (800px Breite)
         view.resize(1000, 500);
         view.layout();
-        view.getGridScrollPane().resize(800, 450);
+        view.getTimelineGridView().setViewportSize(800, 450);
 
         // Follow aktiv, Playback starten und Position auf 60.000ms (3600px) setzen
         assertThat(view.isFollowPlayheadEnabled()).isTrue();
@@ -208,16 +209,16 @@ class TimelineMainViewTest {
         service.setPositionMs(60_000L);
         view.updateFromService();
 
-        // ScrollPane muss deutlich nach rechts gescrollt sein
-        assertThat(view.getGridScrollPane().getHvalue()).isGreaterThan(0.2);
+        // Viewport muss deutlich nach rechts gescrollt sein
+        assertThat(view.getTimelineGridView().getScrollX()).isGreaterThan(1000.0);
 
-        // Follow deaktivieren -> ScrollPane bleibt bei weiterem Fortschritt stehen
-        double savedHvalue = view.getGridScrollPane().getHvalue();
+        // Follow deaktivieren -> Viewport bleibt bei weiterem Fortschritt stehen
+        double savedScrollX = view.getTimelineGridView().getScrollX();
         view.getBtnFollowPlayhead().setSelected(false);
         service.setPositionMs(90_000L);
         view.updateFromService();
 
-        assertThat(view.getGridScrollPane().getHvalue()).isEqualTo(savedHvalue);
+        assertThat(view.getTimelineGridView().getScrollX()).isEqualTo(savedScrollX);
         service.stopPlayback();
     }
 
@@ -230,19 +231,19 @@ class TimelineMainViewTest {
         TimelineMainView view = new TimelineMainView(service);
         view.resize(1000, 500);
         view.layout();
-        view.getGridScrollPane().resize(800, 450);
+        view.getTimelineGridView().setViewportSize(800, 450);
 
         service.startPlayback();
         // Playhead mitten im Follow-Bereich (bei 10.000ms)
         service.setPositionMs(10_000L);
         view.updatePlaybackFrame(10_000L);
-        double h1 = view.getGridScrollPane().getHvalue();
+        double s1 = view.getTimelineGridView().getScrollX();
 
-        // Nur um 35 ms vorwärts (= ~2.1 Pixel bei 60 px/s; 2.1px / 35200px = 0.00006 Hvalue < alte 0.0005 Schwelle!)
+        // Nur um 35 ms vorwärts (= ~2.1 Pixel bei 60 px/s)
         view.updatePlaybackFrame(10_035L);
-        double h2 = view.getGridScrollPane().getHvalue();
+        double s2 = view.getTimelineGridView().getScrollX();
 
-        assertThat(h2).isGreaterThan(h1);
+        assertThat(s2).isGreaterThan(s1);
         service.stopPlayback();
     }
 }

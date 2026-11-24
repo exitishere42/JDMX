@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.timeline;
 
+import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
 import javafx.scene.Cursor;
@@ -445,5 +446,32 @@ class TimelineGridPlayheadTest {
         double maxScrollX = Math.max(0.0, grid.getPrefWidth() - scrollPane.getWidth());
         double scrolledPx = scrollPane.getHvalue() * maxScrollX;
         assertThat(scrolledPx).isBetween(40.0, 60.0);
+    }
+
+    @Test
+    @DisplayName("Sollte Playback- und horizontale Scroll-Frames rein über GPU-Layer-Translation ohne Grid-Neuzeichnung rendern")
+    void shouldUpdatePlayheadAndScrollViaGpuTranslationWithoutGridRedraws() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track = service.getTracks().get(0);
+        track.setDurationMs(120_000L);
+        track.setWaveformData(new float[]{0.2f, 0.8f, 0.5f, 0.9f});
+
+        TimelineGridView grid = new TimelineGridView(service);
+        grid.setViewportSize(800.0, 400.0);
+        grid.updatePlaybackView(0L, 0.0);
+
+        long initialGridRedraws = grid.getGridRedrawCount();
+
+        // 100 Playback-/Follow-Frames simulieren -> Grid darf NICHT neu gezeichnet werden (0 Redraws!)
+        for (int i = 1; i <= 100; i++) {
+            long posMs = i * 20L;
+            double scrollX = i * 1.2;
+            grid.updatePlaybackView(posMs, scrollX);
+        }
+
+        assertThat(grid.getGridRedrawCount()).isEqualTo(initialGridRedraws);
+        assertThat(grid.getWaveformLayer().getTranslateX()).isEqualTo(-120.0);
+        double expectedPlayheadScreenX = grid.millisToX(2000L) - 120.0;
+        assertThat(grid.getPlayheadNode().getTranslateX()).isEqualTo(expectedPlayheadScreenX);
     }
 }
