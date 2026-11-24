@@ -38,42 +38,21 @@ class UpdateServiceTest {
     @DisplayName("Sollte korrekte Konstanten für Repository und Version besitzen")
     void shouldHaveValidRepoAndVersionConstants() {
         assertThat(UpdateService.CURRENT_VERSION).matches("^\\d+\\.\\d+\\.\\d+.*$");
-        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("1.25.0");
+        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("0.25.0");
         assertThat(UpdateService.GITHUB_REPO).isEqualTo("exitishere42/JDMX");
         assertThat(UpdateService.API_URL).isEqualTo("https://api.github.com/repos/exitishere42/JDMX/releases/latest");
         assertThat(UpdateService.REPO_URL).isEqualTo("https://github.com/exitishere42/JDMX");
     }
 
     @Test
-    @DisplayName("Sollte Version 1.25.0 nicht als veraltet einstufen wenn GitHub denselben Tag liefert")
+    @DisplayName("Sollte Version 0.25.0 nicht als veraltet einstufen wenn GitHub denselben Tag liefert")
     void shouldNotConsiderSameOrOlderVersionAsNewer() {
-        assertThat(UpdateService.isVersionNewer("v1.25.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.24.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.23.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.22.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.10", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.9", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.8", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.7", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.6", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.5", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.4", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.3", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.2", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.1", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.21.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.10", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.9", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.8", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.7", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.6", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.5", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.4", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.3", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.20.1", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.15.5", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v1.25.1", UpdateService.CURRENT_VERSION)).isTrue();
-        assertThat(UpdateService.isVersionNewer("v1.26.0", UpdateService.CURRENT_VERSION)).isTrue();
-        assertThat(UpdateService.isVersionNewer("v2.0.0", UpdateService.CURRENT_VERSION)).isTrue();
+        assertThat(UpdateService.isVersionNewer("v0.25.0", UpdateService.CURRENT_VERSION)).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.24.0", UpdateService.CURRENT_VERSION)).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.23.0", UpdateService.CURRENT_VERSION)).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.1.0", UpdateService.CURRENT_VERSION)).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.25.1", UpdateService.CURRENT_VERSION)).isTrue();
+        assertThat(UpdateService.isVersionNewer("v0.26.0", UpdateService.CURRENT_VERSION)).isTrue();
+        assertThat(UpdateService.isVersionNewer("v1.0.0", UpdateService.CURRENT_VERSION)).isTrue();
     }
 }
