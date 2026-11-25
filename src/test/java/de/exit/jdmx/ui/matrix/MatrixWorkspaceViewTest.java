@@ -31,7 +31,7 @@ class MatrixWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("MatrixWorkspaceView baut ein horizontales SplitPane mit Grid/Dock links und Explorer rechts auf")
+    @DisplayName("MatrixWorkspaceView baut ein horizontales SplitPane mit Grid links und Explorer rechts auf")
     void testLayoutStructure() {
         DmxService dmxService = Mockito.mock(DmxService.class);
         SceneService sceneService = Mockito.mock(SceneService.class);
@@ -44,7 +44,6 @@ class MatrixWorkspaceViewTest {
         assertThat(workspace.getOrientation()).isEqualTo(Orientation.HORIZONTAL);
         assertThat(workspace.getItems()).hasSize(2);
         assertThat(workspace.getMatrixGridView()).isNotNull();
-        assertThat(workspace.getControlDock()).isNotNull();
         assertThat(workspace.getProjectExplorerView()).isNotNull();
 
         assertThat(workspace.getItems().get(1)).isEqualTo(workspace.getProjectExplorerView());

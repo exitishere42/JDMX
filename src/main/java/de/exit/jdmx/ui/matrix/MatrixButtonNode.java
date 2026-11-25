@@ -9,7 +9,12 @@ import de.exit.jdmx.ui.stage.ProjectExplorerView;
 import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
@@ -110,6 +115,12 @@ public class MatrixButtonNode extends StackPane {
             if (e.getButton() == MouseButton.PRIMARY) {
                 matrixService.releaseButton(index);
             }
+        });
+
+        // Kontextmenü per Rechtsklick zur Schnellkonfiguration
+        setOnContextMenuRequested(e -> {
+            showContextMenu(e.getScreenX(), e.getScreenY());
+            e.consume();
         });
 
         // Drag & Drop aus Project Explorer
@@ -230,5 +241,43 @@ public class MatrixButtonNode extends StackPane {
      */
     public void setOnDropListener(BiConsumer<Integer, String> listener) {
         this.onDropListener = listener;
+    }
+
+    private void showContextMenu(double screenX, double screenY) {
+        MatrixButtonDefinition btn = matrixService.getGrid().getButton(index);
+        ContextMenu menu = new ContextMenu();
+
+        if (btn != null && btn.isAssigned()) {
+            RadioMenuItem itemToggle = new RadioMenuItem("Umschalten (Toggle)");
+            itemToggle.setSelected(btn.triggerMode() == MatrixTriggerMode.TOGGLE);
+            itemToggle.setOnAction(ev -> matrixService.setTriggerMode(index, MatrixTriggerMode.TOGGLE));
+
+            RadioMenuItem itemFlash = new RadioMenuItem("Taster (Flash)");
+            itemFlash.setSelected(btn.triggerMode() == MatrixTriggerMode.FLASH);
+            itemFlash.setOnAction(ev -> matrixService.setTriggerMode(index, MatrixTriggerMode.FLASH));
+
+            Menu menuColor = new Menu("Farbe");
+            String[] colors = {"#03DAC6", "#38BDF8", "#EF4444", "#F59E0B", "#10B981", "#A855F7", "#FB923C", "#E2E8F0"};
+            String[] colorNames = {"Teal", "Blau", "Rot", "Amber", "Grün", "Lila", "Orange", "Weiß"};
+            for (int i = 0; i < colors.length; i++) {
+                String c = colors[i];
+                MenuItem colorItem = new MenuItem(colorNames[i]);
+                colorItem.setGraphic(new LucideIcon("circle", 12, Color.web(c)));
+                colorItem.setOnAction(ev -> matrixService.setButtonColor(index, c));
+                menuColor.getItems().add(colorItem);
+            }
+
+            MenuItem itemClear = new MenuItem("Zuweisung löschen");
+            itemClear.setGraphic(new LucideIcon("trash-2", 12, Color.web(StudioTheme.HEX_ICON_RED)));
+            itemClear.setOnAction(ev -> matrixService.clearButton(index));
+
+            menu.getItems().addAll(itemToggle, itemFlash, new SeparatorMenuItem(), menuColor, new SeparatorMenuItem(), itemClear);
+        } else {
+            MenuItem emptyItem = new MenuItem("Nicht zugewiesen");
+            emptyItem.setDisable(true);
+            menu.getItems().add(emptyItem);
+        }
+
+        menu.show(this, screenX, screenY);
     }
 }

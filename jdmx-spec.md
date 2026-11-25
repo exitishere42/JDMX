@@ -216,38 +216,33 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 ### Tab 3: Button Matrix
 
-Die Button Matrix ist als vollwertige Live-Performance-Konsole aufgebaut und folgt exakt dem ergonomischen Zwei-Spalten-Layout der **Stage View** (`StageWorkspaceView`):
+Die Button Matrix ist als vollwertige Live-Performance-Konsole aufgebaut und folgt dem ergonomischen Zwei-Spalten-Layout der **Stage View** (`StageWorkspaceView`), wobei die linke Seite vollflächig für das Tasten-Raster genutzt wird:
 
 ```text
 ┌────────────────────────────────────────────────────────┬───────────────────────┐
-│ BUTTON MATRIX GRID                                     │ [ jdmx Explorer ] [⇥] │
+│ BUTTON MATRIX GRID (Volle Höhe)                        │ [ jdmx Explorer ] [⇥] │
 │ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐        │ 📁 Geräte             │
 │ │ Button  │ │ Button  │ │ Button  │ │ Button  │ ...    │ 📁 Gerätegruppen      │
 │ │ (Szene) │ │ (Chaser)│ │ (Flash) │ │ (Toggle)│        │ 📁 Presets            │
 │ └─────────┘ └─────────┘ └─────────┘ └─────────┘        │ 📁 Szenenlisten       │
 │                                                        │   ├─ Szene 1 ───┐     │
-│                                                        │ 📁 Effekte      │ D&D │
-├────────────────────────────────────────────────────────┤   └─ Chaser 1 ──┼──┐  │
-│ BUTTON-STEUERUNGSDOCK (220px Mindesthöhe)              │                 │  │  │
-│ ┌──────────────────┬──────────────────┬──────────────┐ │                 ▼  ▼  │
-│ │ 1. Trigger-Modus │ 2. Eigenschaften │ 3. Aktionen  │ │                [Button│
-│ │ [Toggle / Flash] │ Name, Farbe      │ Löschen, Test│ │                       │
-│ └──────────────────┴──────────────────┴──────────────┘ │                       │
+│ (Rechtsklick-Menü direkt am Pad:                       │ 📁 Effekte      │ D&D │
+│  - Toggle / Flash Modus                                │   └─ Chaser 1 ──┼──┐  │
+│  - Farbe wählen                                        │                 │  │  │
+│  - Zuweisung löschen)                                  │                 ▼  ▼  │
+│                                                        │                [Button│
+│                                                        │                       │
 └────────────────────────────────────────────────────────┴───────────────────────┘
 ```
 
-#### 1. Layout & Struktur (wie Stage View):
+#### 1. Layout & Struktur:
 - **Horizontales Haupt-SplitPane (`MatrixWorkspaceView`):**
   - **Rechts (Volle Höhe):** Vollwertiger `ProjectExplorerView` mit Einklapp- und Ausklapp-Button (`arrow-right-to-line` / `arrow-left-to-line`). Voller Zugriff auf Szenen, Chaser, Geräte und Gruppen. Drag & Drop aus dem Explorer direkt auf beliebige Buttons im Grid.
-  - **Links (Hauptbereich):** Vertikales SplitPane mit oberem Button-Grid und unterem Steuerungsdock (220px Mindesthöhe, analog zur Stage View).
-- **Oberer Bereich (`MatrixGridView`):**
+  - **Links (Volle Höhe):** Vollflächiges Button-Raster (`MatrixGridView`), frei von störenden Docks oder Leisten.
+- **Tasten-Raster (`MatrixGridView`):**
   - Responsives Kachel-Raster mit konfigurierbaren Zeilen und Spalten (Standard: 4 Zeilen × 8 Spalten = 32 Buttons).
-  - Taktile Button-Kacheln mit haptischem Hardware-Look (Material Design 2 Dark, 4px Rundung, 1px Border), Statusanzeige (Inaktiv, Aktiv/Leuchtend, Flash gedrückt), Typ-Icon (Lucide) und Titel.
-- **Unteres Steuerungsdock (`MatrixControlDock`, 220px Höhe):**
-  - Zeigt bei Klick auf einen Button dessen Eigenschaften und Einstellungen im ergonomischen 3-Spalten-Modul-Design an.
-  - **Modul 1: Trigger & Modus:** Umschaltbar zwischen `TOGGLE` (Ein-/Ausschalter) und `FLASH` (Taster / Solange Maus/MIDI gehalten wird).
-  - **Modul 2: Eigenschaften:** Name, Button-Farbe (Farbwähler/Palette), Ziel-Zuweisung (Name der zugewiesenen Szene / des Chasers).
-  - **Modul 3: Aktionen & Release:** Zuweisung leeren, Test-Trigger, Schnellfreigabe.
+  - Taktile Button-Kacheln (`MatrixButtonNode`) mit haptischem Hardware-Look (Material Design 2 Dark, 4px Rundung, 1px Border), Statusanzeige (Inaktiv, Aktiv/Leuchtend mit Glow), Typ-Icon (Lucide), Index und Titel.
+  - **Direktes Rechtsklick-Menü:** Trigger-Modus (`TOGGLE` / `FLASH`), Farbpalette und Zuweisung löschen direkt per Rechtsklick auf dem Pad.
 
 #### 2. Trigger-Modi:
 - **`TOGGLE`:** Klick schaltet den Button ein (Szene/Chaser startet), erneuter Klick schaltet ihn aus.
