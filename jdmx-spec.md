@@ -214,15 +214,47 @@ Alle Dialoge, Assistenten, Einstellungen und Bestätigungs-Popups werden **ausna
 
 ---
 
-### Tab 3: Button Matrix (Live Show Konsole)
+### Tab 3: Button Matrix
 
-- **3 Reihen frei konfigurierbare Pads:** Für Live-Busking am Showabend (Reihe 1: Bewegungen/Positionen, Reihe 2: Farben, Reihe 3: Effekte & Strobes).
-- **Attribut-Filter (Selective Cues):**
-  - *Color-Only:* Ändert nur Farben – Position und Helligkeit laufen ungestört weiter.
-  - *Intensity-Only:* Ändert nur Helligkeit (z. B. 100%, 50%, Blinder).
-  - *Position-Only:* Fährt nur Pan/Tilt an.
-- **Trigger-Modi:** `TOGGLE`, `FLASH` (Taster für Tusch/Strobe) und `EXCLUSIVE_GROUP` (Radio-Gruppe für Farben).
-- **1-Klick MIDI-Learn:** Zuweisung auf physische Controller-Pads (Akai APC Mini, Launchpad etc.).
+Die Button Matrix ist als vollwertige Live-Performance-Konsole aufgebaut und folgt exakt dem ergonomischen Zwei-Spalten-Layout der **Stage View** (`StageWorkspaceView`):
+
+```text
+┌────────────────────────────────────────────────────────┬───────────────────────┐
+│ BUTTON MATRIX GRID                                     │ [ jdmx Explorer ] [⇥] │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐        │ 📁 Geräte             │
+│ │ Button  │ │ Button  │ │ Button  │ │ Button  │ ...    │ 📁 Gerätegruppen      │
+│ │ (Szene) │ │ (Chaser)│ │ (Flash) │ │ (Toggle)│        │ 📁 Presets            │
+│ └─────────┘ └─────────┘ └─────────┘ └─────────┘        │ 📁 Szenenlisten       │
+│                                                        │   ├─ Szene 1 ───┐     │
+│                                                        │ 📁 Effekte      │ D&D │
+├────────────────────────────────────────────────────────┤   └─ Chaser 1 ──┼──┐  │
+│ BUTTON-STEUERUNGSDOCK (220px Mindesthöhe)              │                 │  │  │
+│ ┌──────────────────┬──────────────────┬──────────────┐ │                 ▼  ▼  │
+│ │ 1. Trigger-Modus │ 2. Eigenschaften │ 3. Aktionen  │ │                [Button│
+│ │ [Toggle / Flash] │ Name, Farbe      │ Löschen, Test│ │                       │
+│ └──────────────────┴──────────────────┴──────────────┘ │                       │
+└────────────────────────────────────────────────────────┴───────────────────────┘
+```
+
+#### 1. Layout & Struktur (wie Stage View):
+- **Horizontales Haupt-SplitPane (`MatrixWorkspaceView`):**
+  - **Rechts (Volle Höhe):** Vollwertiger `ProjectExplorerView` mit Einklapp- und Ausklapp-Button (`arrow-right-to-line` / `arrow-left-to-line`). Voller Zugriff auf Szenen, Chaser, Geräte und Gruppen. Drag & Drop aus dem Explorer direkt auf beliebige Buttons im Grid.
+  - **Links (Hauptbereich):** Vertikales SplitPane mit oberem Button-Grid und unterem Steuerungsdock (220px Mindesthöhe, analog zur Stage View).
+- **Oberer Bereich (`MatrixGridView`):**
+  - Responsives Kachel-Raster mit konfigurierbaren Zeilen und Spalten (Standard: 4 Zeilen × 8 Spalten = 32 Buttons).
+  - Taktile Button-Kacheln mit haptischem Hardware-Look (Material Design 2 Dark, 4px Rundung, 1px Border), Statusanzeige (Inaktiv, Aktiv/Leuchtend, Flash gedrückt), Typ-Icon (Lucide) und Titel.
+- **Unteres Steuerungsdock (`MatrixControlDock`, 220px Höhe):**
+  - Zeigt bei Klick auf einen Button dessen Eigenschaften und Einstellungen im ergonomischen 3-Spalten-Modul-Design an.
+  - **Modul 1: Trigger & Modus:** Umschaltbar zwischen `TOGGLE` (Ein-/Ausschalter) und `FLASH` (Taster / Solange Maus/MIDI gehalten wird).
+  - **Modul 2: Eigenschaften:** Name, Button-Farbe (Farbwähler/Palette), Ziel-Zuweisung (Name der zugewiesenen Szene / des Chasers).
+  - **Modul 3: Aktionen & Release:** Zuweisung leeren, Test-Trigger, Schnellfreigabe.
+
+#### 2. Trigger-Modi:
+- **`TOGGLE`:** Klick schaltet den Button ein (Szene/Chaser startet), erneuter Klick schaltet ihn aus.
+- **`FLASH`:** Solange gedrückt gehalten wird (Mausklick gehalten oder MIDI Pad gedrückt), ist die Szene/der Chaser aktiv; beim Loslassen stoppt sie sofort.
+
+#### 3. Integration & Global Stop:
+- Klick auf den globalen roten `[■ STOP]`-Button im All-in-One Header deaktiviert sofort alle aktiven Matrix-Buttons und setzt den DMX-Ausgang in den definierten Ruhezustand.
 
 ---
 
@@ -473,6 +505,7 @@ Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** 
 | **2026-11-24** | **Tab 4: Zero-Jitter 60/120 FPS Timeline-Follow, Tile-Cache & Fine-Scrolling (v0.26.1)** | Vollständige Beseitigung von Lags, Zittern und Chunk-Scrollen: (1) Trennung von `notifyPlaybackFrame()` und `notifyChange()` in `TimelineService` (beendet 50x/s Explorer-Baum-Rebuilds und Layout-Invalidierungen); (2) Audio-Soft-PLL (`getSmoothedPlaybackPositionMs`) + VSync `AnimationTimer` in `TimelineMainView`; (3) 1024px Offscreen GPU Waveform Tile-Cache (`WritableImage` mit Subpixel-Antialiasing) in `TimelineGridView`; (4) Subpixel-genaues `canvas.setTranslateX/Y(scrollX)` (0 Layout-Passes, kein ±1px Zittern); (5) Entfernung der `0.0005` Chunk-Schwelle im Follow-Modus und feines pixel-basiertes horizontales Scrollen. 428 Tests zu 100% grün. |
 | **2026-11-24** | **Tab 4: JavaFX Prism GPU-Layer-Architektur & entkoppelter Viewport (v0.26.2)** | Umbau von `TimelineGridView` und `TimelineMainView` auf eine reine DAW-artige GPU-Layer-Architektur: (1) Eliminierung des `ScrollPane`-Layout-Thrashings durch einen festen geclippten Viewport (`BorderPane` + entkoppelte `ScrollBar`s); (2) Trennung in 3 GPU-Layer: periodisches Beat-Hintergrund-Canvas (`translateX(-(scrollX % BAR_WIDTH))`, 0 Redraws beim horizontalen Scrollen/Playback), `Group`-Waveform-Layer mit gecachten 1024px-`ImageView`-Kacheln (`translateX(-scrollX)`), und dedizierte `playheadGroup` (`Line` + `Polygon` mit direkter `translateX`-Verschiebung); (3) Beseitigung doppelter/dreifacher `redraw()`-Aufrufe pro Frame (`updatePlaybackView`) sowie fixe Breite für `lblTimeDisplay` gegen Toolbar-Relayouts. 429 Tests zu 100% grün. |
 | **2026-11-24** | **Tab 4: FL-Studio-Style Page-Turn Follow & Relayout-Boundary (v0.26.3)** | Umstellung von `TimelineMainView.computeFollowScrollX` auf ruhiges Page-Turn-Scrolling: Während des Abspielens bleibt die gesamte Timeline stehen und nur der GPU-Playhead wandert flüssig durch den Viewport; erst kurz vor dem rechten Rand (`max(viewW * 0.85, viewW - 45 px)`) blättert die Timeline einmalig vor, sodass der Playhead wieder links bei 10 % steht. Zusätzlich echte JavaFX-Relayout-Boundary (`155 x 24 px` fix) für `lblTimeDisplay` und `CacheHint.SPEED` für `canvas` & `playheadGroup`. 430 Tests zu 100% grün. |
+| **2026-11-25** | **Tab 3: Vollständiger Neuaufbau der Button Matrix im Stage-View-Layout (v0.28.0)** | Vollständige Neuentwicklung von Tab 3 (Button Matrix) analog zur Zwei-Spalten-Architektur der Stage View (`StageWorkspaceView`): (1) Horizontales SplitPane mit vollwertigem `ProjectExplorerView` über die volle rechte Höhe (Ein-/Ausklappen via `arrow-right-to-line` / `arrow-left-to-line`, Drag & Drop Zuweisung direkt auf Kacheln); (2) Linker Bereich mit vertikalem SplitPane aus oberem responsiven Button-Grid (`MatrixGridView`, 32 Pads 4x8) und unterem 220px Steuerungsdock (`MatrixControlDock`) für selektierte Kacheln; (3) Taktile Button-Kacheln (`MatrixButtonNode`) nach Material Design 2 Dark mit Statusanzeige, Farb-Glow und Lucide-Icons; (4) Core-Service (`MatrixService`) mit reaktiven `TOGGLE`- und `FLASH`-Modi, Not-Aus-Integration über den globalen `[■ STOP]`-Button sowie vollständiger Projekt-Persistenz (`MatrixButtonDataDto` im `ProjectData`). 462 Tests zu 100% grün. |
 | **2026-11-25** | **Tab 4: Mute-Button Farbgebung auf Studio-Rot angepasst (v0.27.1)** | Anpassung des Mute-Buttons (**M**) in `TimelineTrackHeaderBox`: Umstellung der aktiven Farbgebung von Bernsteinton auf sattes Studio-Rot (`#EF4444` Rahmen und `#FCA5A5` Text auf `#450A0A` Hintergrund bzw. `#F87171` auf `#5A1212` bei Hover). 434 Tests zu 100% grün. |
 | **2026-11-25** | **Tab 4: Studio DAW Mute- (M) & Solo- (S) Buttons für Track-Header (v0.27.0)** | Ersetzung des einzelnen grünen Punkts im Track-Header (`TimelineTrackHeaderBox`) durch zwei eingerahmte DAW-Style Buttons mit den Großbuchstaben **M** (Mute) und **S** (Solo). Subtiles dunkles Styling im Ruhezustand (`#1E1E1E` mit 1px `#333333` Rahmen), leuchtend bernsteinfarben (`#F59E0B` auf `#451A03`) bei aktivem Mute und strahlend goldgelb (`#EAB308` auf `#3E3204`) bei aktivem Solo. Vollständige Solo-Logik in `TimelineTrack`, `TimelineService` (`toggleTrackSolo`, `isTrackAudible`) und im `AudioPlaybackService` (beim Aktivieren von Solo auf beliebigen Spuren werden nur Tracks im Solo-Modus abgespielt). 434 Tests zu 100% grün. |
 | **2026-11-24** | **Tab 4: Volle Ausnutzung der Timeline-Breite beim Page-Turn Follow (v0.26.4)** | Anpassung der Page-Turn-Auslöseschwelle: Die Timeline-Bar wandert bis ganz an das Ende des Viewports (`rightThreshold = viewW`) und blättert erst beim Erreichen des rechten Randes auf die nächste Seite um. 430 Tests zu 100% grün. |

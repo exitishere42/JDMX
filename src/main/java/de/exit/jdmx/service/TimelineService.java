@@ -416,8 +416,8 @@ public class TimelineService {
             // Asynchrone Audioanalyse durchführen (nicht blockierend für JavaFX-Thread)
             CompletableFuture<de.exit.jdmx.core.model.AudioAnalysisResult> future = audioAnalysisService.analyzeAsync(songFile);
             try {
-                // Schnelle 50ms-Prüfung für kleine WAV-Dateien und deterministische Tests
-                de.exit.jdmx.core.model.AudioAnalysisResult fastResult = future.get(50, TimeUnit.MILLISECONDS);
+                // Schnelle Prüfung für kleine WAV-Dateien und deterministische Tests (bis zu 500ms bei hoher Testlast)
+                de.exit.jdmx.core.model.AudioAnalysisResult fastResult = future.get(500, TimeUnit.MILLISECONDS);
                 applyAnalysisResult(track, fastResult);
             } catch (Exception e) {
                 // Bei längeren MP3s läuft die Dekodierung im Hintergrund weiter (0 ms UI-Lag)

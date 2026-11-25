@@ -27,6 +27,11 @@ import de.exit.jdmx.service.FixtureLibraryService;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.service.ShortcutService;
 import de.exit.jdmx.service.TimelineService;
+import de.exit.jdmx.core.model.MatrixButtonDefinition;
+import de.exit.jdmx.core.model.MatrixTargetType;
+import de.exit.jdmx.core.model.MatrixTriggerMode;
+import de.exit.jdmx.core.project.model.MatrixButtonDataDto;
+import de.exit.jdmx.service.MatrixService;
 import de.exit.jdmx.service.UndoRedoService;
 import de.exit.jdmx.service.support.SupportService;
 import de.exit.jdmx.ui.desk.LightDeskWorkspaceView;
@@ -37,6 +42,7 @@ import de.exit.jdmx.ui.dialog.SupportDialog;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.io.IOWorkspaceView;
 import de.exit.jdmx.ui.io.UniversePatchTable;
+import de.exit.jdmx.ui.matrix.MatrixWorkspaceView;
 import de.exit.jdmx.ui.stage.StageFixtureNode;
 import de.exit.jdmx.ui.stage.StageCanvasView;
 import de.exit.jdmx.ui.stage.StageWorkspaceView;
@@ -128,6 +134,12 @@ public class MainWindow extends StackPane {
 
     /** Referenz auf den LightDesk-Workspace (Tab 2). */
     private LightDeskWorkspaceView lightDeskWorkspaceView;
+
+    /** Referenz auf den Button-Matrix-Workspace (Tab 3). */
+    private MatrixWorkspaceView matrixWorkspaceView;
+
+    /** Zentraler Service für die Button Matrix. */
+    private MatrixService matrixService;
 
     /** Referenz auf den Show-Timeline-Workspace (Tab 4). */
     private ShowTimelineWorkspaceView showTimelineWorkspaceView;
@@ -249,6 +261,9 @@ public class MainWindow extends StackPane {
         });
         headerBar.setOnStopAll(() -> {
             dmxService.blackout();
+            if (matrixService != null) {
+                matrixService.stopAll();
+            }
         });
 
         // Live DMX-Übertragungsrate an Header-Pill koppeln
@@ -354,7 +369,11 @@ public class MainWindow extends StackPane {
 
         this.lightDeskWorkspaceView = new LightDeskWorkspaceView(dmxService, stageWorkspaceView.getExplorerService());
         tabViews[1] = lightDeskWorkspaceView;
-        tabViews[2] = createTabPlaceholder("Button Matrix", "layout-grid", StudioTheme.COLOR_ICON_MATRIX);
+
+        this.matrixService = new MatrixService(dmxService, stageWorkspaceView.getSceneService(), stageWorkspaceView.getChaserService());
+        this.matrixWorkspaceView = new MatrixWorkspaceView(matrixService, stageWorkspaceView.getExplorerService(), stageWorkspaceView.getSceneService(), stageWorkspaceView.getChaserService());
+        matrixWorkspaceView.getProjectExplorerView().setMainWindow(this);
+        tabViews[2] = matrixWorkspaceView;
 
         this.showTimelineWorkspaceView = new ShowTimelineWorkspaceView();
         tabViews[3] = showTimelineWorkspaceView;
@@ -493,6 +512,9 @@ public class MainWindow extends StackPane {
         }
         if (dmxService != null) {
             dmxService.blackout();
+        }
+        if (matrixService != null) {
+            matrixService.clearAllButtons();
         }
         if (undoRedoService != null) {
             undoRedoService.clear();
@@ -767,6 +789,24 @@ public class MainWindow extends StackPane {
             }
         }
 
+        List<MatrixButtonDataDto> matrixButtonDtos = new ArrayList<>();
+        if (matrixService != null) {
+            for (MatrixButtonDefinition btn : matrixService.getGrid().getButtons().values()) {
+                if (btn.isAssigned()) {
+                    matrixButtonDtos.add(new MatrixButtonDataDto(
+                            btn.index(),
+                            btn.row(),
+                            btn.col(),
+                            btn.name(),
+                            btn.color(),
+                            btn.targetType().name(),
+                            btn.targetId(),
+                            btn.triggerMode().name()
+                    ));
+                }
+            }
+        }
+
         String name = currentProjectFile != null ? currentProjectFile.getName().replace(".jdmx", "") : "Default Project";
         SettingsDataDto settingsDto = settingsService.toDto(shortcutService);
         return new ProjectData(
@@ -778,7 +818,8 @@ public class MainWindow extends StackPane {
                 groupDtos,
                 sceneDtos,
                 chaserDtos,
-                settingsDto
+                settingsDto,
+                matrixButtonDtos
         );
     }
 
@@ -926,7 +967,38 @@ public class MainWindow extends StackPane {
             }
         }
 
-        // 6. Profileinstellungen wiederherstellen
+        // 6. Button Matrix wiederherstellen
+        if (matrixService != null) {
+            matrixService.clearAllButtons();
+            if (data.matrixButtons() != null) {
+                for (MatrixButtonDataDto bDto : data.matrixButtons()) {
+                    MatrixTargetType targetType = MatrixTargetType.NONE;
+                    try {
+                        targetType = MatrixTargetType.valueOf(bDto.targetType());
+                    } catch (Exception ignored) {
+                    }
+                    MatrixTriggerMode triggerMode = MatrixTriggerMode.TOGGLE;
+                    try {
+                        triggerMode = MatrixTriggerMode.valueOf(bDto.triggerMode());
+                    } catch (Exception ignored) {
+                    }
+
+                    MatrixButtonDefinition btn = new MatrixButtonDefinition(
+                            bDto.index(),
+                            bDto.row(),
+                            bDto.col(),
+                            bDto.name() != null ? bDto.name() : "",
+                            bDto.color() != null ? bDto.color() : MatrixButtonDefinition.DEFAULT_COLOR,
+                            targetType,
+                            bDto.targetId(),
+                            triggerMode
+                    );
+                    matrixService.getGrid().setButton(btn);
+                }
+            }
+        }
+
+        // 7. Profileinstellungen wiederherstellen
         if (data.settings() != null) {
             settingsService.applyDto(data.settings(), shortcutService);
             applyUiScale(settingsService.getUiScale());
@@ -1194,5 +1266,23 @@ public class MainWindow extends StackPane {
      */
     public StackPane getScalableRoot() {
         return scalableRoot;
+    }
+
+    /**
+     * Gibt den zentralen {@link MatrixService} zurück.
+     *
+     * @return der MatrixService
+     */
+    public MatrixService getMatrixService() {
+        return matrixService;
+    }
+
+    /**
+     * Gibt den Button-Matrix-Workspace (Tab 3) zurück.
+     *
+     * @return der {@link MatrixWorkspaceView}
+     */
+    public MatrixWorkspaceView getMatrixWorkspaceView() {
+        return matrixWorkspaceView;
     }
 }

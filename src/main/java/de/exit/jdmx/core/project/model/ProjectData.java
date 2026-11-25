@@ -15,9 +15,10 @@ import java.util.List;
  * @param universes   Liste der konfigurierten DMX-Universen
  * @param fixtures    Liste der gepatchten Fixtures mit Positionen
  * @param groups      Liste der konfigurierten Gerätegruppen
- * @param scenes      Liste der gespeicherten Lichtszenen (Cues)
- * @param chasers     Liste der konfigurierten Chaser (Sequenzen)
- * @param settings    Profileinstellungen (Sprache, Fullscreen, AutoSave, Shortcuts)
+ * @param scenes        Liste der gespeicherten Lichtszenen (Cues)
+ * @param chasers       Liste der konfigurierten Chaser (Sequenzen)
+ * @param settings      Profileinstellungen (Sprache, Fullscreen, AutoSave, Shortcuts)
+ * @param matrixButtons Liste der konfigurierten Buttons in der Button Matrix
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ProjectData(
@@ -29,7 +30,8 @@ public record ProjectData(
         List<GroupDataDto> groups,
         List<SceneDataDto> scenes,
         List<ChaserDataDto> chasers,
-        SettingsDataDto settings
+        SettingsDataDto settings,
+        List<MatrixButtonDataDto> matrixButtons
 ) {
     /**
      * Aktuelle Formatversion für neue Projektdateien.
@@ -37,24 +39,31 @@ public record ProjectData(
     public static final String CURRENT_VERSION = "1.0";
 
     /**
+     * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Matrix-Buttons).
+     */
+    public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures, List<GroupDataDto> groups, List<SceneDataDto> scenes, List<ChaserDataDto> chasers, SettingsDataDto settings) {
+        this(version, projectName, savedAt, universes, fixtures, groups, scenes, chasers, settings, List.of());
+    }
+
+    /**
      * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Einstellungen).
      */
     public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures, List<GroupDataDto> groups, List<SceneDataDto> scenes, List<ChaserDataDto> chasers) {
-        this(version, projectName, savedAt, universes, fixtures, groups, scenes, chasers, SettingsDataDto.defaultSettings());
+        this(version, projectName, savedAt, universes, fixtures, groups, scenes, chasers, SettingsDataDto.defaultSettings(), List.of());
     }
 
     /**
      * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Szenen und Chaser).
      */
     public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures, List<GroupDataDto> groups) {
-        this(version, projectName, savedAt, universes, fixtures, groups, List.of(), List.of(), SettingsDataDto.defaultSettings());
+        this(version, projectName, savedAt, universes, fixtures, groups, List.of(), List.of(), SettingsDataDto.defaultSettings(), List.of());
     }
 
     /**
      * Überladener Konstruktor für Abwärtskompatibilität (ohne explizite Gruppen, Szenen und Chaser).
      */
     public ProjectData(String version, String projectName, String savedAt, List<UniverseDataDto> universes, List<FixtureDataDto> fixtures) {
-        this(version, projectName, savedAt, universes, fixtures, List.of(), List.of(), List.of(), SettingsDataDto.defaultSettings());
+        this(version, projectName, savedAt, universes, fixtures, List.of(), List.of(), List.of(), SettingsDataDto.defaultSettings(), List.of());
     }
 
     /**
@@ -73,7 +82,8 @@ public record ProjectData(
                 List.of(),
                 List.of(),
                 List.of(),
-                SettingsDataDto.defaultSettings()
+                SettingsDataDto.defaultSettings(),
+                List.of()
         );
     }
 }

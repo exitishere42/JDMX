@@ -243,4 +243,56 @@ class MainWindowProjectPersistenceTest {
 
         assertThat(testLatch.await(5, TimeUnit.SECONDS)).isTrue();
     }
+
+    @Test
+    @DisplayName("Soll Button Matrix Belegungen im Projekt speichern und wiederherstellen")
+    void shouldPersistAndRestoreMatrixButtons(@TempDir Path tempDir) throws Exception {
+        CountDownLatch testLatch = new CountDownLatch(1);
+        File projectFile = tempDir.resolve("matrix_test.jdmx").toFile();
+
+        Platform.runLater(() -> {
+            try {
+                MainWindow window = new MainWindow(new ShortcutService(), new DmxService());
+
+                // Matrix-Buttons belegen
+                window.getMatrixService().assignTarget(0, de.exit.jdmx.core.model.MatrixTargetType.SCENE, "scene-1", "Bühne Blau");
+                window.getMatrixService().setTriggerMode(0, de.exit.jdmx.core.model.MatrixTriggerMode.TOGGLE);
+                window.getMatrixService().setButtonColor(0, "#03DAC6");
+
+                window.getMatrixService().assignTarget(1, de.exit.jdmx.core.model.MatrixTargetType.CHASER, "chaser-1", "Strobe");
+                window.getMatrixService().setTriggerMode(1, de.exit.jdmx.core.model.MatrixTriggerMode.FLASH);
+                window.getMatrixService().setButtonColor(1, "#EF4444");
+
+                // Projekt speichern
+                ProjectData data = window.buildCurrentProjectData();
+                new ProjectStorageService().saveProject(data, projectFile);
+
+                // Zurücksetzen
+                window.resetProjectState();
+                assertThat(window.getMatrixService().getGrid().getButton(0).isAssigned()).isFalse();
+
+                // Projekt laden
+                ProjectData loaded = new ProjectStorageService().loadProject(projectFile);
+                window.applyProjectData(loaded);
+
+                // Verifizieren
+                assertThat(window.getMatrixService().getGrid().getButton(0).isAssigned()).isTrue();
+                assertThat(window.getMatrixService().getGrid().getButton(0).name()).isEqualTo("Bühne Blau");
+                assertThat(window.getMatrixService().getGrid().getButton(0).triggerMode()).isEqualTo(de.exit.jdmx.core.model.MatrixTriggerMode.TOGGLE);
+                assertThat(window.getMatrixService().getGrid().getButton(0).color()).isEqualTo("#03DAC6");
+
+                assertThat(window.getMatrixService().getGrid().getButton(1).isAssigned()).isTrue();
+                assertThat(window.getMatrixService().getGrid().getButton(1).name()).isEqualTo("Strobe");
+                assertThat(window.getMatrixService().getGrid().getButton(1).triggerMode()).isEqualTo(de.exit.jdmx.core.model.MatrixTriggerMode.FLASH);
+                assertThat(window.getMatrixService().getGrid().getButton(1).color()).isEqualTo("#EF4444");
+
+                testLatch.countDown();
+            } catch (Exception e) {
+                e.printStackTrace();
+                testLatch.countDown();
+            }
+        });
+
+        assertThat(testLatch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
 }
