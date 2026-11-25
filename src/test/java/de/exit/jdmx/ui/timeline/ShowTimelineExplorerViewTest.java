@@ -1,6 +1,11 @@
 package de.exit.jdmx.ui.timeline;
 
 import de.exit.jdmx.core.model.ExplorerItem;
+import de.exit.jdmx.core.model.ExplorerItemType;
+import de.exit.jdmx.core.model.SceneDefinition;
+import de.exit.jdmx.service.DmxService;
+import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.service.SceneService;
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
@@ -11,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -126,5 +132,66 @@ class ShowTimelineExplorerViewTest {
         assertThat(assigned).isTrue();
         assertThat(service.getTracks().get(0).hasSong()).isTrue();
         assertThat(service.getTracks().get(0).getSongFile()).isEqualTo(songFile);
+    }
+
+    @Test
+    @DisplayName("Sollte TreeView mit Szenen-Ordner und Songs-Ordner initialisieren")
+    void shouldInitializeTreeViewWithScenesFolder() {
+        ShowTimelineExplorerView view = new ShowTimelineExplorerView();
+        TreeItem<ExplorerItem> scenesFolder = view.getScenesFolderItem();
+        assertThat(scenesFolder).isNotNull();
+        assertThat(scenesFolder.getValue().getId()).isEqualTo(ShowTimelineExplorerView.FOLDER_SCENES_ID);
+        assertThat(view.getRootItem().getChildren()).contains(scenesFolder);
+        assertThat(view.getRootItem().getChildren()).contains(view.getSongsFolderItem());
+    }
+
+    @Test
+    @DisplayName("Sollte alle angelegten Szenen aus SceneService und ProjectExplorerService anzeigen")
+    void shouldDisplayAllCreatedScenesInTimelineExplorer() {
+        TimelineService timelineService = new TimelineService();
+        ProjectExplorerService explorerService = new ProjectExplorerService();
+        DmxService dmxService = new DmxService();
+        SceneService sceneService = new SceneService(dmxService);
+
+        // 1. Szene in SceneService erfassen / registrieren
+        SceneDefinition scene1 = new SceneDefinition("scene-1", "Intro Blau", 1000, Map.of(0, Map.of(1, 255)));
+        sceneService.registerScene(scene1);
+
+        // 2. Szene in ProjectExplorerService anlegen
+        ExplorerItem sceneItem2 = new ExplorerItem("scene-2", "Refrain Strobe", ExplorerItemType.CUELIST, false, "bookmark", javafx.scene.paint.Color.web("#A78BFA"));
+        explorerService.addItemToFolder(ProjectExplorerService.FOLDER_CUELISTS_ID, sceneItem2);
+
+        // View initialisieren
+        ShowTimelineExplorerView view = new ShowTimelineExplorerView(timelineService, explorerService, sceneService);
+
+        TreeItem<ExplorerItem> scenesFolder = view.getScenesFolderItem();
+        assertThat(scenesFolder).isNotNull();
+        assertThat(scenesFolder.getChildren()).hasSize(2);
+        assertThat(scenesFolder.getChildren()).extracting(ti -> ti.getValue().getName())
+                .containsExactlyInAnyOrder("Intro Blau", "Refrain Strobe");
+    }
+
+    @Test
+    @DisplayName("Sollte Szenen-Ordner reaktiv aktualisieren wenn neue Szenen angelegt oder gelöscht werden")
+    void shouldReactivelyUpdateWhenScenesAreAddedOrRemoved() {
+        TimelineService timelineService = new TimelineService();
+        ProjectExplorerService explorerService = new ProjectExplorerService();
+        DmxService dmxService = new DmxService();
+        SceneService sceneService = new SceneService(dmxService);
+
+        ShowTimelineExplorerView view = new ShowTimelineExplorerView(timelineService, explorerService, sceneService);
+        TreeItem<ExplorerItem> scenesFolder = view.getScenesFolderItem();
+        assertThat(scenesFolder.getChildren()).isEmpty();
+
+        // Neue Szene in SceneService erfassen
+        SceneDefinition sceneA = new SceneDefinition("scene-a", "Blackout Scene", 0, Map.of());
+        sceneService.registerScene(sceneA);
+
+        assertThat(scenesFolder.getChildren()).hasSize(1);
+        assertThat(scenesFolder.getChildren().get(0).getValue().getName()).isEqualTo("Blackout Scene");
+
+        // Szene wieder löschen
+        sceneService.deleteScene("scene-a");
+        assertThat(scenesFolder.getChildren()).isEmpty();
     }
 }

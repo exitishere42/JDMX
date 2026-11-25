@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -32,6 +33,7 @@ public class SceneService implements AutoCloseable {
     private final Map<String, SceneDefinition> scenes = new ConcurrentHashMap<>();
     private final ScheduledExecutorService fadeExecutor;
     private ScheduledFuture<?> activeFadeTask;
+    private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 
     public SceneService(DmxService dmxService) {
         this.dmxService = Objects.requireNonNull(dmxService, "dmxService must not be null");
@@ -102,6 +104,39 @@ public class SceneService implements AutoCloseable {
     }
 
     /**
+     * Registriert einen Listener für Änderungen an der Szenen-Sammlung.
+     *
+     * @param listener Callback bei Hinzufügen, Umbenennen, Löschen oder Leeren
+     */
+    public void addChangeListener(Runnable listener) {
+        if (listener != null) {
+            changeListeners.add(listener);
+        }
+    }
+
+    /**
+     * Entfernt einen registrierten Change-Listener.
+     *
+     * @param listener zu entfernender Callback
+     */
+    public void removeChangeListener(Runnable listener) {
+        changeListeners.remove(listener);
+    }
+
+    /**
+     * Benachrichtigt alle registrierten Listener über Änderungen an Szenen.
+     */
+    private void notifyChange() {
+        for (Runnable listener : changeListeners) {
+            try {
+                listener.run();
+            } catch (Exception ex) {
+                log.error("Fehler beim Benachrichtigen eines Scene-ChangeListeners", ex);
+            }
+        }
+    }
+
+    /**
      * Benennt eine vorhandene Szene um.
      *
      * @param sceneId Szenen-ID
@@ -109,11 +144,16 @@ public class SceneService implements AutoCloseable {
      */
     public void renameScene(String sceneId, String newName) {
         if (sceneId == null || newName == null || newName.isBlank()) return;
+        boolean changed = false;
         synchronized (scenes) {
             SceneDefinition sc = scenes.get(sceneId);
             if (sc != null) {
                 sc.setName(newName);
+                changed = true;
             }
+        }
+        if (changed) {
+            notifyChange();
         }
     }
 
@@ -125,6 +165,7 @@ public class SceneService implements AutoCloseable {
     public void registerScene(SceneDefinition scene) {
         if (scene != null) {
             scenes.put(scene.getId(), scene);
+            notifyChange();
         }
     }
 
@@ -147,8 +188,8 @@ public class SceneService implements AutoCloseable {
      * Entfernt eine Szene.
      */
     public void deleteScene(String sceneId) {
-        if (sceneId != null) {
-            scenes.remove(sceneId);
+        if (sceneId != null && scenes.remove(sceneId) != null) {
+            notifyChange();
         }
     }
 
@@ -246,6 +287,7 @@ public class SceneService implements AutoCloseable {
     public synchronized void clearScenes() {
         stopFade();
         scenes.clear();
+        notifyChange();
     }
 
     @Override

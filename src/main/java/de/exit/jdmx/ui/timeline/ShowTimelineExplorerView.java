@@ -4,6 +4,9 @@ import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.log.AppLogger;
 import de.exit.jdmx.core.model.ExplorerItem;
 import de.exit.jdmx.core.model.ExplorerItemType;
+import de.exit.jdmx.core.model.SceneDefinition;
+import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.service.SceneService;
 import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.theme.StudioTheme;
@@ -18,10 +21,14 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Rechte Seitenleiste der Show-Timeline (Tab 4).
@@ -48,7 +55,12 @@ public class ShowTimelineExplorerView extends VBox {
     /** Ordner-ID für den Songs-Ordner in der TreeView. */
     public static final String FOLDER_SONGS_ID = "timeline-folder-songs";
 
+    /** Ordner-ID für den Szenen-Ordner in der TreeView. */
+    public static final String FOLDER_SCENES_ID = "timeline-folder-scenes";
+
     private final TimelineService timelineService;
+    private final ProjectExplorerService explorerService;
+    private final SceneService sceneService;
 
     private final Button btnTabInspector;
     private final Button btnTabExplorer;
@@ -60,12 +72,13 @@ public class ShowTimelineExplorerView extends VBox {
     private final TreeView<ExplorerItem> treeView;
     private final TreeItem<ExplorerItem> rootItem;
     private TreeItem<ExplorerItem> songsFolderItem;
+    private TreeItem<ExplorerItem> scenesFolderItem;
 
     /**
-     * Erstellt den Show-Timeline Explorer mit Standard-TimelineService.
+     * Erstellt den Show-Timeline Explorer mit Standard-TimelineService und leerem ProjectExplorerService.
      */
     public ShowTimelineExplorerView() {
-        this(new TimelineService());
+        this(new TimelineService(), new ProjectExplorerService(), null);
     }
 
     /**
@@ -74,8 +87,21 @@ public class ShowTimelineExplorerView extends VBox {
      * @param service der {@link TimelineService} (darf nicht {@code null} sein)
      */
     public ShowTimelineExplorerView(TimelineService service) {
+        this(service, new ProjectExplorerService(), null);
+    }
+
+    /**
+     * Erstellt den Show-Timeline Explorer mit TimelineService, ProjectExplorerService und SceneService.
+     *
+     * @param service         der {@link TimelineService} (darf nicht {@code null} sein)
+     * @param explorerService der {@link ProjectExplorerService} zur Szenen-Synchronisation
+     * @param sceneService    der {@link SceneService} zur Anzeige und Ausführung aller angelegten Szenen
+     */
+    public ShowTimelineExplorerView(TimelineService service, ProjectExplorerService explorerService, SceneService sceneService) {
         super(0);
         this.timelineService = Objects.requireNonNull(service, "service must not be null");
+        this.explorerService = explorerService != null ? explorerService : new ProjectExplorerService();
+        this.sceneService = sceneService;
 
         getStyleClass().add("timeline-explorer-view");
         setMinWidth(DEFAULT_MIN_WIDTH);
@@ -126,13 +152,37 @@ public class ShowTimelineExplorerView extends VBox {
         inspectorView.setVisible(false);
         inspectorView.setManaged(false);
 
-        // --- 2. TreeView (Songs-Ordner) ---
+        // --- 2. TreeView (Songs- und Szenen-Ordner) ---
         ExplorerItem rootObj = new ExplorerItem(
                 "timeline-root", "Timeline", ExplorerItemType.FOLDER, false, "audio-lines",
                 StudioTheme.COLOR_ICON_TIMELINE
         );
         this.rootItem = new TreeItem<>(rootObj);
         rootItem.setExpanded(true);
+
+        ExplorerItem songsFolder = new ExplorerItem(
+                FOLDER_SONGS_ID,
+                I18n.get("timeline.explorer.folder.songs"),
+                ExplorerItemType.FOLDER,
+                true,
+                "music",
+                StudioTheme.COLOR_ICON_TIMELINE
+        );
+        this.songsFolderItem = new TreeItem<>(songsFolder, new LucideIcon("music", ITEM_ICON_SIZE, StudioTheme.COLOR_ICON_TIMELINE));
+        this.songsFolderItem.setExpanded(true);
+
+        ExplorerItem scenesFolder = new ExplorerItem(
+                FOLDER_SCENES_ID,
+                I18n.get("timeline.explorer.folder.scenes"),
+                ExplorerItemType.FOLDER,
+                true,
+                "bookmark",
+                Color.web("#A78BFA")
+        );
+        this.scenesFolderItem = new TreeItem<>(scenesFolder, new LucideIcon("bookmark", ITEM_ICON_SIZE, Color.web("#A78BFA")));
+        this.scenesFolderItem.setExpanded(true);
+
+        this.rootItem.getChildren().setAll(songsFolderItem, scenesFolderItem);
 
         this.treeView = new TreeView<>(rootItem);
         treeView.setShowRoot(false);
@@ -150,13 +200,17 @@ public class ShowTimelineExplorerView extends VBox {
         setupExternalDragAndDrop();
 
         // Auf Änderungen im TimelineService lauschen (z. B. importierte Songs)
-        timelineService.addChangeListener(() -> {
-            if (getScene() != null && !Platform.isFxApplicationThread()) {
-                Platform.runLater(this::buildTree);
-            } else {
-                buildTree();
-            }
-        });
+        timelineService.addChangeListener(this::scheduleBuildTree);
+
+        // Auf Änderungen im ProjectExplorerService lauschen (z. B. neue/umbenannte/gelöschte Szenen)
+        if (this.explorerService != null) {
+            this.explorerService.addChangeListener(this::scheduleBuildTree);
+        }
+
+        // Auf Änderungen im SceneService lauschen (z. B. Szenen-Snapshots)
+        if (this.sceneService != null) {
+            this.sceneService.addChangeListener(this::scheduleBuildTree);
+        }
 
         // Sprachwechsel reaktiv
         I18n.addLanguageChangeListener(lang -> {
@@ -185,22 +239,20 @@ public class ShowTimelineExplorerView extends VBox {
         }
     }
 
+    private void scheduleBuildTree() {
+        if (getScene() != null && !Platform.isFxApplicationThread()) {
+            Platform.runLater(this::buildTree);
+        } else {
+            buildTree();
+        }
+    }
+
     /**
-     * Baut die TreeView mit dem Songs-Standardordner und importierten Dateien auf.
+     * Baut die TreeView mit dem Songs- und Szenen-Standardordner auf.
      */
     public void buildTree() {
-        ExplorerItem songsFolder = new ExplorerItem(
-                FOLDER_SONGS_ID,
-                I18n.get("timeline.explorer.folder.songs"),
-                ExplorerItemType.FOLDER,
-                true,
-                "music",
-                StudioTheme.COLOR_ICON_TIMELINE
-        );
-        LucideIcon folderIcon = new LucideIcon("music", ITEM_ICON_SIZE, StudioTheme.COLOR_ICON_TIMELINE);
-        this.songsFolderItem = new TreeItem<>(songsFolder, folderIcon);
-        songsFolderItem.setExpanded(true);
-
+        // --- 1. Songs aktualisieren ---
+        List<TreeItem<ExplorerItem>> songTreeItems = new java.util.ArrayList<>();
         for (File song : timelineService.getImportedSongs()) {
             ExplorerItem songItem = new ExplorerItem(
                     "song-" + song.getName(),
@@ -212,10 +264,49 @@ public class ShowTimelineExplorerView extends VBox {
             );
             songItem.setSongFile(song);
             LucideIcon songIcon = new LucideIcon("music", ITEM_ICON_SIZE, StudioTheme.COLOR_ICON_TIMELINE);
-            songsFolderItem.getChildren().add(new TreeItem<>(songItem, songIcon));
+            songTreeItems.add(new TreeItem<>(songItem, songIcon));
+        }
+        songsFolderItem.getChildren().setAll(songTreeItems);
+
+        // --- 2. Szenen aktualisieren ---
+        List<TreeItem<ExplorerItem>> sceneTreeItems = new java.util.ArrayList<>();
+        Set<String> addedSceneIds = new HashSet<>();
+
+        // A) Szenen aus ProjectExplorerService (Ordner Szenenlisten / Cuelists)
+        if (explorerService != null) {
+            List<ExplorerItem> cuelistItems = explorerService.getItemsInFolder(ProjectExplorerService.FOLDER_CUELISTS_ID);
+            for (ExplorerItem item : cuelistItems) {
+                if (item != null && (item.getType() == ExplorerItemType.CUELIST || "bookmark".equals(item.getIconName()))) {
+                    addedSceneIds.add(item.getId());
+                    LucideIcon sceneIcon = new LucideIcon("bookmark", ITEM_ICON_SIZE, Color.web("#A78BFA"));
+                    sceneTreeItems.add(new TreeItem<>(item, sceneIcon));
+                }
+            }
         }
 
-        rootItem.getChildren().setAll(songsFolderItem);
+        // B) Szenen aus SceneService (falls direkt erfasst oder registriert)
+        if (sceneService != null) {
+            for (SceneDefinition sceneDef : sceneService.getAllScenes()) {
+                if (sceneDef != null && !addedSceneIds.contains(sceneDef.getId())) {
+                    addedSceneIds.add(sceneDef.getId());
+                    ExplorerItem sceneItem = new ExplorerItem(
+                            sceneDef.getId(),
+                            sceneDef.getName(),
+                            ExplorerItemType.CUELIST,
+                            false,
+                            "bookmark",
+                            Color.web("#A78BFA")
+                    );
+                    LucideIcon sceneIcon = new LucideIcon("bookmark", ITEM_ICON_SIZE, Color.web("#A78BFA"));
+                    sceneTreeItems.add(new TreeItem<>(sceneItem, sceneIcon));
+                }
+            }
+        }
+        scenesFolderItem.getChildren().setAll(sceneTreeItems);
+
+        if (!rootItem.getChildren().contains(songsFolderItem) || !rootItem.getChildren().contains(scenesFolderItem)) {
+            rootItem.getChildren().setAll(songsFolderItem, scenesFolderItem);
+        }
     }
 
     private void setupExternalDragAndDrop() {
@@ -405,6 +496,33 @@ public class ShowTimelineExplorerView extends VBox {
     }
 
     /**
+     * Gibt den Szenen-Ordner-TreeItem zurück.
+     *
+     * @return der Szenen-Ordner-TreeItem
+     */
+    public TreeItem<ExplorerItem> getScenesFolderItem() {
+        return scenesFolderItem;
+    }
+
+    /**
+     * Gibt den ProjectExplorerService zurück.
+     *
+     * @return der {@link ProjectExplorerService}
+     */
+    public ProjectExplorerService getExplorerService() {
+        return explorerService;
+    }
+
+    /**
+     * Gibt den SceneService zurück.
+     *
+     * @return der {@link SceneService} oder {@code null}
+     */
+    public SceneService getSceneService() {
+        return sceneService;
+    }
+
+    /**
      * Gibt den zugrunde liegenden TimelineService zurück.
      *
      * @return der {@link TimelineService}
@@ -474,18 +592,26 @@ public class ShowTimelineExplorerView extends VBox {
                 if (!ti.getChildren().isEmpty() && event.getClickCount() == 1) {
                     ti.setExpanded(!ti.isExpanded());
                     event.consume();
-                } else if (event.getClickCount() == 2 && getItem().getType() == ExplorerItemType.SONG) {
-                    if (parentView != null) {
-                        AppLogger.info("[TIMELINE-EXPLORER] Doppelklick auf Song '%s' -> Zuweisung...", getItem().getName());
-                        parentView.assignSongToTimeline(getItem(), null);
-                        event.consume();
+                } else if (event.getClickCount() == 2) {
+                    if (getItem().getType() == ExplorerItemType.SONG) {
+                        if (parentView != null) {
+                            AppLogger.info("[TIMELINE-EXPLORER] Doppelklick auf Song '%s' -> Zuweisung...", getItem().getName());
+                            parentView.assignSongToTimeline(getItem(), null);
+                            event.consume();
+                        }
+                    } else if (getItem().getType() == ExplorerItemType.CUELIST || "bookmark".equals(getItem().getIconName())) {
+                        if (parentView != null && parentView.getSceneService() != null) {
+                            AppLogger.info("[TIMELINE-EXPLORER] Doppelklick auf Szene '%s' -> aktiviert.", getItem().getName());
+                            parentView.getSceneService().applyScene(getItem().getId(), -1);
+                            event.consume();
+                        }
                     }
                 }
             });
         }
 
         private void setupContextMenu() {
-            javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
+            javafx.scene.control.ContextMenu contextMenuSong = new javafx.scene.control.ContextMenu();
 
             javafx.scene.control.MenuItem itemAssign = new javafx.scene.control.MenuItem("In Timeline auf Spur 1 legen");
             itemAssign.setOnAction(e -> {
@@ -515,13 +641,27 @@ public class ShowTimelineExplorerView extends VBox {
                 }
             });
 
-            contextMenu.getItems().addAll(itemAssign, itemNewTrack, new javafx.scene.control.SeparatorMenuItem(), itemRemove);
+            contextMenuSong.getItems().addAll(itemAssign, itemNewTrack, new javafx.scene.control.SeparatorMenuItem(), itemRemove);
+
+            javafx.scene.control.ContextMenu contextMenuScene = new javafx.scene.control.ContextMenu();
+            javafx.scene.control.MenuItem itemActivateScene = new javafx.scene.control.MenuItem(I18n.get("timeline.explorer.scene.activate"));
+            itemActivateScene.setOnAction(e -> {
+                if (parentView != null && parentView.getSceneService() != null && getItem() != null) {
+                    parentView.getSceneService().applyScene(getItem().getId(), -1);
+                }
+            });
+            contextMenuScene.getItems().add(itemActivateScene);
 
             setOnContextMenuRequested(e -> {
-                if (!isEmpty() && getItem() != null && getItem().getType() == ExplorerItemType.SONG) {
-                    contextMenu.show(this, e.getScreenX(), e.getScreenY());
+                if (!isEmpty() && getItem() != null) {
+                    if (getItem().getType() == ExplorerItemType.SONG) {
+                        contextMenuSong.show(this, e.getScreenX(), e.getScreenY());
+                    } else if (getItem().getType() == ExplorerItemType.CUELIST || "bookmark".equals(getItem().getIconName())) {
+                        contextMenuScene.show(this, e.getScreenX(), e.getScreenY());
+                    }
                 } else {
-                    contextMenu.hide();
+                    contextMenuSong.hide();
+                    contextMenuScene.hide();
                 }
             });
         }
@@ -546,7 +686,13 @@ public class ShowTimelineExplorerView extends VBox {
                 setMouseTransparent(true);
             } else {
                 if (item.isStandardFolder()) {
-                    setText(I18n.get("timeline.explorer.folder.songs"));
+                    if (FOLDER_SONGS_ID.equals(item.getId())) {
+                        setText(I18n.get("timeline.explorer.folder.songs"));
+                    } else if (FOLDER_SCENES_ID.equals(item.getId())) {
+                        setText(I18n.get("timeline.explorer.folder.scenes"));
+                    } else {
+                        setText(item.getName());
+                    }
                 } else {
                     setText(item.getName());
                 }

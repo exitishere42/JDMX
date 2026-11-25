@@ -1,5 +1,7 @@
 package de.exit.jdmx.ui.timeline;
 
+import de.exit.jdmx.service.ProjectExplorerService;
+import de.exit.jdmx.service.SceneService;
 import de.exit.jdmx.service.TimelineService;
 import javafx.geometry.Orientation;
 import javafx.scene.control.SplitPane;
@@ -22,6 +24,8 @@ public class ShowTimelineWorkspaceView extends SplitPane {
     public static final double DEFAULT_SPLIT_RATIO = 0.78;
 
     private final TimelineService timelineService;
+    private final ProjectExplorerService explorerService;
+    private final SceneService sceneService;
     private final TimelineMainView timelineMainView;
     private final ShowTimelineExplorerView explorerView;
 
@@ -31,7 +35,7 @@ public class ShowTimelineWorkspaceView extends SplitPane {
      * Erstellt den Show-Timeline Workspace mit Standard-TimelineService.
      */
     public ShowTimelineWorkspaceView() {
-        this(new TimelineService());
+        this(new TimelineService(), new ProjectExplorerService(), null);
     }
 
     /**
@@ -40,7 +44,20 @@ public class ShowTimelineWorkspaceView extends SplitPane {
      * @param timelineService der {@link TimelineService} (darf nicht {@code null} sein)
      */
     public ShowTimelineWorkspaceView(TimelineService timelineService) {
+        this(timelineService, new ProjectExplorerService(), null);
+    }
+
+    /**
+     * Erstellt den Show-Timeline Workspace mit TimelineService, ProjectExplorerService und SceneService.
+     *
+     * @param timelineService der {@link TimelineService} (darf nicht {@code null} sein)
+     * @param explorerService der {@link ProjectExplorerService} zur Szenen-Synchronisation
+     * @param sceneService    der {@link SceneService} zur Ausführung von Lichtszenen
+     */
+    public ShowTimelineWorkspaceView(TimelineService timelineService, ProjectExplorerService explorerService, SceneService sceneService) {
         this.timelineService = Objects.requireNonNull(timelineService, "timelineService must not be null");
+        this.explorerService = explorerService != null ? explorerService : new ProjectExplorerService();
+        this.sceneService = sceneService;
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("timeline-workspace-view");
 
@@ -48,7 +65,7 @@ public class ShowTimelineWorkspaceView extends SplitPane {
         this.timelineMainView = new TimelineMainView(this.timelineService);
 
         // --- Rechter Bereich (Explorer) ---
-        this.explorerView = new ShowTimelineExplorerView(this.timelineService);
+        this.explorerView = new ShowTimelineExplorerView(this.timelineService, this.explorerService, this.sceneService);
 
         getItems().addAll(timelineMainView, explorerView);
         setDividerPositions(DEFAULT_SPLIT_RATIO);
@@ -123,6 +140,24 @@ public class ShowTimelineWorkspaceView extends SplitPane {
      */
     public TimelineService getTimelineService() {
         return timelineService;
+    }
+
+    /**
+     * Gibt den ProjectExplorerService zurück.
+     *
+     * @return der {@link ProjectExplorerService}
+     */
+    public ProjectExplorerService getExplorerService() {
+        return explorerService;
+    }
+
+    /**
+     * Gibt den SceneService zurück.
+     *
+     * @return der {@link SceneService} oder {@code null}
+     */
+    public SceneService getSceneService() {
+        return sceneService;
     }
 
     /**

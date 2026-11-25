@@ -379,7 +379,11 @@ public class MainWindow extends StackPane {
         matrixWorkspaceView.getProjectExplorerView().setMainWindow(this);
         tabViews[2] = matrixWorkspaceView;
 
-        this.showTimelineWorkspaceView = new ShowTimelineWorkspaceView();
+        this.showTimelineWorkspaceView = new ShowTimelineWorkspaceView(
+                new TimelineService(),
+                stageWorkspaceView.getExplorerService(),
+                stageWorkspaceView.getSceneService()
+        );
         tabViews[3] = showTimelineWorkspaceView;
 
         this.ioWorkspaceView = new IOWorkspaceView(new HardwareDiscoveryService(), this);
