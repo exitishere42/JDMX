@@ -51,6 +51,7 @@ import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.SequentialTransition;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -146,6 +147,9 @@ public class MainWindow extends StackPane {
 
     /** Referenz auf den IO-Workspace (Tab 5). */
     private IOWorkspaceView ioWorkspaceView;
+
+    /** Aktuell ausgewählter Tab-Index zur zuverlässigen Erkennung von Tab-Wechseln. */
+    private int currentActiveTabIndex = 0;
 
     /** Scheinwerfer-Bibliothek (vorinstallierte Standardgeräte und importierte Profile). */
     private final FixtureLibraryService fixtureLibraryService;
@@ -395,6 +399,10 @@ public class MainWindow extends StackPane {
         return lightDeskWorkspaceView;
     }
 
+    public ShowTimelineWorkspaceView getShowTimelineWorkspaceView() {
+        return showTimelineWorkspaceView;
+    }
+
     public FixtureLibraryService getFixtureLibraryService() {
         return fixtureLibraryService;
     }
@@ -423,29 +431,38 @@ public class MainWindow extends StackPane {
      */
     public void switchToTab(int index) {
         if (index >= 0 && index < tabViews.length) {
-            int currentTab = headerBar.getActiveTabIndex();
-
-            // Synchronisation der Project-Explorer-Dicke/Breite zwischen allen Tabs mit Explorer (Stage, Matrix, Timeline)
+            int previousTab = this.currentActiveTabIndex;
+            this.currentActiveTabIndex = index;
+            // 1. Divider- und Breiten-Position des Project Explorers aus dem vorherigen Tab auslesen
             double sourceDivider = -1.0;
-            if (currentTab == 0 && stageWorkspaceView != null) {
+            if (previousTab == 0 && stageWorkspaceView != null) {
                 sourceDivider = stageWorkspaceView.getHorizontalDividerPosition();
-            } else if (currentTab == 2 && matrixWorkspaceView != null) {
+            } else if (previousTab == 2 && matrixWorkspaceView != null) {
                 sourceDivider = matrixWorkspaceView.getHorizontalDividerPosition();
-            } else if (currentTab == 3 && showTimelineWorkspaceView != null) {
+            } else if (previousTab == 3 && showTimelineWorkspaceView != null) {
                 sourceDivider = showTimelineWorkspaceView.getHorizontalDividerPosition();
+            } else if (stageWorkspaceView != null) {
+                sourceDivider = stageWorkspaceView.getHorizontalDividerPosition();
             }
 
-            if (sourceDivider > 0.0) {
-                if (index == 0 && stageWorkspaceView != null) {
-                    stageWorkspaceView.setHorizontalDividerPosition(sourceDivider);
-                } else if (index == 2 && matrixWorkspaceView != null) {
-                    matrixWorkspaceView.setHorizontalDividerPosition(sourceDivider);
-                } else if (index == 3 && showTimelineWorkspaceView != null) {
-                    showTimelineWorkspaceView.setHorizontalDividerPosition(sourceDivider);
+            final double targetDivider = sourceDivider > 0.0 ? sourceDivider : StageWorkspaceView.DEFAULT_HORIZONTAL_RATIO;
+
+            // 2. Synchronisation der Explorer-Breite auf den Ziel-Tab anwenden
+            if (index == 3 && showTimelineWorkspaceView != null) {
+                showTimelineWorkspaceView.setHorizontalDividerPosition(targetDivider);
+                if (stageWorkspaceView != null && stageWorkspaceView.getProjectExplorerView().getWidth() > 0) {
+                    showTimelineWorkspaceView.getExplorerView().setPrefWidth(stageWorkspaceView.getProjectExplorerView().getWidth());
                 }
+            } else if (index == 0 && stageWorkspaceView != null) {
+                stageWorkspaceView.setHorizontalDividerPosition(targetDivider);
+                if (showTimelineWorkspaceView != null && previousTab == 3 && showTimelineWorkspaceView.getExplorerView().getWidth() > 0) {
+                    stageWorkspaceView.getProjectExplorerView().setPrefWidth(showTimelineWorkspaceView.getExplorerView().getWidth());
+                }
+            } else if (index == 2 && matrixWorkspaceView != null) {
+                matrixWorkspaceView.setHorizontalDividerPosition(targetDivider);
             }
 
-            // Einklapp-Zustand zwischen Stage und Matrix synchronisieren
+            // 3. Einklapp-Zustand zwischen Stage und Matrix synchronisieren
             if (index == 2 && matrixWorkspaceView != null && stageWorkspaceView != null) {
                 if (stageWorkspaceView.isProjectExplorerCollapsed() != matrixWorkspaceView.isExplorerCollapsed()) {
                     matrixWorkspaceView.toggleProjectExplorer();
@@ -456,6 +473,7 @@ public class MainWindow extends StackPane {
                 }
             }
 
+            // 4. Viewport umschalten
             viewport.getChildren().clear();
             viewport.getChildren().add(tabViews[index]);
             headerBar.setActiveTab(index);

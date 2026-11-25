@@ -60,6 +60,7 @@ public class HeaderBar extends HBox {
 
     /** Callback-Empfänger bei Tab-Wechsel. */
     private Consumer<Integer> tabChangeHandler;
+    private boolean isProgrammaticTabChange = false;
 
     /** Callback-Empfänger bei Druck auf den STOP-Button. */
     private Runnable stopAllHandler;
@@ -305,7 +306,7 @@ public class HeaderBar extends HBox {
             tabBtn.selectedProperty().addListener((obs, oldVal, newVal) -> {
                 if (Boolean.TRUE.equals(newVal)) {
                     activeTabIndex.set(index);
-                    if (tabChangeHandler != null) {
+                    if (!isProgrammaticTabChange && tabChangeHandler != null) {
                         tabChangeHandler.accept(index);
                     }
                 }
@@ -417,7 +418,12 @@ public class HeaderBar extends HBox {
         if (index >= 0 && index < tabButtons.size()) {
             ToggleButton btn = tabButtons.get(index);
             if (!btn.isSelected()) {
-                btn.setSelected(true);
+                isProgrammaticTabChange = true;
+                try {
+                    btn.setSelected(true);
+                } finally {
+                    isProgrammaticTabChange = false;
+                }
             }
         }
     }

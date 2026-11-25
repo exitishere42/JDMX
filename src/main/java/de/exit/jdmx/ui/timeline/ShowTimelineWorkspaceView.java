@@ -67,6 +67,17 @@ public class ShowTimelineWorkspaceView extends SplitPane {
 
         // Explorer darf nicht kleiner als seine Mindestbreite werden
         SplitPane.setResizableWithParent(explorerView, false);
+
+        // Breite überwachen, um beim ersten Rendern / Tab-Wechsel den Divider zuverlässig zu setzen
+        widthProperty().addListener((obs, oldW, newW) -> {
+            if (newW != null && newW.doubleValue() > 0) {
+                javafx.application.Platform.runLater(() -> {
+                    if (!getDividers().isEmpty()) {
+                        setDividerPositions(lastExpandedRatio);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -75,6 +86,9 @@ public class ShowTimelineWorkspaceView extends SplitPane {
      * @return die Divider-Position (0.0 bis 1.0)
      */
     public double getHorizontalDividerPosition() {
+        if (lastExpandedRatio > 0.0) {
+            return lastExpandedRatio;
+        }
         if (!getDividers().isEmpty()) {
             return getDividers().getFirst().getPosition();
         }

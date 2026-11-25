@@ -134,6 +134,18 @@ public class StageWorkspaceView extends SplitPane {
         SplitPane.setResizableWithParent(projectExplorerView, false);
         setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
 
+        // Divider-Listener zur dauerhaften Speicherung der relativen Position bei Benutzerinteraktion
+        if (!getDividers().isEmpty()) {
+            getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null && !isCollapsed) {
+                    double val = newVal.doubleValue();
+                    if (val > 0.0 && val < 0.98) {
+                        this.lastExpandedRatio = val;
+                    }
+                }
+            });
+        }
+
         // 4. Reaktive Synchronisation zwischen Steuerungs-Dock und selektierten Scheinwerfern
         setupControlDockBinding();
     }
@@ -351,6 +363,9 @@ public class StageWorkspaceView extends SplitPane {
      * @return die Divider-Position (0.0 bis 1.0)
      */
     public double getHorizontalDividerPosition() {
+        if (lastExpandedRatio > 0.0) {
+            return lastExpandedRatio;
+        }
         if (!getDividers().isEmpty()) {
             return getDividers().getFirst().getPosition();
         }

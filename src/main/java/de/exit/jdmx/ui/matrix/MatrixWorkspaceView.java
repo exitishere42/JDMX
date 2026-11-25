@@ -150,6 +150,9 @@ public class MatrixWorkspaceView extends SplitPane {
      * @return die Divider-Position (0.0 bis 1.0)
      */
     public double getHorizontalDividerPosition() {
+        if (lastExpandedRatio > 0.0) {
+            return lastExpandedRatio;
+        }
         if (!getDividers().isEmpty()) {
             return getDividers().getFirst().getPosition();
         }
