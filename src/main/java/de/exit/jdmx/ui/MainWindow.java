@@ -423,6 +423,21 @@ public class MainWindow extends StackPane {
      */
     public void switchToTab(int index) {
         if (index >= 0 && index < tabViews.length) {
+            // Synchronisation der Project-Explorer-Dicke/Breite zwischen Stage und Matrix
+            if (index == 2 && matrixWorkspaceView != null && stageWorkspaceView != null) {
+                double stageDivider = stageWorkspaceView.getHorizontalDividerPosition();
+                matrixWorkspaceView.setHorizontalDividerPosition(stageDivider);
+                if (stageWorkspaceView.isProjectExplorerCollapsed() != matrixWorkspaceView.isExplorerCollapsed()) {
+                    matrixWorkspaceView.toggleProjectExplorer();
+                }
+            } else if (index == 0 && stageWorkspaceView != null && matrixWorkspaceView != null) {
+                double matrixDivider = matrixWorkspaceView.getHorizontalDividerPosition();
+                stageWorkspaceView.setHorizontalDividerPosition(matrixDivider);
+                if (matrixWorkspaceView.isExplorerCollapsed() != stageWorkspaceView.isProjectExplorerCollapsed()) {
+                    stageWorkspaceView.toggleProjectExplorer();
+                }
+            }
+
             viewport.getChildren().clear();
             viewport.getChildren().add(tabViews[index]);
             headerBar.setActiveTab(index);

@@ -63,7 +63,27 @@ class MatrixWorkspaceViewTest {
         assertThat(workspace.isExplorerCollapsed()).isFalse();
         workspace.toggleProjectExplorer();
         assertThat(workspace.isExplorerCollapsed()).isTrue();
+        assertThat(workspace.getProjectExplorerView().isVisible()).isFalse();
+        assertThat(workspace.getProjectExplorerView().isManaged()).isFalse();
         workspace.toggleProjectExplorer();
         assertThat(workspace.isExplorerCollapsed()).isFalse();
+        assertThat(workspace.getProjectExplorerView().isVisible()).isTrue();
+        assertThat(workspace.getProjectExplorerView().isManaged()).isTrue();
+    }
+
+    @Test
+    @DisplayName("MatrixWorkspaceView synchronisiert die Divider-Position mit Stage-Werten")
+    void testDividerPositionSync() {
+        DmxService dmxService = Mockito.mock(DmxService.class);
+        SceneService sceneService = Mockito.mock(SceneService.class);
+        ChaserService chaserService = Mockito.mock(ChaserService.class);
+        ProjectExplorerService explorerService = new ProjectExplorerService();
+        MatrixService matrixService = new MatrixService(dmxService, sceneService, chaserService);
+
+        MatrixWorkspaceView workspace = new MatrixWorkspaceView(matrixService, explorerService);
+
+        assertThat(workspace.getHorizontalDividerPosition()).isEqualTo(MatrixWorkspaceView.DEFAULT_HORIZONTAL_RATIO);
+        workspace.setHorizontalDividerPosition(0.82);
+        assertThat(workspace.getHorizontalDividerPosition()).isEqualTo(0.82);
     }
 }

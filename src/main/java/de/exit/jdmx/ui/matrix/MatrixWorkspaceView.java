@@ -83,7 +83,7 @@ public class MatrixWorkspaceView extends SplitPane {
         btnExpandProjectExplorer.setOnAction(e -> toggleProjectExplorer());
 
         StackPane.setAlignment(btnExpandProjectExplorer, Pos.TOP_RIGHT);
-        StackPane.setMargin(btnExpandProjectExplorer, new Insets(8, 8, 0, 0));
+        StackPane.setMargin(btnExpandProjectExplorer, new Insets(6, 6, 0, 0));
         mainArea.getChildren().add(btnExpandProjectExplorer);
 
         // 2. Rechter Bereich: Project Explorer über die volle Höhe
@@ -94,33 +94,79 @@ public class MatrixWorkspaceView extends SplitPane {
         getItems().addAll(mainArea, projectExplorerView);
         SplitPane.setResizableWithParent(projectExplorerView, false);
         setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
+
+        // Breite überwachen, um beim ersten Rendern / Tab-Wechsel den Divider zuverlässig zu setzen
+        widthProperty().addListener((obs, oldW, newW) -> {
+            if (newW.doubleValue() > 0 && !isCollapsed) {
+                javafx.application.Platform.runLater(() -> {
+                    if (!isCollapsed && !getDividers().isEmpty()) {
+                        setDividerPositions(lastExpandedRatio);
+                    }
+                });
+            }
+        });
     }
 
     /**
-     * Schaltet das Ein- und Ausklappen des Project Explorers um.
+     * Schaltet das Ein- und Ausklappen des Project Explorers um (wie in StageWorkspaceView).
      */
     public void toggleProjectExplorer() {
-        if (!isCollapsed) {
-            if (!getDividers().isEmpty()) {
-                lastExpandedRatio = getDividers().getFirst().getPosition();
+        if (!getDividers().isEmpty()) {
+            if (!isCollapsed) {
+                double currentPos = getDividers().getFirst().getPosition();
+                if (currentPos < 0.98) {
+                    lastExpandedRatio = currentPos;
+                }
+                projectExplorerView.setMinWidth(0);
+                projectExplorerView.setMaxWidth(0);
+                projectExplorerView.setVisible(false);
+                projectExplorerView.setManaged(false);
+                setDividerPositions(1.0);
+                isCollapsed = true;
+                btnExpandProjectExplorer.setVisible(true);
+                btnExpandProjectExplorer.setManaged(true);
+            } else {
+                btnExpandProjectExplorer.setVisible(false);
+                btnExpandProjectExplorer.setManaged(false);
+                projectExplorerView.setVisible(true);
+                projectExplorerView.setManaged(true);
+                projectExplorerView.setMinWidth(ProjectExplorerView.DEFAULT_MIN_WIDTH);
+                projectExplorerView.setMaxWidth(Double.MAX_VALUE);
+                setDividerPositions(lastExpandedRatio > 0 && lastExpandedRatio < 0.98 ? lastExpandedRatio : DEFAULT_HORIZONTAL_RATIO);
+                isCollapsed = false;
             }
-            projectExplorerView.setVisible(false);
-            projectExplorerView.setManaged(false);
-            getItems().remove(projectExplorerView);
-            btnExpandProjectExplorer.setVisible(true);
-            btnExpandProjectExplorer.setManaged(true);
-            isCollapsed = true;
         } else {
-            btnExpandProjectExplorer.setVisible(false);
-            btnExpandProjectExplorer.setManaged(false);
-            projectExplorerView.setVisible(true);
-            projectExplorerView.setManaged(true);
-            if (!getItems().contains(projectExplorerView)) {
-                getItems().add(projectExplorerView);
-                SplitPane.setResizableWithParent(projectExplorerView, false);
+            isCollapsed = !isCollapsed;
+            projectExplorerView.setVisible(!isCollapsed);
+            projectExplorerView.setManaged(!isCollapsed);
+            btnExpandProjectExplorer.setVisible(isCollapsed);
+            btnExpandProjectExplorer.setManaged(isCollapsed);
+        }
+    }
+
+    /**
+     * Liefert die aktuelle Position des horizontalen Haupt-Splitters (zwischen Arbeitsbereich und Explorer).
+     *
+     * @return die Divider-Position (0.0 bis 1.0)
+     */
+    public double getHorizontalDividerPosition() {
+        if (!getDividers().isEmpty()) {
+            return getDividers().getFirst().getPosition();
+        }
+        return lastExpandedRatio;
+    }
+
+    /**
+     * Setzt die Position des horizontalen Haupt-Splitters synchron (z. B. aus anderen Workspace-Tabs).
+     *
+     * @param ratio die gewünschte Divider-Position
+     */
+    public void setHorizontalDividerPosition(double ratio) {
+        if (ratio > 0.0 && ratio < 0.98) {
+            this.lastExpandedRatio = ratio;
+            if (!isCollapsed) {
+                setDividerPositions(ratio);
             }
-            setDividerPositions(lastExpandedRatio);
-            isCollapsed = false;
         }
     }
 

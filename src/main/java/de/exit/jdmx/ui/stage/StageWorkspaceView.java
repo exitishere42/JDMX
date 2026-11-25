@@ -345,6 +345,32 @@ public class StageWorkspaceView extends SplitPane {
         return isCollapsed;
     }
 
+    /**
+     * Liefert die aktuelle Position des horizontalen Haupt-Splitters (zwischen Arbeitsbereich und Explorer).
+     *
+     * @return die Divider-Position (0.0 bis 1.0)
+     */
+    public double getHorizontalDividerPosition() {
+        if (!getDividers().isEmpty()) {
+            return getDividers().getFirst().getPosition();
+        }
+        return lastExpandedRatio;
+    }
+
+    /**
+     * Setzt die Position des horizontalen Haupt-Splitters synchron (z. B. aus anderen Workspace-Tabs).
+     *
+     * @param ratio die gewünschte Divider-Position
+     */
+    public void setHorizontalDividerPosition(double ratio) {
+        if (ratio > 0.0 && ratio < 0.98) {
+            this.lastExpandedRatio = ratio;
+            if (!isCollapsed) {
+                setDividerPositions(ratio);
+            }
+        }
+    }
+
     public StageCanvasView getStageCanvasView() {
         return stageCanvasView;
     }
