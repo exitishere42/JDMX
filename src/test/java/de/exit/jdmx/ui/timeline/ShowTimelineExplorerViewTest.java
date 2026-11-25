@@ -69,6 +69,16 @@ class ShowTimelineExplorerViewTest {
     }
 
     @Test
+    @DisplayName("Sollte dieselbe Mindest- und Vorzugsbreite wie der Stage Project Explorer besitzen (300px)")
+    void shouldHaveSameWidthAsStageProjectExplorer() {
+        ShowTimelineExplorerView view = new ShowTimelineExplorerView();
+        assertThat(ShowTimelineExplorerView.DEFAULT_MIN_WIDTH).isEqualTo(300.0);
+        assertThat(ShowTimelineExplorerView.DEFAULT_PREF_WIDTH).isEqualTo(300.0);
+        assertThat(view.getMinWidth()).isEqualTo(300.0);
+        assertThat(view.getPrefWidth()).isEqualTo(300.0);
+    }
+
+    @Test
     @DisplayName("Sollte Tabs umschalten können und bei Plus-Klick automatisch zu Explorer wechseln")
     void shouldSwitchTabsAndAutoSwitchToExplorerOnAdd() {
         ShowTimelineExplorerView view = new ShowTimelineExplorerView();

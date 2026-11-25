@@ -36,11 +36,11 @@ import java.util.Objects;
  */
 public class ShowTimelineExplorerView extends VBox {
 
-    /** Standard-Mindestbreite der Seitenleiste in Pixeln. */
-    public static final double DEFAULT_MIN_WIDTH = 260.0;
+    /** Standard-Mindestbreite der Seitenleiste in Pixeln (identisch zu ProjectExplorerView im Stage-Tab: 300px). */
+    public static final double DEFAULT_MIN_WIDTH = 300.0;
 
-    /** Standard-Vorzugsbreite der Seitenleiste in Pixeln. */
-    public static final double DEFAULT_PREF_WIDTH = 280.0;
+    /** Standard-Vorzugsbreite der Seitenleiste in Pixeln (identisch zu ProjectExplorerView im Stage-Tab: 300px). */
+    public static final double DEFAULT_PREF_WIDTH = 300.0;
 
     /** Icon-Größe für Einträge in der TreeView. */
     public static final double ITEM_ICON_SIZE = 16.0;

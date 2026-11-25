@@ -423,16 +423,34 @@ public class MainWindow extends StackPane {
      */
     public void switchToTab(int index) {
         if (index >= 0 && index < tabViews.length) {
-            // Synchronisation der Project-Explorer-Dicke/Breite zwischen Stage und Matrix
+            int currentTab = headerBar.getActiveTabIndex();
+
+            // Synchronisation der Project-Explorer-Dicke/Breite zwischen allen Tabs mit Explorer (Stage, Matrix, Timeline)
+            double sourceDivider = -1.0;
+            if (currentTab == 0 && stageWorkspaceView != null) {
+                sourceDivider = stageWorkspaceView.getHorizontalDividerPosition();
+            } else if (currentTab == 2 && matrixWorkspaceView != null) {
+                sourceDivider = matrixWorkspaceView.getHorizontalDividerPosition();
+            } else if (currentTab == 3 && showTimelineWorkspaceView != null) {
+                sourceDivider = showTimelineWorkspaceView.getHorizontalDividerPosition();
+            }
+
+            if (sourceDivider > 0.0) {
+                if (index == 0 && stageWorkspaceView != null) {
+                    stageWorkspaceView.setHorizontalDividerPosition(sourceDivider);
+                } else if (index == 2 && matrixWorkspaceView != null) {
+                    matrixWorkspaceView.setHorizontalDividerPosition(sourceDivider);
+                } else if (index == 3 && showTimelineWorkspaceView != null) {
+                    showTimelineWorkspaceView.setHorizontalDividerPosition(sourceDivider);
+                }
+            }
+
+            // Einklapp-Zustand zwischen Stage und Matrix synchronisieren
             if (index == 2 && matrixWorkspaceView != null && stageWorkspaceView != null) {
-                double stageDivider = stageWorkspaceView.getHorizontalDividerPosition();
-                matrixWorkspaceView.setHorizontalDividerPosition(stageDivider);
                 if (stageWorkspaceView.isProjectExplorerCollapsed() != matrixWorkspaceView.isExplorerCollapsed()) {
                     matrixWorkspaceView.toggleProjectExplorer();
                 }
             } else if (index == 0 && stageWorkspaceView != null && matrixWorkspaceView != null) {
-                double matrixDivider = matrixWorkspaceView.getHorizontalDividerPosition();
-                stageWorkspaceView.setHorizontalDividerPosition(matrixDivider);
                 if (matrixWorkspaceView.isExplorerCollapsed() != stageWorkspaceView.isProjectExplorerCollapsed()) {
                     stageWorkspaceView.toggleProjectExplorer();
                 }

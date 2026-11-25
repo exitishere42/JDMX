@@ -42,11 +42,23 @@ class ShowTimelineWorkspaceViewTest {
     }
 
     @Test
-    @DisplayName("Sollte Standard-Split-Ratio setzen")
+    @DisplayName("Sollte dieselbe Standard-Split-Ratio wie der Stage-Tab besitzen (0.78)")
     void shouldSetDefaultSplitRatio() {
         ShowTimelineWorkspaceView workspace = new ShowTimelineWorkspaceView();
+        assertThat(ShowTimelineWorkspaceView.DEFAULT_SPLIT_RATIO).isEqualTo(0.78);
         double[] dividers = workspace.getDividerPositions();
         assertThat(dividers).hasSize(1);
-        assertThat(dividers[0]).isGreaterThan(0.5);
+        assertThat(dividers[0]).isEqualTo(0.78);
+    }
+
+    @Test
+    @DisplayName("Sollte horizontale Divider-Position abfragen und synchronisieren können")
+    void shouldGetAndSetHorizontalDividerPosition() {
+        ShowTimelineWorkspaceView workspace = new ShowTimelineWorkspaceView();
+        assertThat(workspace.getHorizontalDividerPosition()).isEqualTo(0.78);
+
+        workspace.setHorizontalDividerPosition(0.82);
+        assertThat(workspace.getHorizontalDividerPosition()).isEqualTo(0.82);
+        assertThat(workspace.getDividerPositions()[0]).isEqualTo(0.82);
     }
 }

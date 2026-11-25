@@ -18,12 +18,14 @@ import java.util.Objects;
  */
 public class ShowTimelineWorkspaceView extends SplitPane {
 
-    /** Standard-Trennposition: 76% für die Timeline, 24% für den Explorer. */
-    public static final double DEFAULT_SPLIT_RATIO = 0.76;
+    /** Standard-Trennposition: 78% für die Timeline, 22% für den Explorer (identisch mit dem Stage-Tab). */
+    public static final double DEFAULT_SPLIT_RATIO = 0.78;
 
     private final TimelineService timelineService;
     private final TimelineMainView timelineMainView;
     private final ShowTimelineExplorerView explorerView;
+
+    private double lastExpandedRatio = DEFAULT_SPLIT_RATIO;
 
     /**
      * Erstellt den Show-Timeline Workspace mit Standard-TimelineService.
@@ -51,8 +53,44 @@ public class ShowTimelineWorkspaceView extends SplitPane {
         getItems().addAll(timelineMainView, explorerView);
         setDividerPositions(DEFAULT_SPLIT_RATIO);
 
+        // Divider-Listener zur dauerhaften Speicherung der relativen Position bei Benutzerinteraktion
+        if (!getDividers().isEmpty()) {
+            getDividers().getFirst().positionProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null) {
+                    double pos = newVal.doubleValue();
+                    if (pos > 0.0 && pos < 0.98) {
+                        this.lastExpandedRatio = pos;
+                    }
+                }
+            });
+        }
+
         // Explorer darf nicht kleiner als seine Mindestbreite werden
         SplitPane.setResizableWithParent(explorerView, false);
+    }
+
+    /**
+     * Liefert die aktuelle Position des horizontalen Haupt-Splitters (zwischen Timeline und Explorer).
+     *
+     * @return die Divider-Position (0.0 bis 1.0)
+     */
+    public double getHorizontalDividerPosition() {
+        if (!getDividers().isEmpty()) {
+            return getDividers().getFirst().getPosition();
+        }
+        return lastExpandedRatio;
+    }
+
+    /**
+     * Setzt die Position des horizontalen Haupt-Splitters (zur Synchronisation mit dem Stage-Tab).
+     *
+     * @param ratio die gewünschte Divider-Position
+     */
+    public void setHorizontalDividerPosition(double ratio) {
+        if (ratio > 0.0 && ratio < 0.98) {
+            this.lastExpandedRatio = ratio;
+            setDividerPositions(ratio);
+        }
     }
 
     /**
