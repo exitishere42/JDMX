@@ -224,6 +224,66 @@ public class TimelineService {
     }
 
     /**
+     * Schaltet den Solo-Status eines Tracks um und aktualisiert die Wiedergabe.
+     *
+     * @param trackId ID des Tracks
+     * @return der neue Solo-Status
+     * @throws NoSuchElementException wenn der Track nicht gefunden wird
+     */
+    public boolean toggleTrackSolo(String trackId) {
+        TimelineTrack track = findTrackById(trackId)
+                .orElseThrow(() -> new NoSuchElementException("Track not found: " + trackId));
+        boolean newStatus = track.toggleSolo();
+        if (playing.get()) {
+            audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
+        }
+        notifyChange();
+        return newStatus;
+    }
+
+    /**
+     * Setzt den Solo-Status eines Tracks explizit.
+     *
+     * @param trackId ID des Tracks
+     * @param solo    neuer Solo-Status
+     * @return {@code true}, wenn der Track gefunden und aktualisiert wurde
+     */
+    public boolean setTrackSolo(String trackId, boolean solo) {
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            trackOpt.get().setSolo(solo);
+            if (playing.get()) {
+                audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
+            }
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Ermittelt, ob ein Track hörbar ist, unter Berücksichtigung von Mute und Solo auf allen Tracks.
+     * <p>
+     * Ein Track ist unhörbar wenn er gemutet ist. Falls mindestens ein Track im Projekt auf Solo steht,
+     * sind nur solche Tracks hörbar, die selbst auf Solo stehen und nicht gemutet sind.
+     * </p>
+     *
+     * @param trackId ID des Tracks
+     * @return {@code true}, wenn der Track akustisch aktiv ist, sonst {@code false}
+     */
+    public boolean isTrackAudible(String trackId) {
+        TimelineTrack target = findTrackById(trackId).orElse(null);
+        if (target == null || target.isMuted()) {
+            return false;
+        }
+        boolean anySolo = tracks.stream().anyMatch(TimelineTrack::isSolo);
+        if (anySolo) {
+            return target.isSolo();
+        }
+        return true;
+    }
+
+    /**
      * Entfernt einen Track anhand seiner ID.
      *
      * @param trackId ID des zu entfernenden Tracks

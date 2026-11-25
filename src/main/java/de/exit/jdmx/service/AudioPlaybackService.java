@@ -403,7 +403,7 @@ public class AudioPlaybackService implements AutoCloseable {
         long generation = sessionGeneration.get();
 
         for (TimelineTrack track : currentTracks) {
-            if (track.isMuted() || !track.hasSong()) {
+            if (!isTrackAudible(track)) {
                 TrackAudioChannel ch = activeChannels.remove(track.getId());
                 if (ch != null) {
                     ch.stop();
@@ -430,7 +430,7 @@ public class AudioPlaybackService implements AutoCloseable {
     }
 
     private synchronized void syncTrackChannel(TimelineTrack track, long timelinePositionMs, long generation) {
-        if (track.isMuted() || !track.hasSong() || track.getSongFile() == null || !track.getSongFile().exists()) {
+        if (!isTrackAudible(track) || track.getSongFile() == null || !track.getSongFile().exists()) {
             return;
         }
 
@@ -444,6 +444,29 @@ public class AudioPlaybackService implements AutoCloseable {
             activeChannels.put(track.getId(), channel);
             channel.start(offsetWithinClip, generation, sessionGeneration, volume);
         }
+    }
+
+    /**
+     * Prüft, ob ein Track unter Berücksichtigung von Mute, Solo und vorhandener Datei abspielbar ist.
+     *
+     * @param track die zu prüfende Spur
+     * @return {@code true}, wenn die Spur hörbar ist
+     */
+    public boolean isTrackAudible(TimelineTrack track) {
+        if (track == null || track.isMuted() || !track.hasSong()) {
+            return false;
+        }
+        boolean anySolo = false;
+        for (TimelineTrack t : currentTracks) {
+            if (t != null && t.isSolo()) {
+                anySolo = true;
+                break;
+            }
+        }
+        if (anySolo) {
+            return track.isSolo();
+        }
+        return true;
     }
 
     /**

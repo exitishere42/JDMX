@@ -147,4 +147,43 @@ class AudioPlaybackServiceTest {
 
         assertThat(service.getActiveChannelCount()).isZero();
     }
+
+    @Test
+    @DisplayName("Sollte Hörbarkeit von Spuren mit Mute und Solo in AudioPlaybackService korrekt ermitteln")
+    void shouldEvaluateAudibilityWithMuteAndSolo() {
+        AudioPlaybackService service = new AudioPlaybackService();
+
+        de.exit.jdmx.core.model.TimelineTrack t1 = new de.exit.jdmx.core.model.TimelineTrack("t1", "Track 1");
+        t1.setSongName("track1.mp3");
+        de.exit.jdmx.core.model.TimelineTrack t2 = new de.exit.jdmx.core.model.TimelineTrack("t2", "Track 2");
+        t2.setSongName("track2.mp3");
+
+        service.playTimeline(List.of(t1, t2), 0L);
+
+        // Standard: Beide haben Song und sind ungemutet -> beide hörbar
+        assertThat(service.isTrackAudible(t1)).isTrue();
+        assertThat(service.isTrackAudible(t2)).isTrue();
+
+        // t1 muten -> t1 nicht hörbar, t2 hörbar
+        t1.setMuted(true);
+        assertThat(service.isTrackAudible(t1)).isFalse();
+        assertThat(service.isTrackAudible(t2)).isTrue();
+        t1.setMuted(false);
+
+        // t2 auf Solo -> t1 nicht hörbar, t2 hörbar
+        t2.setSolo(true);
+        assertThat(service.isTrackAudible(t1)).isFalse();
+        assertThat(service.isTrackAudible(t2)).isTrue();
+
+        // t1 auch auf Solo -> beide hörbar
+        t1.setSolo(true);
+        assertThat(service.isTrackAudible(t1)).isTrue();
+        assertThat(service.isTrackAudible(t2)).isTrue();
+
+        // Track ohne Song -> niemals hörbar
+        de.exit.jdmx.core.model.TimelineTrack t3 = new de.exit.jdmx.core.model.TimelineTrack("t3", "Track 3");
+        assertThat(service.isTrackAudible(t3)).isFalse();
+
+        service.stop();
+    }
 }

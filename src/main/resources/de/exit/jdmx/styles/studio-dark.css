@@ -1769,33 +1769,55 @@
     -fx-background-color: #222222;
 }
 
-.timeline-track-mute-btn {
-    -fx-min-width: 14px;
-    -fx-pref-width: 14px;
-    -fx-max-width: 14px;
-    -fx-min-height: 14px;
-    -fx-pref-height: 14px;
-    -fx-max-height: 14px;
-    -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
+/* DAW-Style Mute (M) & Solo (S) Buttons mit sauberer Umrandung */
+.timeline-track-btn {
+    -fx-min-width: 20px;
+    -fx-pref-width: 20px;
+    -fx-max-width: 20px;
+    -fx-min-height: 20px;
+    -fx-pref-height: 20px;
+    -fx-max-height: 20px;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-border-width: 1px;
+    -fx-background-color: #1E1E1E;
+    -fx-border-color: #333333;
+    -fx-text-fill: #9CA3AF;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
     -fx-padding: 0;
     -fx-cursor: hand;
 }
 
-.timeline-track-mute-btn.active {
-    -fx-background-color: #2DD4BF;
-    -fx-border-color: #14B8A6;
-    -fx-border-width: 1px;
+.timeline-track-btn:hover {
+    -fx-background-color: #282828;
+    -fx-border-color: #444444;
+    -fx-text-fill: #E5E7EB;
 }
 
 .timeline-track-mute-btn.muted {
-    -fx-background-color: #2A2A2A;
-    -fx-border-color: #1C1C1C;
-    -fx-border-width: 1px;
+    -fx-background-color: #451A03;
+    -fx-border-color: #F59E0B;
+    -fx-text-fill: #FDBA74;
 }
 
-.timeline-track-mute-btn:hover {
-    -fx-opacity: 0.85;
+.timeline-track-mute-btn.muted:hover {
+    -fx-background-color: #572204;
+    -fx-border-color: #FBBF24;
+    -fx-text-fill: #FED7AA;
+}
+
+.timeline-track-solo-btn.solo {
+    -fx-background-color: #3E3204;
+    -fx-border-color: #EAB308;
+    -fx-text-fill: #FDE047;
+}
+
+.timeline-track-solo-btn.solo:hover {
+    -fx-background-color: #504105;
+    -fx-border-color: #FACC15;
+    -fx-text-fill: #FEF08A;
 }
 
 .timeline-track-name-lbl {

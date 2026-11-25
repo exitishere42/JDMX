@@ -92,6 +92,66 @@ class TimelineServiceTest {
     }
 
     @Test
+    @DisplayName("Sollte Solo-Status umschalten und Listener benachrichtigen")
+    void shouldToggleSoloAndNotifyListeners() {
+        TimelineService service = new TimelineService();
+        String trackId = service.getTracks().get(0).getId();
+
+        AtomicInteger changeEvents = new AtomicInteger();
+        service.addChangeListener(changeEvents::incrementAndGet);
+
+        boolean solo = service.toggleTrackSolo(trackId);
+        assertThat(solo).isTrue();
+        assertThat(service.findTrackById(trackId).get().isSolo()).isTrue();
+        assertThat(changeEvents.get()).isEqualTo(1);
+
+        solo = service.toggleTrackSolo(trackId);
+        assertThat(solo).isFalse();
+        assertThat(service.findTrackById(trackId).get().isSolo()).isFalse();
+        assertThat(changeEvents.get()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Sollte Hörbarkeit (Audibility) anhand von Mute und Solo korrekt berechnen")
+    void shouldEvaluateTrackAudibilityWithMuteAndSolo() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track1 = service.getTracks().get(0);
+        TimelineTrack track2 = service.addTrack("Track 2");
+        TimelineTrack track3 = service.addTrack("Track 3");
+
+        // Zustand 1: Standard (alle ungemutet, kein Solo) -> Alle hörbar
+        assertThat(service.isTrackAudible(track1.getId())).isTrue();
+        assertThat(service.isTrackAudible(track2.getId())).isTrue();
+        assertThat(service.isTrackAudible(track3.getId())).isTrue();
+
+        // Zustand 2: Track 1 gemutet -> Track 1 unhörbar, Track 2 & 3 hörbar
+        service.toggleTrackMute(track1.getId());
+        assertThat(service.isTrackAudible(track1.getId())).isFalse();
+        assertThat(service.isTrackAudible(track2.getId())).isTrue();
+        assertThat(service.isTrackAudible(track3.getId())).isTrue();
+
+        // Mute wieder aufheben
+        service.toggleTrackMute(track1.getId());
+
+        // Zustand 3: Track 2 auf Solo -> Nur Track 2 ist hörbar
+        service.toggleTrackSolo(track2.getId());
+        assertThat(service.isTrackAudible(track1.getId())).isFalse();
+        assertThat(service.isTrackAudible(track2.getId())).isTrue();
+        assertThat(service.isTrackAudible(track3.getId())).isFalse();
+
+        // Zustand 4: Track 2 und Track 3 auf Solo -> Track 2 und Track 3 hörbar, Track 1 unhörbar
+        service.toggleTrackSolo(track3.getId());
+        assertThat(service.isTrackAudible(track1.getId())).isFalse();
+        assertThat(service.isTrackAudible(track2.getId())).isTrue();
+        assertThat(service.isTrackAudible(track3.getId())).isTrue();
+
+        // Zustand 5: Track 2 ist Solo, aber zusätzlich Mute -> Track 2 unhörbar!
+        service.toggleTrackMute(track2.getId());
+        assertThat(service.isTrackAudible(track2.getId())).isFalse();
+        assertThat(service.isTrackAudible(track3.getId())).isTrue();
+    }
+
+    @Test
     @DisplayName("Sollte Tracks entfernen können")
     void shouldRemoveTrack() {
         TimelineService service = new TimelineService();

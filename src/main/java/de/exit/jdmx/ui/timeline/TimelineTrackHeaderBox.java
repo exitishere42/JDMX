@@ -22,7 +22,7 @@ import java.util.Objects;
  * <p>
  * Enthält:
  * <ul>
- *     <li>Einen runden Mute-Knopf (●) zum Stummschalten/Aktivieren der Spur</li>
+ *     <li>Eingerahmte Mute- (M) und Solo- (S) Buttons im professionellen Studio-DAW-Design</li>
  *     <li>Den Track-Namen mit Inline-Editierung bei Doppelklick</li>
  * </ul>
  * Reagiert reaktiv auf Zustandsänderungen im {@link TimelineService}.
@@ -37,6 +37,7 @@ public class TimelineTrackHeaderBox extends HBox {
     private final TimelineService service;
 
     private final Button btnMute;
+    private final Button btnSolo;
     private final Label lblName;
     private final TextField txtRename;
     private final StackPane nameContainer;
@@ -50,7 +51,7 @@ public class TimelineTrackHeaderBox extends HBox {
      * @param service der Timeline-Service (darf nicht {@code null} sein)
      */
     public TimelineTrackHeaderBox(TimelineTrack track, TimelineService service) {
-        super(8);
+        super(6);
         this.track = Objects.requireNonNull(track, "track must not be null");
         this.service = Objects.requireNonNull(service, "service must not be null");
 
@@ -63,15 +64,27 @@ public class TimelineTrackHeaderBox extends HBox {
         setPrefWidth(DEFAULT_HEADER_WIDTH);
         setMaxWidth(DEFAULT_HEADER_WIDTH);
 
-        // 1. Runder Mute-Knopf (●)
-        this.btnMute = new Button();
-        btnMute.getStyleClass().add("timeline-track-mute-btn");
-        updateMuteStateVisual();
+        // 1. Mute- (M) und Solo- (S) Buttons mit sauberer Umrandung
+        this.btnMute = new Button("M");
+        btnMute.getStyleClass().addAll("timeline-track-btn", "timeline-track-mute-btn");
         btnMute.setTooltip(new Tooltip("Mute"));
         btnMute.setOnAction(e -> {
             service.toggleTrackMute(track.getId());
-            updateMuteStateVisual();
+            updateStateVisual();
         });
+
+        this.btnSolo = new Button("S");
+        btnSolo.getStyleClass().addAll("timeline-track-btn", "timeline-track-solo-btn");
+        btnSolo.setTooltip(new Tooltip("Solo"));
+        btnSolo.setOnAction(e -> {
+            service.toggleTrackSolo(track.getId());
+            updateStateVisual();
+        });
+
+        HBox controlsBox = new HBox(3, btnMute, btnSolo);
+        controlsBox.setAlignment(Pos.CENTER_RIGHT);
+
+        updateStateVisual();
 
         // 2. Name-Label
         String displayTitle = track.hasSong() ? track.getSongName() : track.getName();
@@ -117,7 +130,7 @@ public class TimelineTrackHeaderBox extends HBox {
         nameContainer.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(nameContainer, Priority.ALWAYS);
 
-        getChildren().addAll(nameContainer, btnMute);
+        getChildren().addAll(nameContainer, controlsBox);
 
         // Kontextmenü & Drag & Drop
         setupContextMenu();
@@ -254,15 +267,31 @@ public class TimelineTrackHeaderBox extends HBox {
     }
 
     /**
-     * Aktualisiert die visuelle Darstellung des Mute-Knopfs.
+     * Aktualisiert die visuelle Darstellung des Mute- (M) und Solo- (S) Buttons.
+     */
+    public void updateStateVisual() {
+        if (track.isMuted()) {
+            if (!btnMute.getStyleClass().contains("muted")) {
+                btnMute.getStyleClass().add("muted");
+            }
+        } else {
+            btnMute.getStyleClass().remove("muted");
+        }
+
+        if (track.isSolo()) {
+            if (!btnSolo.getStyleClass().contains("solo")) {
+                btnSolo.getStyleClass().add("solo");
+            }
+        } else {
+            btnSolo.getStyleClass().remove("solo");
+        }
+    }
+
+    /**
+     * Aktualisiert die visuelle Darstellung des Mute-Knopfs (Kompatibilität).
      */
     public void updateMuteStateVisual() {
-        btnMute.getStyleClass().removeAll("active", "muted");
-        if (track.isMuted()) {
-            btnMute.getStyleClass().add("muted");
-        } else {
-            btnMute.getStyleClass().add("active");
-        }
+        updateStateVisual();
     }
 
     /**
@@ -275,12 +304,21 @@ public class TimelineTrackHeaderBox extends HBox {
     }
 
     /**
-     * Liefert den Mute-Button.
+     * Liefert den Mute-Button ("M").
      *
      * @return der Mute-Button
      */
     public Button getBtnMute() {
         return btnMute;
+    }
+
+    /**
+     * Liefert den Solo-Button ("S").
+     *
+     * @return der Solo-Button
+     */
+    public Button getBtnSolo() {
+        return btnSolo;
     }
 
     /**

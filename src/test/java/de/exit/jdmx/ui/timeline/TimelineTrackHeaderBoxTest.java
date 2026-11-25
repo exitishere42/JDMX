@@ -26,15 +26,23 @@ class TimelineTrackHeaderBoxTest {
     }
 
     @Test
-    @DisplayName("Sollte Track-Name und Mute-Button initialisieren")
+    @DisplayName("Sollte Track-Name, Mute- (M) und Solo- (S) Buttons initialisieren")
     void shouldInitializeWithTrackData() {
         TimelineService service = new TimelineService();
         TimelineTrack track = service.getTracks().get(0);
         TimelineTrackHeaderBox box = new TimelineTrackHeaderBox(track, service);
 
         assertThat(box.getLblName().getText()).isEqualTo("Track 1");
+        
         assertThat(box.getBtnMute()).isNotNull();
-        assertThat(box.getBtnMute().getStyleClass()).contains("active");
+        assertThat(box.getBtnMute().getText()).isEqualTo("M");
+        assertThat(box.getBtnMute().getStyleClass()).contains("timeline-track-mute-btn");
+        assertThat(box.getBtnMute().getStyleClass()).doesNotContain("muted");
+
+        assertThat(box.getBtnSolo()).isNotNull();
+        assertThat(box.getBtnSolo().getText()).isEqualTo("S");
+        assertThat(box.getBtnSolo().getStyleClass()).contains("timeline-track-solo-btn");
+        assertThat(box.getBtnSolo().getStyleClass()).doesNotContain("solo");
     }
 
     @Test
@@ -45,20 +53,42 @@ class TimelineTrackHeaderBoxTest {
         TimelineTrackHeaderBox box = new TimelineTrackHeaderBox(track, service);
 
         assertThat(track.isMuted()).isFalse();
-        assertThat(box.getBtnMute().getStyleClass()).contains("active");
+        assertThat(box.getBtnMute().getStyleClass()).doesNotContain("muted");
 
         // Klick auf Mute
         box.getBtnMute().fire();
 
         assertThat(track.isMuted()).isTrue();
-        assertThat(box.getBtnMute().getStyleClass()).doesNotContain("active");
         assertThat(box.getBtnMute().getStyleClass()).contains("muted");
 
         // Erneuter Klick auf Mute
         box.getBtnMute().fire();
 
         assertThat(track.isMuted()).isFalse();
-        assertThat(box.getBtnMute().getStyleClass()).contains("active");
+        assertThat(box.getBtnMute().getStyleClass()).doesNotContain("muted");
+    }
+
+    @Test
+    @DisplayName("Sollte Solo-Button umschalten und StyleClass anpassen")
+    void shouldToggleSoloOnClick() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track = service.getTracks().get(0);
+        TimelineTrackHeaderBox box = new TimelineTrackHeaderBox(track, service);
+
+        assertThat(track.isSolo()).isFalse();
+        assertThat(box.getBtnSolo().getStyleClass()).doesNotContain("solo");
+
+        // Klick auf Solo
+        box.getBtnSolo().fire();
+
+        assertThat(track.isSolo()).isTrue();
+        assertThat(box.getBtnSolo().getStyleClass()).contains("solo");
+
+        // Erneuter Klick auf Solo
+        box.getBtnSolo().fire();
+
+        assertThat(track.isSolo()).isFalse();
+        assertThat(box.getBtnSolo().getStyleClass()).doesNotContain("solo");
     }
 
     @Test

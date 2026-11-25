@@ -27,6 +27,9 @@ public class TimelineTrack {
     /** Ob der Track stummgeschaltet (gemutet) ist. */
     private boolean muted;
 
+    /** Ob der Track solo geschaltet ist. */
+    private boolean solo = false;
+
     /** Höhe des Tracks in der Playlist-Ansicht in Pixeln. */
     private double height;
 
@@ -92,6 +95,16 @@ public class TimelineTrack {
     }
 
     /**
+     * Schaltet den Solo-Status des Tracks um (Toggle).
+     *
+     * @return der neue Solo-Status
+     */
+    public boolean toggleSolo() {
+        this.solo = !this.solo;
+        return this.solo;
+    }
+
+    /**
      * Liefert die eindeutige ID des Tracks.
      *
      * @return die Track-ID
@@ -135,6 +148,24 @@ public class TimelineTrack {
      */
     public void setMuted(boolean muted) {
         this.muted = muted;
+    }
+
+    /**
+     * Prüft, ob der Track solo geschaltet ist.
+     *
+     * @return {@code true}, wenn solo geschaltet, sonst {@code false}
+     */
+    public boolean isSolo() {
+        return solo;
+    }
+
+    /**
+     * Setzt den Solo-Status des Tracks.
+     *
+     * @param solo neuer Solo-Status
+     */
+    public void setSolo(boolean solo) {
+        this.solo = solo;
     }
 
     /**
@@ -336,6 +367,7 @@ public class TimelineTrack {
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
                 ", muted=" + muted +
+                ", solo=" + solo +
                 ", height=" + height +
                 '}';
     }
