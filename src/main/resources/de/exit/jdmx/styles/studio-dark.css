@@ -1797,15 +1797,15 @@
 }
 
 .timeline-track-mute-btn.muted {
-    -fx-background-color: #451A03;
-    -fx-border-color: #F59E0B;
-    -fx-text-fill: #FDBA74;
+    -fx-background-color: #450A0A;
+    -fx-border-color: #EF4444;
+    -fx-text-fill: #FCA5A5;
 }
 
 .timeline-track-mute-btn.muted:hover {
-    -fx-background-color: #572204;
-    -fx-border-color: #FBBF24;
-    -fx-text-fill: #FED7AA;
+    -fx-background-color: #5A1212;
+    -fx-border-color: #F87171;
+    -fx-text-fill: #FECACA;
 }
 
 .timeline-track-solo-btn.solo {
