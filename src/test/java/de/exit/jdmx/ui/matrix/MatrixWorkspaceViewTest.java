@@ -43,7 +43,7 @@ class MatrixWorkspaceViewTest {
 
         assertThat(workspace.getOrientation()).isEqualTo(Orientation.HORIZONTAL);
         assertThat(workspace.getItems()).hasSize(2);
-        assertThat(workspace.getMatrixGridView()).isNotNull();
+        assertThat(workspace.getMainArea()).isNotNull();
         assertThat(workspace.getProjectExplorerView()).isNotNull();
 
         assertThat(workspace.getItems().get(1)).isEqualTo(workspace.getProjectExplorerView());

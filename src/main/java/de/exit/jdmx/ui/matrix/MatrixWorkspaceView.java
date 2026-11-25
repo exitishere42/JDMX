@@ -1,21 +1,19 @@
 package de.exit.jdmx.ui.matrix;
 
 import de.exit.jdmx.service.ChaserService;
-import de.exit.jdmx.service.DmxService;
 import de.exit.jdmx.service.MatrixService;
 import de.exit.jdmx.service.ProjectExplorerService;
 import de.exit.jdmx.service.SceneService;
 import de.exit.jdmx.ui.icon.LucideIcon;
 import de.exit.jdmx.ui.stage.ProjectExplorerView;
+import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tooltip;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
 import java.util.Objects;
@@ -25,21 +23,20 @@ import java.util.Objects;
  * <p>
  * Folgt exakt dem ergonomischen Zwei-Spalten-Layout der Stage View ({@code StageWorkspaceView}):
  * <ul>
- *     <li><b>Links (Volle Höhe):</b> Vollflächiges Button-Grid ({@link MatrixGridView})</li>
+ *     <li><b>Links:</b> Vollflächiger, sauberer Hauptarbeitsbereich ({@link StackPane})</li>
  *     <li><b>Rechts (Volle Höhe):</b> Durchgehender {@link ProjectExplorerView} mit Einklapp- und Ausklapp-Funktion</li>
  * </ul>
  * </p>
  */
 public class MatrixWorkspaceView extends SplitPane {
 
-    /** Standard-Teilung des horizontalen Haupt-Splitters (78% Grid, 22% Explorer). */
+    /** Standard-Teilung des horizontalen Haupt-Splitters (78% Hauptbereich, 22% Explorer). */
     public static final double DEFAULT_HORIZONTAL_RATIO = 0.78;
 
     private final MatrixService matrixService;
     private final ProjectExplorerService explorerService;
 
-    private final MatrixGridView matrixGridView;
-    private final StackPane gridWrapper;
+    private final StackPane mainArea;
     private final ProjectExplorerView projectExplorerView;
     private final Button btnExpandProjectExplorer;
 
@@ -72,10 +69,11 @@ public class MatrixWorkspaceView extends SplitPane {
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("matrix-workspace-view");
 
-        // 1. Linker Hauptbereich: Vollflächiges Button-Grid über die gesamte Höhe
-        this.matrixGridView = new MatrixGridView(matrixService, explorerService);
+        // 1. Linker Hauptbereich: Sauberer, vollflächiger Arbeitsbereich (wie bei Stage)
+        this.mainArea = new StackPane();
+        mainArea.setStyle("-fx-background-color: " + StudioTheme.HEX_BG_BASE + ";");
 
-        // Ausklapp-Button an der rechten Kante des Grids vorbereiten
+        // Ausklapp-Button an der rechten Kante des Hauptbereichs vorbereiten
         this.btnExpandProjectExplorer = new Button();
         btnExpandProjectExplorer.getStyleClass().add("project-explorer-expand-btn");
         btnExpandProjectExplorer.setGraphic(new LucideIcon("arrow-left-to-line", 14, Color.web("#9CA3AF")));
@@ -84,16 +82,16 @@ public class MatrixWorkspaceView extends SplitPane {
         btnExpandProjectExplorer.setManaged(false);
         btnExpandProjectExplorer.setOnAction(e -> toggleProjectExplorer());
 
-        this.gridWrapper = new StackPane(matrixGridView, btnExpandProjectExplorer);
         StackPane.setAlignment(btnExpandProjectExplorer, Pos.TOP_RIGHT);
         StackPane.setMargin(btnExpandProjectExplorer, new Insets(8, 8, 0, 0));
+        mainArea.getChildren().add(btnExpandProjectExplorer);
 
         // 2. Rechter Bereich: Project Explorer über die volle Höhe
         this.projectExplorerView = new ProjectExplorerView(explorerService, sceneService, chaserService);
         projectExplorerView.setOnToggleCollapse(this::toggleProjectExplorer);
 
         // 3. Horizontales Haupt-SplitPane zusammenbauen
-        getItems().addAll(gridWrapper, projectExplorerView);
+        getItems().addAll(mainArea, projectExplorerView);
         SplitPane.setResizableWithParent(projectExplorerView, false);
         setDividerPositions(DEFAULT_HORIZONTAL_RATIO);
     }
@@ -136,12 +134,12 @@ public class MatrixWorkspaceView extends SplitPane {
     }
 
     /**
-     * Gibt die obere Grid-Ansicht zurück.
+     * Gibt den linken Hauptarbeitsbereich zurück.
      *
-     * @return das {@link MatrixGridView}
+     * @return die {@link StackPane}
      */
-    public MatrixGridView getMatrixGridView() {
-        return matrixGridView;
+    public StackPane getMainArea() {
+        return mainArea;
     }
 
     /**
@@ -160,5 +158,14 @@ public class MatrixWorkspaceView extends SplitPane {
      */
     public MatrixService getMatrixService() {
         return matrixService;
+    }
+
+    /**
+     * Gibt den ProjectExplorerService zurück.
+     *
+     * @return der {@link ProjectExplorerService}
+     */
+    public ProjectExplorerService getExplorerService() {
+        return explorerService;
     }
 }
