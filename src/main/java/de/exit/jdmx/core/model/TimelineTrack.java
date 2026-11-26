@@ -57,6 +57,15 @@ public class TimelineTrack {
     /** 3-Band Rekordbox Wellenformdaten: Höhen (> 3000 Hz) */
     private float[] highBandData;
 
+    /** Zugeordnete Szenen-ID, oder {@code null}. */
+    private String sceneId;
+
+    /** Anzeigename der zugeordneten Szene, oder {@code null}. */
+    private String sceneName;
+
+    /** Ob diese Spur aktuell aktiv vom Playhead befeuert wird. */
+    private boolean playbackActive = false;
+
     /**
      * Erstellt einen neuen ungemuteten Timeline-Track mit Standardhöhe.
      *
@@ -346,6 +355,73 @@ public class TimelineTrack {
         return lowBandData != null && lowBandData.length > 0
                 && midBandData != null && midBandData.length > 0
                 && highBandData != null && highBandData.length > 0;
+    }
+
+    /**
+     * Prüft, ob dieser Spur eine Lichtszene zugewiesen ist.
+     *
+     * @return {@code true}, wenn eine Szene zugewiesen ist, sonst {@code false}
+     */
+    public boolean hasScene() {
+        return sceneId != null && !sceneId.trim().isEmpty();
+    }
+
+    /**
+     * Liefert die ID der zugewiesenen Lichtszene.
+     *
+     * @return Szenen-ID oder {@code null}
+     */
+    public String getSceneId() {
+        return sceneId;
+    }
+
+    /**
+     * Liefert den Namen der zugewiesenen Lichtszene.
+     *
+     * @return Szenen-Name oder {@code null}
+     */
+    public String getSceneName() {
+        return sceneName;
+    }
+
+    /**
+     * Weist diesem Track eine Lichtszene mit Startzeit und Dauer zu.
+     *
+     * @param sceneId    ID der Szene (darf nicht {@code null} sein)
+     * @param sceneName  Name der Szene
+     * @param durationMs Dauer des Blocks in ms (Standard 2000 ms)
+     */
+    public void setScene(String sceneId, String sceneName, long durationMs) {
+        this.sceneId = Objects.requireNonNull(sceneId, "sceneId must not be null");
+        this.sceneName = sceneName;
+        this.durationMs = Math.max(100L, durationMs);
+    }
+
+    /**
+     * Entfernt die zugewiesene Lichtszene von diesem Track.
+     */
+    public void clearScene() {
+        this.sceneId = null;
+        this.sceneName = null;
+        this.playbackActive = false;
+    }
+
+    /**
+     * Prüft, ob diese Spur aktuell aktiv vom Playhead befeuert wird.
+     *
+     * @return {@code true}, wenn aktiv befeuert
+     */
+    public boolean isPlaybackActive() {
+        return playbackActive;
+    }
+
+    /**
+     * Setzt den Status, ob die Spur aktuell aktiv vom Playhead befeuert wird.
+     *
+     * @param playbackActive neuer Aktivitätsstatus
+     */
+    public void setPlaybackActive(boolean playbackActive) {
+        this.playbackActive = playbackActive;
     }
 
     @Override

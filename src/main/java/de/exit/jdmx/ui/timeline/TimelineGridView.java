@@ -26,7 +26,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
+import de.exit.jdmx.ui.icon.LucideIcon;
 
 import java.io.File;
 import java.util.HashMap;
@@ -103,6 +107,7 @@ public class TimelineGridView extends Pane {
     private final Map<String, Image> waveformTileCache = new HashMap<>();
     private final Map<String, ImageView> activeTileViews = new HashMap<>();
     private final Map<String, Rectangle> activeEmptyClipNodes = new HashMap<>();
+    private final Map<String, Group> activeSceneClipNodes = new HashMap<>();
 
     private final DoubleProperty scrollXProperty = new SimpleDoubleProperty(0.0);
     private final DoubleProperty scrollYProperty = new SimpleDoubleProperty(0.0);
@@ -236,9 +241,13 @@ public class TimelineGridView extends Pane {
                 return;
             }
 
-            // Prüfen ob Klick auf einen Song-Clip erfolgte
+            // Prüfen ob Klick auf einen Clip (Song oder Szene) erfolgte
             TimelineTrack hitTrack = findClipTrackAt(worldX, worldY);
             if (hitTrack != null) {
+                // Bei Klick auf einen Szenen-Clip: Sofortige Vorschau / Aktivierung auf DMX
+                if (hitTrack.hasScene() && service.getSceneService() != null) {
+                    service.getSceneService().applyScene(hitTrack.getSceneId(), -1);
+                }
                 if (service.isPlaying()) {
                     // Während aktiver Show-Wiedergabe ist das Verschieben von Tracks gesperrt!
                     draggingClipTrack = null;
@@ -656,7 +665,57 @@ public class TimelineGridView extends Pane {
                     e.setDropCompleted(true);
                 }
             } else {
-                AppLogger.warn("[TIMELINE-GRID] Drop fehlgeschlagen: Keine gültige Audiodatei im Dragboard.");
+                // Prüfen ob eine Lichtszene aus dem Explorer gedroppt wurde
+                String sceneId = null;
+                String sceneName = null;
+                if (db.hasContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT)) {
+                    sceneId = (String) db.getContent(de.exit.jdmx.ui.stage.ProjectExplorerView.EXPLORER_ITEM_FORMAT);
+                }
+                if (db.hasString()) {
+                    sceneName = db.getString();
+                }
+
+                if (sceneId != null || sceneName != null) {
+                    if (sceneId == null) {
+                        sceneId = sceneName;
+                    }
+                    if (sceneName == null) {
+                        sceneName = sceneId;
+                    }
+
+                    // Falls SceneService vorhanden, genauen Namen und Definition auflösen
+                    if (service.getSceneService() != null) {
+                        de.exit.jdmx.core.model.SceneDefinition def = service.getSceneService().getScene(sceneId);
+                        if (def != null) {
+                            sceneName = def.getName();
+                        } else {
+                            final String search = sceneName;
+                            de.exit.jdmx.core.model.SceneDefinition byName = service.getSceneService().getAllScenes().stream()
+                                    .filter(s -> s.getName().equalsIgnoreCase(search.trim()))
+                                    .findFirst()
+                                    .orElse(null);
+                            if (byName != null) {
+                                sceneId = byName.getId();
+                                sceneName = byName.getName();
+                            }
+                        }
+                    }
+
+                    // Drop-Zeitpunkt anhand der horizontalen X-Mausposition im Content berechnen
+                    double worldX = toWorldX(e.getX());
+                    long dropTimeMs = Math.max(0L, xToMillis(worldX));
+
+                    // Automatisch neuen Track anlegen mit 2 Sekunden Standarddauer
+                    TimelineTrack newTrack = service.addSceneTrack(sceneId, sceneName, dropTimeMs, 2000L);
+                    AppLogger.info("[TIMELINE-GRID] Szene gedroppt: '%s' (ID: %s) auf neue Spur '%s' bei %d ms (Dauer: 2s)",
+                            sceneName, sceneId, newTrack.getName(), dropTimeMs);
+                    waveformLayerDirty = true;
+                    updateGridDimensions();
+                    redraw();
+                    e.setDropCompleted(true);
+                } else {
+                    AppLogger.warn("[TIMELINE-GRID] Drop fehlgeschlagen: Weder Audiodatei noch Szene im Dragboard.");
+                }
             }
             e.consume();
         });
@@ -707,6 +766,13 @@ public class TimelineGridView extends Pane {
                 if (track.hasSong()) {
                     double clipStartX = millisToX(track.getStartTimeMs());
                     long dur = track.getDurationMs() > 0 ? track.getDurationMs() : 60_000L;
+                    double clipW = Math.max(80.0, millisToX(dur));
+                    if (x >= clipStartX && x <= clipStartX + clipW) {
+                        return track;
+                    }
+                } else if (track.hasScene()) {
+                    double clipStartX = millisToX(track.getStartTimeMs());
+                    long dur = track.getDurationMs() > 0 ? track.getDurationMs() : 2000L;
                     double clipW = Math.max(80.0, millisToX(dur));
                     if (x >= clipStartX && x <= clipStartX + clipW) {
                         return track;
@@ -866,6 +932,7 @@ public class TimelineGridView extends Pane {
         waveformTileCache.clear();
         activeTileViews.clear();
         activeEmptyClipNodes.clear();
+        activeSceneClipNodes.clear();
         waveformLayer.getChildren().clear();
         waveformLayerDirty = true;
     }
@@ -1012,6 +1079,7 @@ public class TimelineGridView extends Pane {
         List<TimelineTrack> tracks = service.getTracks();
         java.util.Set<String> requiredTileKeys = new java.util.HashSet<>();
         java.util.Set<String> requiredEmptyKeys = new java.util.HashSet<>();
+        java.util.Set<String> requiredSceneKeys = new java.util.HashSet<>();
 
         double currentY = 0;
         for (int i = 0; i < tracks.size(); i++) {
@@ -1081,6 +1149,27 @@ public class TimelineGridView extends Pane {
                         rect.setLayoutY(clipWorldY);
                     }
                 }
+            } else if (track.hasScene() && screenY + trackH > -100 && screenY < viewH + 100) {
+                long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 2000L;
+                double clipWorldX = millisToX(track.getStartTimeMs());
+                double clipW = Math.max(80.0, millisToX(durationMs));
+                double clipH = trackH - 6;
+                double clipWorldY = currentY + 3;
+
+                if (clipWorldX + clipW >= scrollX - WAVEFORM_TILE_WIDTH && clipWorldX <= scrollX + viewW + WAVEFORM_TILE_WIDTH) {
+                    String sceneKey = track.getId() + "|scene|" + track.isPlaybackActive()
+                            + "|" + track.getStartTimeMs() + "|" + durationMs + "|" + Math.round(pixelsPerSecond * 10.0);
+                    requiredSceneKeys.add(sceneKey);
+
+                    Group sceneGroup = activeSceneClipNodes.get(sceneKey);
+                    if (sceneGroup == null) {
+                        sceneGroup = createSceneClipNode(track, clipW, clipH);
+                        activeSceneClipNodes.put(sceneKey, sceneGroup);
+                        waveformLayer.getChildren().add(sceneGroup);
+                    }
+                    sceneGroup.setLayoutX(clipWorldX);
+                    sceneGroup.setLayoutY(clipWorldY);
+                }
             }
             currentY += trackH;
         }
@@ -1104,7 +1193,70 @@ public class TimelineGridView extends Pane {
                 return false;
             });
         }
+        if (waveformLayerDirty || activeSceneClipNodes.size() > requiredSceneKeys.size()) {
+            activeSceneClipNodes.entrySet().removeIf(entry -> {
+                if (!requiredSceneKeys.contains(entry.getKey())) {
+                    waveformLayer.getChildren().remove(entry.getValue());
+                    return true;
+                }
+                return false;
+            });
+        }
         waveformLayerDirty = false;
+    }
+
+    private Group createSceneClipNode(TimelineTrack track, double clipW, double clipH) {
+        Group group = new Group();
+        group.setMouseTransparent(true);
+        group.setManaged(false);
+
+        boolean active = track.isPlaybackActive();
+
+        // 1. Hintergrund-Box (Studio Scene Violett)
+        Rectangle bg = new Rectangle(clipW, clipH);
+        bg.setFill(active ? Color.web("#2E1C4A") : Color.web("#221838"));
+        bg.setStroke(active ? Color.web("#C4B5FD") : Color.web("#A78BFA"));
+        bg.setStrokeWidth(active ? 2.0 : 1.5);
+        bg.setArcWidth(6.0);
+        bg.setArcHeight(6.0);
+
+        // 2. Header-Balken oben
+        double headerH = Math.min(22.0, clipH);
+        Rectangle header = new Rectangle(clipW, headerH);
+        header.setFill(active ? Color.web("#4A2E78") : Color.web("#352357"));
+        header.setArcWidth(6.0);
+        header.setArcHeight(6.0);
+
+        // 3. Lucide Bookmark-Icon
+        LucideIcon icon = new LucideIcon("bookmark", 11, active ? Color.web("#FFFFFF") : Color.web("#A78BFA"));
+        icon.setLayoutX(6.0);
+        icon.setLayoutY(5.0);
+
+        // 4. Szenen-Name
+        String nameStr = track.getSceneName() != null ? track.getSceneName() : track.getName();
+        Text nameText = new Text(nameStr);
+        nameText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 11.0));
+        nameText.setFill(Color.web("#FFFFFF"));
+        nameText.setLayoutX(22.0);
+        nameText.setLayoutY(15.0);
+        if (nameText.getLayoutBounds().getWidth() > clipW - 28.0) {
+            Rectangle textClip = new Rectangle(Math.max(10.0, clipW - 28.0), 18.0);
+            textClip.setLayoutX(0);
+            textClip.setLayoutY(-12);
+            nameText.setClip(textClip);
+        }
+
+        // 5. Dauer-Anzeige unten rechts (z. B. "2.0s")
+        double sec = (track.getDurationMs() > 0 ? track.getDurationMs() : 2000L) / 1000.0;
+        String durStr = String.format(java.util.Locale.US, "%.1fs", sec);
+        Text durText = new Text(durStr);
+        durText.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 10.0));
+        durText.setFill(active ? Color.web("#DDD6FE") : Color.web("#A78BFA"));
+        durText.setLayoutX(Math.max(24.0, clipW - 32.0));
+        durText.setLayoutY(clipH - 6.0);
+
+        group.getChildren().addAll(bg, header, icon, nameText, durText);
+        return group;
     }
 
     private Image getOrRenderWaveformTile(TimelineTrack track, int totalClipPx, int clipHeightPx, int tileIdx, int tileW) {

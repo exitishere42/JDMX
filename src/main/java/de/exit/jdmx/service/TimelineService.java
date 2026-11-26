@@ -66,12 +66,24 @@ public class TimelineService {
     /** Audio-Wiedergabeservice für echte Soundausgabe (MP3 / WAV). */
     private final AudioPlaybackService audioPlaybackService;
 
+    /** Optionaler Szenen-Service zur Ausführung von Lichtszenen auf der Timeline. */
+    private volatile SceneService sceneService;
+
     /**
      * Erstellt einen neuen {@link TimelineService} und initialisiert diesen standardmäßig
      * mit einer ersten Spur ("Track 1").
      */
     public TimelineService() {
         this(new AudioAnalysisService(), new AudioPlaybackService());
+    }
+
+    /**
+     * Erstellt einen neuen {@link TimelineService} mit injiziertem {@link SceneService}.
+     *
+     * @param sceneService der {@link SceneService} zur Steuerung von Lichtszenen
+     */
+    public TimelineService(SceneService sceneService) {
+        this(new AudioAnalysisService(), new AudioPlaybackService(), sceneService);
     }
 
     /**
@@ -91,8 +103,20 @@ public class TimelineService {
      * @param audioPlaybackService der Audio-Wiedergabedienst (darf nicht {@code null} sein)
      */
     public TimelineService(AudioAnalysisService audioAnalysisService, AudioPlaybackService audioPlaybackService) {
+        this(audioAnalysisService, audioPlaybackService, null);
+    }
+
+    /**
+     * Erstellt einen neuen {@link TimelineService} mit vollständiger Parameterinjektion.
+     *
+     * @param audioAnalysisService der Audioanalyse-Dienst (darf nicht {@code null} sein)
+     * @param audioPlaybackService der Audio-Wiedergabedienst (darf nicht {@code null} sein)
+     * @param sceneService         der Szenen-Service zur Steuerung von Lichtszenen (darf {@code null} sein)
+     */
+    public TimelineService(AudioAnalysisService audioAnalysisService, AudioPlaybackService audioPlaybackService, SceneService sceneService) {
         this.audioAnalysisService = Objects.requireNonNull(audioAnalysisService, "audioAnalysisService must not be null");
         this.audioPlaybackService = Objects.requireNonNull(audioPlaybackService, "audioPlaybackService must not be null");
+        this.sceneService = sceneService;
         initDefaultTrack();
     }
 
@@ -199,6 +223,7 @@ public class TimelineService {
         if (playing.get()) {
             audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
         }
+        evaluateScenePlayback(currentPositionMs.get());
         notifyChange();
         return newStatus;
     }
@@ -217,6 +242,7 @@ public class TimelineService {
             if (playing.get()) {
                 audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
             }
+            evaluateScenePlayback(currentPositionMs.get());
             notifyChange();
             return true;
         }
@@ -237,6 +263,7 @@ public class TimelineService {
         if (playing.get()) {
             audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
         }
+        evaluateScenePlayback(currentPositionMs.get());
         notifyChange();
         return newStatus;
     }
@@ -255,6 +282,7 @@ public class TimelineService {
             if (playing.get()) {
                 audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
             }
+            evaluateScenePlayback(currentPositionMs.get());
             notifyChange();
             return true;
         }
@@ -441,7 +469,7 @@ public class TimelineService {
 
     /**
      * Liefert die maximale Gesamtlaufzeit der Timeline in Millisekunden.
-     * Ermittelt das späteste Clip-Ende (startTimeMs + durationMs) aller Spuren
+     * Ermittelt das späteste Clip-Ende (startTimeMs + durationMs) aller Spuren (Songs und Szenen)
      * oder liefert standardmäßig 60.000 ms (1 Minute).
      *
      * @return maximale Laufzeit in ms
@@ -449,7 +477,7 @@ public class TimelineService {
     public long getMaxTimelineDurationMs() {
         long maxEndMs = 0L;
         for (TimelineTrack t : tracks) {
-            if (t.hasSong()) {
+            if (t.hasSong() || t.hasScene()) {
                 long trackEnd = t.getStartTimeMs() + t.getDurationMs();
                 if (trackEnd > maxEndMs) {
                     maxEndMs = trackEnd;
@@ -457,6 +485,113 @@ public class TimelineService {
             }
         }
         return maxEndMs > 0 ? maxEndMs : 60_000L;
+    }
+
+    /**
+     * Liefert den aktuell injizierten Szenen-Service.
+     *
+     * @return der {@link SceneService} oder {@code null}
+     */
+    public SceneService getSceneService() {
+        return sceneService;
+    }
+
+    /**
+     * Setzt den Szenen-Service für die Ausführung von Lichtszenen auf der Timeline.
+     *
+     * @param sceneService der {@link SceneService}
+     */
+    public void setSceneService(SceneService sceneService) {
+        this.sceneService = sceneService;
+    }
+
+    /**
+     * Erstellt eine neue Spur für eine Lichtszene und platziert den Szenen-Clip.
+     *
+     * @param sceneId     ID der Szene (darf nicht {@code null} sein)
+     * @param sceneName   Anzeigename der Szene (oder {@code null})
+     * @param startTimeMs Startzeitpunkt auf der Zeitleiste in Millisekunden (>= 0)
+     * @param durationMs  Dauer des Clips in Millisekunden (Standard: 2000L)
+     * @return der neu erstellte {@link TimelineTrack}
+     */
+    public TimelineTrack addSceneTrack(String sceneId, String sceneName, long startTimeMs, long durationMs) {
+        Objects.requireNonNull(sceneId, "sceneId must not be null");
+        String effectiveName = (sceneName != null && !sceneName.isBlank())
+                ? sceneName.trim()
+                : "Szene " + trackSequenceCounter.incrementAndGet();
+        String id = "track-" + UUID.randomUUID().toString().substring(0, 8);
+        TimelineTrack track = new TimelineTrack(id, effectiveName);
+        track.setStartTimeMs(Math.max(0L, startTimeMs));
+        track.setScene(sceneId, sceneName, durationMs > 0 ? durationMs : 2000L);
+        tracks.add(track);
+        notifyChange();
+        return track;
+    }
+
+    /**
+     * Weist einer bestehenden Spur eine Lichtszene zu.
+     *
+     * @param trackId     ID der Zielspur
+     * @param sceneId     ID der Szene
+     * @param sceneName   Name der Szene
+     * @param startTimeMs Startzeitpunkt in ms
+     * @param durationMs  Dauer in ms
+     * @return {@code true}, wenn die Zuweisung erfolgreich war
+     */
+    public boolean assignSceneToTrack(String trackId, String sceneId, String sceneName, long startTimeMs, long durationMs) {
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            TimelineTrack track = trackOpt.get();
+            track.setStartTimeMs(Math.max(0L, startTimeMs));
+            track.setScene(sceneId, sceneName, durationMs > 0 ? durationMs : 2000L);
+            if (track.getName().matches("^Track\\s+\\d+$") && sceneName != null && !sceneName.isBlank()) {
+                track.setName(sceneName);
+            }
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Überprüft alle Szenen-Spuren gegen die gegebene Abspielposition und triggert
+     * das Starten bzw. Beenden der entsprechenden Lichtszenen (Start bei Eintreffen,
+     * Deaktivierung bei Verlassen des 2-Sekunden-Blocks).
+     *
+     * @param positionMs aktuelle Timeline-Position in Millisekunden
+     */
+    public void evaluateScenePlayback(long positionMs) {
+        if (sceneService == null) return;
+        for (TimelineTrack t : tracks) {
+            if (t.hasScene()) {
+                boolean audible = isTrackAudible(t.getId());
+                long start = t.getStartTimeMs();
+                long end = start + t.getDurationMs();
+                boolean inRange = audible && positionMs >= start && positionMs < end;
+
+                if (inRange && !t.isPlaybackActive()) {
+                    t.setPlaybackActive(true);
+                    sceneService.applyScene(t.getSceneId(), -1);
+                } else if (!inRange && t.isPlaybackActive()) {
+                    t.setPlaybackActive(false);
+                    sceneService.deactivateScene(t.getSceneId(), 0);
+                }
+            }
+        }
+    }
+
+    /**
+     * Deaktiviert alle aktuell aktiven Szenen-Spuren (z. B. bei Stop der Timeline).
+     */
+    public void deactivateAllActiveScenes() {
+        for (TimelineTrack t : tracks) {
+            if (t.hasScene() && t.isPlaybackActive()) {
+                t.setPlaybackActive(false);
+                if (sceneService != null) {
+                    sceneService.deactivateScene(t.getSceneId(), 0);
+                }
+            }
+        }
     }
 
     /**
@@ -542,6 +677,7 @@ public class TimelineService {
         currentPositionMs.set(safeMs);
         resetClockAnchor(safeMs, System.nanoTime());
         audioPlaybackService.setPosition(safeMs);
+        evaluateScenePlayback(safeMs);
         notifyChange();
     }
 
@@ -552,6 +688,7 @@ public class TimelineService {
         if (playing.compareAndSet(false, true)) {
             resetClockAnchor(currentPositionMs.get(), System.nanoTime());
             audioPlaybackService.playTimeline(tracks, currentPositionMs.get());
+            evaluateScenePlayback(currentPositionMs.get());
             startPlaybackTimer();
             notifyChange();
         }
@@ -609,6 +746,7 @@ public class TimelineService {
         audioPlaybackService.stop();
         currentPositionMs.set(0L);
         resetClockAnchor(0L, System.nanoTime());
+        deactivateAllActiveScenes();
         notifyChange();
     }
 
@@ -694,6 +832,7 @@ public class TimelineService {
         long newPos = getSmoothedPlaybackPositionMs(nowNanos);
         currentPositionMs.set(newPos);
         audioPlaybackService.onTimelineTick(newPos);
+        evaluateScenePlayback(newPos);
 
         long maxDuration = getMaxTimelineDurationMs();
         if (maxDuration > 0 && newPos >= maxDuration) {

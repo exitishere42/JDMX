@@ -273,6 +273,86 @@ public class SceneService implements AutoCloseable {
     }
 
     /**
+     * Deaktiviert eine Szene anhand ihrer ID, indem alle in der Szene definierten
+     * DMX-Kanäle auf 0 zurückgesetzt werden.
+     *
+     * @param sceneId      ID der Szene (darf {@code null} sein)
+     * @param customFadeMs Überblendzeit in ms (-1 für Standard-Fade, <= 25 für Snap)
+     */
+    public void deactivateScene(String sceneId, int customFadeMs) {
+        if (sceneId == null) return;
+        SceneDefinition scene = getScene(sceneId);
+        if (scene != null) {
+            int fade = customFadeMs >= 0 ? customFadeMs : scene.getDefaultFadeTimeMs();
+            deactivateScene(scene, fade);
+        }
+    }
+
+    /**
+     * Deaktiviert eine Szene, indem alle in der Szene definierten Kanäle
+     * auf 0 zurückgesetzt werden.
+     *
+     * @param scene  die Szenendefinition (darf {@code null} sein)
+     * @param fadeMs Überblendzeit in Millisekunden
+     */
+    public void deactivateScene(SceneDefinition scene, int fadeMs) {
+        if (scene == null) return;
+
+        Map<Integer, Map<Integer, Integer>> targetChannels = scene.getChannelValues();
+        if (targetChannels.isEmpty()) return;
+
+        if (fadeMs <= 25) {
+            // Sofortiger Snap auf 0
+            for (Map.Entry<Integer, Map<Integer, Integer>> uniEntry : targetChannels.entrySet()) {
+                int uni = uniEntry.getKey();
+                for (Integer ch : uniEntry.getValue().keySet()) {
+                    dmxService.setChannel(uni, ch, 0);
+                }
+            }
+            return;
+        }
+
+        // Weicher Fade nach 0
+        Map<Integer, Map<Integer, Integer>> startChannels = new HashMap<>();
+        for (Map.Entry<Integer, Map<Integer, Integer>> uniEntry : targetChannels.entrySet()) {
+            int uni = uniEntry.getKey();
+            Map<Integer, Integer> startMap = startChannels.computeIfAbsent(uni, k -> new HashMap<>());
+            for (int ch : uniEntry.getValue().keySet()) {
+                startMap.put(ch, dmxService.getChannel(uni, ch));
+            }
+        }
+
+        if (activeFadeTask != null && !activeFadeTask.isDone()) {
+            activeFadeTask.cancel(false);
+        }
+
+        long startTime = System.currentTimeMillis();
+        long duration = fadeMs;
+
+        activeFadeTask = fadeExecutor.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = System.currentTimeMillis() - startTime;
+                double progress = Math.min(1.0, (double) elapsed / (double) duration);
+
+                for (Map.Entry<Integer, Map<Integer, Integer>> uniEntry : targetChannels.entrySet()) {
+                    int uni = uniEntry.getKey();
+                    Map<Integer, Integer> startMap = startChannels.get(uni);
+                    for (Integer ch : uniEntry.getValue().keySet()) {
+                        int startVal = startMap != null ? startMap.getOrDefault(ch, 0) : 0;
+                        int currentVal = (int) Math.round(startVal * (1.0 - progress));
+                        dmxService.setChannel(uni, ch, currentVal);
+                    }
+                }
+
+                if (progress >= 1.0) {
+                    throw new RuntimeException("FADE_DONE");
+                }
+            }
+        }, 0, 25, TimeUnit.MILLISECONDS);
+    }
+
+    /**
      * Stoppt eine derzeit laufende Überblendung (Fading).
      */
     public synchronized void stopFade() {

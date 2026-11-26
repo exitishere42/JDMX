@@ -650,7 +650,16 @@ public class ShowTimelineExplorerView extends VBox {
                     parentView.getSceneService().applyScene(getItem().getId(), -1);
                 }
             });
-            contextMenuScene.getItems().add(itemActivateScene);
+
+            javafx.scene.control.MenuItem itemInsertTimeline = new javafx.scene.control.MenuItem("In Timeline einfügen");
+            itemInsertTimeline.setOnAction(e -> {
+                if (parentView != null && getItem() != null) {
+                    long pos = parentView.getTimelineService().getCurrentPositionMs();
+                    parentView.getTimelineService().addSceneTrack(getItem().getId(), getItem().getName(), pos, 2000L);
+                }
+            });
+
+            contextMenuScene.getItems().addAll(itemActivateScene, itemInsertTimeline);
 
             setOnContextMenuRequested(e -> {
                 if (!isEmpty() && getItem() != null) {

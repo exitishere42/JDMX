@@ -58,6 +58,9 @@ public class ShowTimelineWorkspaceView extends SplitPane {
         this.timelineService = Objects.requireNonNull(timelineService, "timelineService must not be null");
         this.explorerService = explorerService != null ? explorerService : new ProjectExplorerService();
         this.sceneService = sceneService;
+        if (this.sceneService != null) {
+            this.timelineService.setSceneService(this.sceneService);
+        }
         setOrientation(Orientation.HORIZONTAL);
         getStyleClass().add("timeline-workspace-view");
 
