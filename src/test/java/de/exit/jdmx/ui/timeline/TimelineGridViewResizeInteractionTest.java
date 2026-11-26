@@ -80,4 +80,65 @@ class TimelineGridViewResizeInteractionTest {
         grid.updateCursorForPosition(endX - 2.0, track1Y);
         assertThat(grid.getCursor()).isEqualTo(Cursor.H_RESIZE);
     }
+
+    @Test
+    @DisplayName("Sollte Verschieben stufenlos (free) und Resizen gerastert (nach Grid-Snap) durchführen")
+    void shouldMoveFreelyAndResizeWithGridSnap() {
+        TimelineService service = new TimelineService();
+        service.setGridSnap(de.exit.jdmx.core.model.TimelineGridSnap.SEC_5);
+        TimelineGridView grid = new TimelineGridView(service);
+
+        TimelineTrack track = service.addSceneTrack("scene-1", "Test", 0L, 5000L);
+        double pps = grid.getPixelsPerSecond();
+        double trackY = service.getTracks().get(0).getHeight() + 15.0; // Y innerhalb von Track 2
+
+        // 1. Klick in die Mitte des Clips (Move)
+        double midX = (0.0 + 5.0 * pps) / 2.0;
+        grid.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_PRESSED,
+                midX, trackY, midX, trackY,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        ));
+
+        // Drag um 50px (~833 ms) -> Bei stufenlosem Verschieben muss der Wert direkt übernommen werden
+        // und darf NICHT auf 0L abgerundet/eingerastet werden!
+        double dragX = midX + 50.0;
+        grid.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_DRAGGED,
+                dragX, trackY, dragX, trackY,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        ));
+        assertThat(track.getStartTimeMs()).isGreaterThan(700L).isLessThan(1000L);
+
+        grid.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_RELEASED,
+                dragX, trackY, dragX, trackY,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, false, false, false, false, false, false, null
+        ));
+
+        // 2. Klick auf die rechte Kante (Resize Right)
+        track.setStartTimeMs(0L);
+        track.setDurationMs(5000L);
+        double edgeX = 5.0 * pps - 2.0;
+        grid.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_PRESSED,
+                edgeX, trackY, edgeX, trackY,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        ));
+
+        // Drag um 60px (+1000ms bei pps=60: 5000ms + 1000ms = 6000ms -> Snapped auf SEC_5 = 5000ms)
+        // Drag um 200px (+3333ms: 5000ms + 3333ms = 8333ms -> Snapped auf SEC_5 = 10000ms)
+        double resizeDragX = edgeX + 200.0;
+        grid.fireEvent(new javafx.scene.input.MouseEvent(
+                javafx.scene.input.MouseEvent.MOUSE_DRAGGED,
+                resizeDragX, trackY, resizeDragX, trackY,
+                javafx.scene.input.MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, false, false, false, null
+        ));
+        assertThat(track.getDurationMs()).isEqualTo(10000L);
+    }
 }

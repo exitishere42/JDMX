@@ -21,6 +21,8 @@ class TimelineGridSnapTest {
     @DisplayName("Sollte korrekte Intervalle in Millisekunden liefern")
     void shouldReturnCorrectIntervals() {
         assertThat(TimelineGridSnap.FREE.getIntervalMs()).isEqualTo(0L);
+        assertThat(TimelineGridSnap.SEC_1_4.getIntervalMs()).isEqualTo(250L);
+        assertThat(TimelineGridSnap.SEC_1_2.getIntervalMs()).isEqualTo(500L);
         assertThat(TimelineGridSnap.SEC_1.getIntervalMs()).isEqualTo(1000L);
         assertThat(TimelineGridSnap.SEC_5.getIntervalMs()).isEqualTo(5000L);
         assertThat(TimelineGridSnap.SEC_10.getIntervalMs()).isEqualTo(10000L);
@@ -33,6 +35,18 @@ class TimelineGridSnapTest {
     void shouldSnapTimestampsCorrectly() {
         // FREE: unverändert
         assertThat(TimelineGridSnap.FREE.snap(4231L)).isEqualTo(4231L);
+
+        // SEC_1_4: Rundung auf 250ms
+        assertThat(TimelineGridSnap.SEC_1_4.snap(120L)).isEqualTo(0L);
+        assertThat(TimelineGridSnap.SEC_1_4.snap(130L)).isEqualTo(250L);
+        assertThat(TimelineGridSnap.SEC_1_4.snap(370L)).isEqualTo(250L);
+        assertThat(TimelineGridSnap.SEC_1_4.snap(380L)).isEqualTo(500L);
+
+        // SEC_1_2: Rundung auf 500ms
+        assertThat(TimelineGridSnap.SEC_1_2.snap(240L)).isEqualTo(0L);
+        assertThat(TimelineGridSnap.SEC_1_2.snap(260L)).isEqualTo(500L);
+        assertThat(TimelineGridSnap.SEC_1_2.snap(740L)).isEqualTo(500L);
+        assertThat(TimelineGridSnap.SEC_1_2.snap(760L)).isEqualTo(1000L);
 
         // SEC_1: Rundung auf 1000ms
         assertThat(TimelineGridSnap.SEC_1.snap(1400L)).isEqualTo(1000L);
@@ -63,6 +77,8 @@ class TimelineGridSnapTest {
         // Deutsch
         I18n.setLanguage("de");
         assertThat(TimelineGridSnap.FREE.getLabel()).isEqualTo("Frei");
+        assertThat(TimelineGridSnap.SEC_1_4.getLabel()).isEqualTo("1/4 Sekunde");
+        assertThat(TimelineGridSnap.SEC_1_2.getLabel()).isEqualTo("1/2 Sekunde");
         assertThat(TimelineGridSnap.SEC_1.getLabel()).isEqualTo("1 Sekunde");
         assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 Sekunden");
         assertThat(TimelineGridSnap.SEC_10.getLabel()).isEqualTo("10 Sekunden");
@@ -72,6 +88,8 @@ class TimelineGridSnapTest {
         // Englisch
         I18n.setLanguage("en");
         assertThat(TimelineGridSnap.FREE.getLabel()).isEqualTo("Free");
+        assertThat(TimelineGridSnap.SEC_1_4.getLabel()).isEqualTo("1/4 Second");
+        assertThat(TimelineGridSnap.SEC_1_2.getLabel()).isEqualTo("1/2 Second");
         assertThat(TimelineGridSnap.SEC_1.getLabel()).isEqualTo("1 Second");
         assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 Seconds");
         assertThat(TimelineGridSnap.SEC_10.getLabel()).isEqualTo("10 Seconds");
@@ -81,6 +99,8 @@ class TimelineGridSnapTest {
         // Russisch
         I18n.setLanguage("ru");
         assertThat(TimelineGridSnap.FREE.getLabel()).isEqualTo("Свободно");
+        assertThat(TimelineGridSnap.SEC_1_4.getLabel()).isEqualTo("1/4 секунды");
+        assertThat(TimelineGridSnap.SEC_1_2.getLabel()).isEqualTo("1/2 секунды");
         assertThat(TimelineGridSnap.SEC_1.getLabel()).isEqualTo("1 секунда");
         assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 секунд");
         assertThat(TimelineGridSnap.SEC_10.getLabel()).isEqualTo("10 секунд");

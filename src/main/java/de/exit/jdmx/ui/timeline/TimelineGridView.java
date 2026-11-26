@@ -317,9 +317,8 @@ public class TimelineGridView extends Pane {
                     long rawEndMs = (dragStartClipTimeMs + dragStartClipDurationMs) + deltaMs;
                     long newEndMs = snap != null ? snap.snap(rawEndMs) : rawEndMs;
                     service.resizeTrackRight(draggingClipTrack.getId(), newEndMs);
-                } else { // MOVE
-                    long rawStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
-                    long newStartMs = snap != null ? Math.max(0L, snap.snap(rawStartMs)) : rawStartMs;
+                } else { // MOVE (stufenlos / frei)
+                    long newStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
                     service.setTrackStartTimeMs(draggingClipTrack.getId(), newStartMs);
                 }
                 waveformLayerDirty = true;
@@ -1150,7 +1149,20 @@ public class TimelineGridView extends Pane {
         // 3. Periodisches Zeit- und Sekunden-Raster (ab x=0, da TranslateX das Modulo abbildet)
         TimelineGridSnap snap = service.getGridSnap();
         long majorMs = (snap != null && snap.getIntervalMs() > 0L) ? snap.getIntervalMs() : 5000L;
-        long minorMs = majorMs >= 30_000L ? 5000L : (majorMs >= 10_000L ? 2000L : (majorMs >= 5000L ? 1000L : 500L));
+        long minorMs;
+        if (majorMs >= 30_000L) {
+            minorMs = 5000L;
+        } else if (majorMs >= 10_000L) {
+            minorMs = 2000L;
+        } else if (majorMs >= 5000L) {
+            minorMs = 1000L;
+        } else if (majorMs >= 1000L) {
+            minorMs = 250L;
+        } else if (majorMs >= 500L) {
+            minorMs = 250L;
+        } else {
+            minorMs = 125L;
+        }
 
         double majorStepPx = Math.max(10.0, (majorMs / 1000.0) * pixelsPerSecond);
         double minorStepPx = Math.max(2.0, (minorMs / 1000.0) * pixelsPerSecond);

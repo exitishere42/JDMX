@@ -107,20 +107,26 @@ class TimelineMainViewGridSnapTest {
         // Deutsch
         runOnFxThreadAndWait(() -> I18n.setLanguage("de"));
         assertThat(view.getCmbSnap().getTooltip().getText()).isEqualTo("Raster & Einrasten");
-        assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 Sekunden");
         assertThat(TimelineGridSnap.FREE.getLabel()).isEqualTo("Frei");
+        assertThat(TimelineGridSnap.SEC_1_4.getLabel()).isEqualTo("1/4 Sekunde");
+        assertThat(TimelineGridSnap.SEC_1_2.getLabel()).isEqualTo("1/2 Sekunde");
+        assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 Sekunden");
 
         // Englisch
         runOnFxThreadAndWait(() -> I18n.setLanguage("en"));
         assertThat(view.getCmbSnap().getTooltip().getText()).isEqualTo("Grid & Snapping");
-        assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 Seconds");
         assertThat(TimelineGridSnap.FREE.getLabel()).isEqualTo("Free");
+        assertThat(TimelineGridSnap.SEC_1_4.getLabel()).isEqualTo("1/4 Second");
+        assertThat(TimelineGridSnap.SEC_1_2.getLabel()).isEqualTo("1/2 Second");
+        assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 Seconds");
 
         // Russisch
         runOnFxThreadAndWait(() -> I18n.setLanguage("ru"));
         assertThat(view.getCmbSnap().getTooltip().getText()).isEqualTo("Сетка и привязка");
-        assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 секунд");
         assertThat(TimelineGridSnap.FREE.getLabel()).isEqualTo("Свободно");
+        assertThat(TimelineGridSnap.SEC_1_4.getLabel()).isEqualTo("1/4 секунды");
+        assertThat(TimelineGridSnap.SEC_1_2.getLabel()).isEqualTo("1/2 секунды");
+        assertThat(TimelineGridSnap.SEC_5.getLabel()).isEqualTo("5 секунд");
 
         // Zurück auf Deutsch
         runOnFxThreadAndWait(() -> I18n.setLanguage("de"));

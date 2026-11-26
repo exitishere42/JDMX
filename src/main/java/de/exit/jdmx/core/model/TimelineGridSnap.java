@@ -13,6 +13,12 @@ public enum TimelineGridSnap {
     /** Stufenloses Verschieben und Schneiden ohne Einrasten. */
     FREE("timeline.grid.snap.free", 0L),
 
+    /** Einrasten im Viertelsekunden-Raster (250 ms). */
+    SEC_1_4("timeline.grid.snap.1_4s", 250L),
+
+    /** Einrasten im Halbsekunden-Raster (500 ms). */
+    SEC_1_2("timeline.grid.snap.1_2s", 500L),
+
     /** Einrasten im 1-Sekunden-Raster. */
     SEC_1("timeline.grid.snap.1s", 1_000L),
 
