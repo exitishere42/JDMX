@@ -1821,6 +1821,23 @@
     -fx-text-fill: #FEF08A;
 }
 
+.timeline-snap-combo {
+    -fx-pref-height: 24px;
+    -fx-min-height: 24px;
+    -fx-max-height: 24px;
+    -fx-pref-width: 110px;
+    -fx-min-width: 90px;
+}
+
+.timeline-snap-combo .list-cell {
+    -fx-font-size: 11px;
+    -fx-padding: 2 6;
+}
+
+.timeline-snap-combo .arrow-button {
+    -fx-padding: 2 6;
+}
+
 .timeline-track-name-lbl {
     -fx-text-fill: #D1D5DB;
     -fx-font-size: 12px;

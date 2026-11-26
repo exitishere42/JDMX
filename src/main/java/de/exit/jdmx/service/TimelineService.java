@@ -1,6 +1,7 @@
 package de.exit.jdmx.service;
 
 import de.exit.jdmx.core.log.AppLogger;
+import de.exit.jdmx.core.model.TimelineGridSnap;
 import de.exit.jdmx.core.model.TimelineTrack;
 
 import java.io.File;
@@ -59,6 +60,9 @@ public class TimelineService {
     private final Object clockLock = new Object();
     private volatile long clockAnchorMs = 0L;
     private volatile long clockAnchorNanos = 0L;
+
+    /** Aktive Raster- und Snapping-Einstellung für die Timeline (Standard: 5 Sekunden). */
+    private volatile TimelineGridSnap gridSnap = TimelineGridSnap.SEC_5;
 
     /** Audioanalyse-Service für Laufzeit- und Wellenform-Berechnungen. */
     private final AudioAnalysisService audioAnalysisService;
@@ -505,13 +509,22 @@ public class TimelineService {
         this.sceneService = sceneService;
     }
 
+    /** Standarddauer eines neu angelegten Szenen-Clips in Millisekunden (5 Sekunden). */
+    public static final long DEFAULT_SCENE_DURATION_MS = TimelineTrack.DEFAULT_SCENE_DURATION_MS;
+
+    /** Standardhöhe einer neu angelegten Szenen-Spur (50.0 px). */
+    public static final double DEFAULT_SCENE_TRACK_HEIGHT = TimelineTrack.DEFAULT_SCENE_TRACK_HEIGHT;
+
+    /** Mindestdauer eines Clips in Millisekunden (250 ms = 1/4 Sekunde). */
+    public static final long MIN_CLIP_DURATION_MS = TimelineTrack.MIN_CLIP_DURATION_MS;
+
     /**
      * Erstellt eine neue Spur für eine Lichtszene und platziert den Szenen-Clip.
      *
      * @param sceneId     ID der Szene (darf nicht {@code null} sein)
      * @param sceneName   Anzeigename der Szene (oder {@code null})
      * @param startTimeMs Startzeitpunkt auf der Zeitleiste in Millisekunden (>= 0)
-     * @param durationMs  Dauer des Clips in Millisekunden (Standard: 2000L)
+     * @param durationMs  Dauer des Clips in Millisekunden (Standard: 5000L)
      * @return der neu erstellte {@link TimelineTrack}
      */
     public TimelineTrack addSceneTrack(String sceneId, String sceneName, long startTimeMs, long durationMs) {
@@ -520,9 +533,9 @@ public class TimelineService {
                 ? sceneName.trim()
                 : "Szene " + trackSequenceCounter.incrementAndGet();
         String id = "track-" + UUID.randomUUID().toString().substring(0, 8);
-        TimelineTrack track = new TimelineTrack(id, effectiveName);
+        TimelineTrack track = new TimelineTrack(id, effectiveName, false, DEFAULT_SCENE_TRACK_HEIGHT);
         track.setStartTimeMs(Math.max(0L, startTimeMs));
-        track.setScene(sceneId, sceneName, durationMs > 0 ? durationMs : 2000L);
+        track.setScene(sceneId, sceneName, durationMs > 0 ? durationMs : DEFAULT_SCENE_DURATION_MS);
         tracks.add(track);
         notifyChange();
         return track;
@@ -543,7 +556,10 @@ public class TimelineService {
         if (trackOpt.isPresent()) {
             TimelineTrack track = trackOpt.get();
             track.setStartTimeMs(Math.max(0L, startTimeMs));
-            track.setScene(sceneId, sceneName, durationMs > 0 ? durationMs : 2000L);
+            track.setScene(sceneId, sceneName, durationMs > 0 ? durationMs : DEFAULT_SCENE_DURATION_MS);
+            if (!track.hasSong()) {
+                track.setHeight(DEFAULT_SCENE_TRACK_HEIGHT);
+            }
             if (track.getName().matches("^Track\\s+\\d+$") && sceneName != null && !sceneName.isBlank()) {
                 track.setName(sceneName);
             }
@@ -619,6 +635,99 @@ public class TimelineService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Setzt die Gesamtlaufzeit eines Clips auf einer Spur (begrenzt auf mindestens {@value MIN_CLIP_DURATION_MS} ms).
+     *
+     * @param trackId    ID der Zielspur
+     * @param durationMs Neue Dauer in Millisekunden
+     * @return {@code true}, wenn aktualisiert; {@code false}, wenn nicht gefunden oder Wiedergabe aktiv ist
+     */
+    public boolean setTrackDurationMs(String trackId, long durationMs) {
+        if (playing.get()) {
+            AppLogger.warn("[TIMELINE] Ändern der Clip-Dauer während aktiver Wiedergabe blockiert (trackId: %s)", trackId);
+            return false;
+        }
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            TimelineTrack track = trackOpt.get();
+            track.setDurationMs(Math.max(MIN_CLIP_DURATION_MS, durationMs));
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Verlängert oder verkürzt einen Clip an der rechten Kante (Endzeitpunkt).
+     *
+     * @param trackId      ID der Zielspur
+     * @param newEndTimeMs Neuer Endzeitpunkt auf der Zeitleiste in Millisekunden
+     * @return {@code true}, wenn erfolgreich aktualisiert
+     */
+    public boolean resizeTrackRight(String trackId, long newEndTimeMs) {
+        if (playing.get()) {
+            AppLogger.warn("[TIMELINE] Resizing von Clips während aktiver Wiedergabe blockiert (trackId: %s)", trackId);
+            return false;
+        }
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            TimelineTrack track = trackOpt.get();
+            long newDurationMs = Math.max(MIN_CLIP_DURATION_MS, newEndTimeMs - track.getStartTimeMs());
+            track.setDurationMs(newDurationMs);
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Verlängert oder verkürzt einen Clip an der linken Kante (Startzeitpunkt).
+     *
+     * @param trackId        ID der Zielspur
+     * @param newStartTimeMs Neuer Startzeitpunkt auf der Zeitleiste in Millisekunden
+     * @return {@code true}, wenn erfolgreich aktualisiert
+     */
+    public boolean resizeTrackLeft(String trackId, long newStartTimeMs) {
+        if (playing.get()) {
+            AppLogger.warn("[TIMELINE] Resizing von Clips während aktiver Wiedergabe blockiert (trackId: %s)", trackId);
+            return false;
+        }
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            TimelineTrack track = trackOpt.get();
+            long currentEndMs = track.getStartTimeMs() + track.getDurationMs();
+            long clampedStartMs = Math.max(0L, Math.min(currentEndMs - MIN_CLIP_DURATION_MS, newStartTimeMs));
+            long newDurationMs = currentEndMs - clampedStartMs;
+            track.setStartTimeMs(clampedStartMs);
+            track.setDurationMs(newDurationMs);
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Liefert die aktuelle Raster- und Snapping-Auflösung der Timeline.
+     *
+     * @return aktive {@link TimelineGridSnap}-Einstellung
+     */
+    public TimelineGridSnap getGridSnap() {
+        return gridSnap;
+    }
+
+    /**
+     * Setzt die Raster- und Snapping-Auflösung der Timeline und benachrichtigt die UI.
+     *
+     * @param snap die neue Raster-Auflösung (darf nicht {@code null} sein)
+     */
+    public void setGridSnap(TimelineGridSnap snap) {
+        if (snap != null && this.gridSnap != snap) {
+            this.gridSnap = snap;
+            AppLogger.info("[TIMELINE] Raster-Auflösung geändert auf: %s (%d ms)", snap.getLabel(), snap.getIntervalMs());
+            notifyChange();
+        }
     }
 
     /**

@@ -73,4 +73,15 @@ class TimelineGridViewSceneTest {
         grid.redraw();
         grid.clearWaveformCache();
     }
+
+    @Test
+    @DisplayName("Sollte Dauer im Daslight-Format (00m08s80) formatieren")
+    void shouldFormatDurationInDaslightStyle() {
+        assertThat(TimelineGridView.formatDaslightDuration(8800L)).isEqualTo("00m08s80");
+        assertThat(TimelineGridView.formatDaslightDuration(5000L)).isEqualTo("00m05s00");
+        assertThat(TimelineGridView.formatDaslightDuration(250L)).isEqualTo("00m00s25");
+        assertThat(TimelineGridView.formatDaslightDuration(65420L)).isEqualTo("01m05s42");
+        assertThat(TimelineGridView.formatDaslightDuration(0L)).isEqualTo("00m00s00");
+        assertThat(TimelineGridView.formatDaslightDuration(-500L)).isEqualTo("00m00s00");
+    }
 }

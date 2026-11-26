@@ -18,6 +18,15 @@ public class TimelineTrack {
     /** Standardhöhe eines Tracks in Pixeln für die Show-Timeline (76px für Pioneer Rekordbox Skalierung). */
     public static final double DEFAULT_TRACK_HEIGHT = 76.0;
 
+    /** Standardhöhe einer Szenen-Spur in Pixeln (50px für kompakte Darstellung). */
+    public static final double DEFAULT_SCENE_TRACK_HEIGHT = 50.0;
+
+    /** Standarddauer eines neu angelegten Szenen-Clips in Millisekunden (5 Sekunden). */
+    public static final long DEFAULT_SCENE_DURATION_MS = 5000L;
+
+    /** Mindestdauer eines Clips in Millisekunden (250 ms = 1/4 Sekunde) gegen Invertierung und Null-Breite. */
+    public static final long MIN_CLIP_DURATION_MS = 250L;
+
     /** Eindeutige Kennung des Tracks. */
     private final String id;
 

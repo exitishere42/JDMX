@@ -122,6 +122,7 @@ class TimelineGridPlayheadTest {
     @DisplayName("Sollte beim Loslassen eines gedraggten Clips resyncTrackImmediate aufrufen")
     void shouldResyncTrackImmediateOnClipRelease() {
         TimelineService service = new TimelineService();
+        service.setGridSnap(de.exit.jdmx.core.model.TimelineGridSnap.FREE);
         de.exit.jdmx.core.model.TimelineTrack track1 = service.getTracks().get(0);
         track1.setSongName("test.mp3");
         track1.setDurationMs(30_000L);

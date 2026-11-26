@@ -655,7 +655,7 @@ public class ShowTimelineExplorerView extends VBox {
             itemInsertTimeline.setOnAction(e -> {
                 if (parentView != null && getItem() != null) {
                     long pos = parentView.getTimelineService().getCurrentPositionMs();
-                    parentView.getTimelineService().addSceneTrack(getItem().getId(), getItem().getName(), pos, 2000L);
+                    parentView.getTimelineService().addSceneTrack(getItem().getId(), getItem().getName(), pos, 5000L);
                 }
             });
 

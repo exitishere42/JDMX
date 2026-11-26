@@ -42,17 +42,18 @@ class TimelineServiceScenePlaybackTest {
     }
 
     @Test
-    @DisplayName("Sollte neuen Szenen-Track mit 2 Sekunden Standarddauer anlegen")
+    @DisplayName("Sollte neuen Szenen-Track mit 5s Standarddauer und 50px Höhe anlegen")
     void shouldAddSceneTrackWithDefaultDuration() {
-        TimelineTrack track = timelineService.addSceneTrack("scene-1", "Intro Strobe", 1000L, 2000L);
+        TimelineTrack track = timelineService.addSceneTrack("scene-1", "Intro Strobe", 1000L, 5000L);
 
         assertThat(track).isNotNull();
         assertThat(track.getName()).isEqualTo("Intro Strobe");
         assertThat(track.hasScene()).isTrue();
+        assertThat(track.getHeight()).isEqualTo(50.0);
         assertThat(track.getSceneId()).isEqualTo("scene-1");
         assertThat(track.getSceneName()).isEqualTo("Intro Strobe");
         assertThat(track.getStartTimeMs()).isEqualTo(1000L);
-        assertThat(track.getDurationMs()).isEqualTo(2000L);
+        assertThat(track.getDurationMs()).isEqualTo(5000L);
         assertThat(timelineService.getTracks()).contains(track);
     }
 

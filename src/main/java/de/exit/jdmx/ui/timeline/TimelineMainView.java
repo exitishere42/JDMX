@@ -1,5 +1,7 @@
 package de.exit.jdmx.ui.timeline;
 
+import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.TimelineGridSnap;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import de.exit.jdmx.ui.icon.LucideIcon;
@@ -9,7 +11,9 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextInputControl;
@@ -54,6 +58,7 @@ public class TimelineMainView extends VBox {
     private final Button btnPlay;
     private final Button btnStop;
     private final Label lblTimeDisplay;
+    private final ComboBox<TimelineGridSnap> cmbSnap;
     private final ToggleButton btnFollowPlayhead;
     private final javafx.animation.AnimationTimer vsyncPlaybackTimer;
 
@@ -122,6 +127,62 @@ public class TimelineMainView extends VBox {
         HBox.setHgrow(timelineGridView, Priority.ALWAYS);
         VBox.setVgrow(timelineGridView, Priority.ALWAYS);
 
+        // Raster- & Einrast-Auswahl (Grid Snapping)
+        this.cmbSnap = new ComboBox<>();
+        cmbSnap.getStyleClass().add("timeline-snap-combo");
+        cmbSnap.getItems().addAll(TimelineGridSnap.values());
+        cmbSnap.setValue(service.getGridSnap());
+        cmbSnap.setTooltip(new Tooltip(I18n.get("timeline.grid.snap.tooltip")));
+
+        cmbSnap.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(TimelineGridSnap item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getLabel());
+            }
+        });
+        cmbSnap.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(TimelineGridSnap item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getLabel());
+            }
+        });
+
+        cmbSnap.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                service.setGridSnap(newVal);
+            }
+        });
+
+        I18n.addLanguageChangeListener(lang -> {
+            Runnable updateAction = () -> {
+                if (cmbSnap.getTooltip() != null) {
+                    cmbSnap.getTooltip().setText(I18n.get("timeline.grid.snap.tooltip"));
+                } else {
+                    cmbSnap.setTooltip(new Tooltip(I18n.get("timeline.grid.snap.tooltip")));
+                }
+                TimelineGridSnap current = cmbSnap.getValue();
+                cmbSnap.setButtonCell(new ListCell<>() {
+                    @Override
+                    protected void updateItem(TimelineGridSnap item, boolean empty) {
+                        super.updateItem(item, empty);
+                        setText(empty || item == null ? null : item.getLabel());
+                    }
+                });
+                cmbSnap.setValue(null);
+                cmbSnap.setValue(current);
+            };
+            if (Platform.isFxApplicationThread()) {
+                updateAction.run();
+            } else {
+                Platform.runLater(updateAction);
+            }
+        });
+
+        HBox snapBox = new HBox(4, new LucideIcon("grid", 12, StudioTheme.COLOR_ICON_TIMELINE), cmbSnap);
+        snapBox.setAlignment(Pos.CENTER_RIGHT);
+
         // Follow-Playhead Toggle (automatisches Verfolgen des Timeline-Strichs, standardmäßig aktiv)
         this.btnFollowPlayhead = new ToggleButton();
         btnFollowPlayhead.getStyleClass().addAll("timeline-transport-btn", "timeline-follow-btn");
@@ -156,7 +217,7 @@ public class TimelineMainView extends VBox {
         HBox zoomBox = new HBox(4, btnZoomOut, btnZoomReset, btnZoomIn);
         zoomBox.setAlignment(Pos.CENTER_RIGHT);
 
-        this.topToolbar = new HBox(6, btnPlay, btnStop, lblTimeDisplay, spacer, btnFollowPlayhead, zoomBox);
+        this.topToolbar = new HBox(6, btnPlay, btnStop, lblTimeDisplay, spacer, snapBox, btnFollowPlayhead, zoomBox);
         topToolbar.setAlignment(Pos.CENTER_LEFT);
         topToolbar.getStyleClass().add("timeline-top-toolbar");
 
@@ -537,6 +598,15 @@ public class TimelineMainView extends VBox {
      */
     public HBox getTopToolbar() {
         return topToolbar;
+    }
+
+    /**
+     * Liefert die ComboBox zur Auswahl der Raster- und Einrast-Auflösung (Grid Snapping).
+     *
+     * @return die {@link ComboBox} für das Grid-Snapping
+     */
+    public ComboBox<TimelineGridSnap> getCmbSnap() {
+        return cmbSnap;
     }
 
     /**

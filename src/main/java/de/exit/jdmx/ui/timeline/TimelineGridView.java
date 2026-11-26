@@ -1,6 +1,7 @@
 package de.exit.jdmx.ui.timeline;
 
 import de.exit.jdmx.core.log.AppLogger;
+import de.exit.jdmx.core.model.TimelineGridSnap;
 import de.exit.jdmx.core.model.TimelineTrack;
 import de.exit.jdmx.service.TimelineService;
 import javafx.application.Platform;
@@ -123,6 +124,7 @@ public class TimelineGridView extends Pane {
     private double lastBgViewH = -1.0;
     private double lastBgScrollY = Double.NaN;
     private double lastBgZoom = Double.NaN;
+    private TimelineGridSnap lastBgGridSnap = null;
     private boolean bgDirty = true;
     private boolean waveformLayerDirty = true;
     private long gridRedrawCount = 0L;
@@ -133,14 +135,31 @@ public class TimelineGridView extends Pane {
     /** Optionale geglättete Playhead-Position (ms) für VSync-Rendering ohne 20ms-Stufen. */
     private long activeRenderPositionMs = -1L;
 
+    /** Interaktions-Modus beim Ziehen von Clips mit der Maus. */
+    public enum ClipDragMode {
+        /** Keine aktive Zieh-Operation. */
+        NONE,
+        /** Verschiebt den gesamten Clip auf der Zeitachse (Dauer bleibt konstant). */
+        MOVE,
+        /** Verlängert oder verkürzt den Clip an der linken Kante (Ende bleibt fix). */
+        RESIZE_LEFT,
+        /** Verlängert oder verkürzt den Clip an der rechten Kante (Start bleibt fix). */
+        RESIZE_RIGHT
+    }
+
+    /** Breite der sensitiven Kanten-Zone für Resizing in Pixeln. */
+    public static final double EDGE_RESIZE_ZONE_PX = 8.0;
+
     /** Ob das Frame-Rendering während Playback vom VSync-AnimationTimer gesteuert wird. */
     private boolean vsyncControlled = false;
 
     private boolean isDraggingPlayhead = false;
     private boolean wasPlayingBeforePlayheadDrag = false;
     private TimelineTrack draggingClipTrack = null;
+    private ClipDragMode currentClipDragMode = ClipDragMode.NONE;
     private double dragStartMouseX = 0;
     private long dragStartClipTimeMs = 0;
+    private long dragStartClipDurationMs = 0;
 
     /**
      * Erstellt die Grid-Ansicht für die gegebene TimelineService-Instanz.
@@ -249,20 +268,29 @@ public class TimelineGridView extends Pane {
                     service.getSceneService().applyScene(hitTrack.getSceneId(), -1);
                 }
                 if (service.isPlaying()) {
-                    // Während aktiver Show-Wiedergabe ist das Verschieben von Tracks gesperrt!
+                    // Während aktiver Show-Wiedergabe ist das Verschieben/Resizen von Tracks gesperrt!
                     draggingClipTrack = null;
+                    currentClipDragMode = ClipDragMode.NONE;
                     return;
                 }
                 draggingClipTrack = hitTrack;
+                currentClipDragMode = getClipDragModeAt(hitTrack, worldX);
                 dragStartMouseX = worldX;
                 dragStartClipTimeMs = hitTrack.getStartTimeMs();
-                setCursor(Cursor.MOVE);
+                dragStartClipDurationMs = hitTrack.getDurationMs() > 0 ? hitTrack.getDurationMs() : (hitTrack.hasSong() ? 60_000L : 5000L);
+
+                if (currentClipDragMode == ClipDragMode.RESIZE_LEFT || currentClipDragMode == ClipDragMode.RESIZE_RIGHT) {
+                    setCursor(Cursor.H_RESIZE);
+                } else {
+                    setCursor(Cursor.MOVE);
+                }
                 return;
             }
 
             // Klick auf freie Fläche: Keine unabsichtliche Verschiebung
             isDraggingPlayhead = false;
             draggingClipTrack = null;
+            currentClipDragMode = ClipDragMode.NONE;
         });
 
         setOnMouseDragged(e -> {
@@ -274,12 +302,26 @@ public class TimelineGridView extends Pane {
             } else if (draggingClipTrack != null) {
                 if (service.isPlaying()) {
                     draggingClipTrack = null;
+                    currentClipDragMode = ClipDragMode.NONE;
                     return;
                 }
                 double deltaPx = worldX - dragStartMouseX;
                 long deltaMs = Math.round((deltaPx / pixelsPerSecond) * 1000.0);
-                long newStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
-                service.setTrackStartTimeMs(draggingClipTrack.getId(), newStartMs);
+
+                TimelineGridSnap snap = service.getGridSnap();
+                if (currentClipDragMode == ClipDragMode.RESIZE_LEFT) {
+                    long rawStartMs = dragStartClipTimeMs + deltaMs;
+                    long newStartMs = snap != null ? snap.snap(rawStartMs) : rawStartMs;
+                    service.resizeTrackLeft(draggingClipTrack.getId(), newStartMs);
+                } else if (currentClipDragMode == ClipDragMode.RESIZE_RIGHT) {
+                    long rawEndMs = (dragStartClipTimeMs + dragStartClipDurationMs) + deltaMs;
+                    long newEndMs = snap != null ? snap.snap(rawEndMs) : rawEndMs;
+                    service.resizeTrackRight(draggingClipTrack.getId(), newEndMs);
+                } else { // MOVE
+                    long rawStartMs = Math.max(0L, dragStartClipTimeMs + deltaMs);
+                    long newStartMs = snap != null ? Math.max(0L, snap.snap(rawStartMs)) : rawStartMs;
+                    service.setTrackStartTimeMs(draggingClipTrack.getId(), newStartMs);
+                }
                 waveformLayerDirty = true;
                 updateGridDimensions();
                 redraw();
@@ -298,6 +340,7 @@ public class TimelineGridView extends Pane {
             }
             isDraggingPlayhead = false;
             draggingClipTrack = null;
+            currentClipDragMode = ClipDragMode.NONE;
             updateCursorForPosition(toWorldX(e.getX()), toWorldY(e.getY()));
         });
 
@@ -705,9 +748,9 @@ public class TimelineGridView extends Pane {
                     double worldX = toWorldX(e.getX());
                     long dropTimeMs = Math.max(0L, xToMillis(worldX));
 
-                    // Automatisch neuen Track anlegen mit 2 Sekunden Standarddauer
-                    TimelineTrack newTrack = service.addSceneTrack(sceneId, sceneName, dropTimeMs, 2000L);
-                    AppLogger.info("[TIMELINE-GRID] Szene gedroppt: '%s' (ID: %s) auf neue Spur '%s' bei %d ms (Dauer: 2s)",
+                    // Automatisch neuen Track anlegen mit 5 Sekunden Standarddauer
+                    TimelineTrack newTrack = service.addSceneTrack(sceneId, sceneName, dropTimeMs, 5000L);
+                    AppLogger.info("[TIMELINE-GRID] Szene gedroppt: '%s' (ID: %s) auf neue Spur '%s' bei %d ms (Dauer: 5s)",
                             sceneName, sceneId, newTrack.getName(), dropTimeMs);
                     waveformLayerDirty = true;
                     updateGridDimensions();
@@ -735,19 +778,73 @@ public class TimelineGridView extends Pane {
     }
 
     /**
+     * Formatiert eine Dauer in Millisekunden im Daslight-Format (z. B. "00m08s80").
+     *
+     * @param totalMs Dauer in Millisekunden
+     * @return formatierter String im Format MMmSSsCC (Minuten, Sekunden, Hundertstelsekunden)
+     */
+    public static String formatDaslightDuration(long totalMs) {
+        long safeMs = Math.max(0L, totalMs);
+        long minutes = safeMs / 60_000L;
+        long seconds = (safeMs % 60_000L) / 1000L;
+        long centis = (safeMs % 1000L) / 10L;
+        return String.format(java.util.Locale.US, "%02dm%02ds%02d", minutes, seconds, centis);
+    }
+
+    /**
+     * Ermittelt den Interaktions-Modus (Resizing links/rechts oder Verschieben) für eine gegebene X-Position auf einem Clip.
+     *
+     * @param track der untersuchte Track
+     * @param x     die X-Content-Koordinate
+     * @return der ermittelte {@link ClipDragMode}
+     */
+    public ClipDragMode getClipDragModeAt(TimelineTrack track, double x) {
+        if (track == null) return ClipDragMode.NONE;
+        double clipStartX = millisToX(track.getStartTimeMs());
+        long dur = track.getDurationMs() > 0 ? track.getDurationMs() : (track.hasSong() ? 60_000L : 5000L);
+        double clipW = Math.max(16.0, millisToX(dur));
+        double clipEndX = clipStartX + clipW;
+
+        if (x < clipStartX - 3.0 || x > clipEndX + 3.0) {
+            return ClipDragMode.NONE;
+        }
+
+        double threshold = Math.min(EDGE_RESIZE_ZONE_PX, clipW * 0.35);
+        if (x <= clipStartX + threshold) {
+            return ClipDragMode.RESIZE_LEFT;
+        } else if (x >= clipEndX - threshold) {
+            return ClipDragMode.RESIZE_RIGHT;
+        } else {
+            return ClipDragMode.MOVE;
+        }
+    }
+
+    /**
      * Ermittelt die passende Mauszeigerform an der angegebenen Position.
-     * Zeigt Resize-Cursor über dem Playhead-Dreieck, Hand-Cursor über Clips (nur im gestoppten Zustand)
+     * Zeigt Resize-Cursor über dem Playhead-Dreieck und an den Clip-Kanten, Hand-Cursor über der Clip-Mitte (nur im gestoppten Zustand)
      * und Standardzeiger auf Freiflächen oder über gesperrten Clips während aktiver Show-Wiedergabe.
      */
-    private void updateCursorForPosition(double x, double y) {
+    public void updateCursorForPosition(double x, double y) {
         double playheadContentX = millisToX(service.getCurrentPositionMs());
         if (y <= 24.0 && Math.abs(x - playheadContentX) <= 16.0) {
             setCursor(Cursor.H_RESIZE);
-        } else if (findClipTrackAt(x, y) != null) {
-            setCursor(service.isPlaying() ? Cursor.DEFAULT : Cursor.HAND);
-        } else {
-            setCursor(Cursor.DEFAULT);
+            return;
         }
+        TimelineTrack track = findClipTrackAt(x, y);
+        if (track != null) {
+            if (service.isPlaying()) {
+                setCursor(Cursor.DEFAULT);
+                return;
+            }
+            ClipDragMode mode = getClipDragModeAt(track, x);
+            if (mode == ClipDragMode.RESIZE_LEFT || mode == ClipDragMode.RESIZE_RIGHT) {
+                setCursor(Cursor.H_RESIZE);
+            } else {
+                setCursor(Cursor.HAND);
+            }
+            return;
+        }
+        setCursor(Cursor.DEFAULT);
     }
 
     /**
@@ -772,9 +869,9 @@ public class TimelineGridView extends Pane {
                     }
                 } else if (track.hasScene()) {
                     double clipStartX = millisToX(track.getStartTimeMs());
-                    long dur = track.getDurationMs() > 0 ? track.getDurationMs() : 2000L;
-                    double clipW = Math.max(80.0, millisToX(dur));
-                    if (x >= clipStartX && x <= clipStartX + clipW) {
+                    long dur = track.getDurationMs() > 0 ? track.getDurationMs() : 5000L;
+                    double clipW = Math.max(16.0, millisToX(dur));
+                    if (x >= clipStartX - 3.0 && x <= clipStartX + clipW + 3.0) {
                         return track;
                     }
                 }
@@ -980,13 +1077,20 @@ public class TimelineGridView extends Pane {
         viewportClip.setWidth(viewW);
         viewportClip.setHeight(viewH);
 
-        // Layer 1: Periodisches Beat-/Track-Hintergrund-Muster (nur neu zeichnen wenn nötig!)
-        double patternW = Math.min(MAX_CANVAS_SAFE_DIM, viewW + BAR_WIDTH);
+        // Layer 1: Periodisches zeitbasiertes Hintergrund-Muster (nur neu zeichnen wenn nötig!)
+        TimelineGridSnap gridSnap = service.getGridSnap();
+        long majorMs = (gridSnap != null && gridSnap.getIntervalMs() > 0L)
+                ? gridSnap.getIntervalMs()
+                : 5000L;
+        double majorStepPx = Math.max(10.0, (majorMs / 1000.0) * pixelsPerSecond);
+
+        double patternW = Math.min(MAX_CANVAS_SAFE_DIM, viewW + majorStepPx);
         boolean needBgRedraw = bgDirty
                 || Math.abs(lastBgViewW - viewW) >= 1.0
                 || Math.abs(lastBgViewH - viewH) >= 1.0
                 || Math.abs(lastBgScrollY - scrollY) >= 0.5
-                || Math.abs(lastBgZoom - pixelsPerSecond) > 0.001;
+                || Math.abs(lastBgZoom - pixelsPerSecond) > 0.001
+                || lastBgGridSnap != gridSnap;
 
         if (needBgRedraw) {
             if (Math.abs(canvas.getWidth() - patternW) >= 1.0 || Math.abs(canvas.getHeight() - viewH) >= 1.0) {
@@ -998,11 +1102,12 @@ public class TimelineGridView extends Pane {
             lastBgViewH = viewH;
             lastBgScrollY = scrollY;
             lastBgZoom = pixelsPerSecond;
+            lastBgGridSnap = gridSnap;
             bgDirty = false;
             gridRedrawCount++;
         }
 
-        double patternOffset = scrollX % BAR_WIDTH;
+        double patternOffset = scrollX % majorStepPx;
         canvas.setTranslateX(baseX - patternOffset);
         canvas.setTranslateY(baseY);
 
@@ -1042,14 +1147,22 @@ public class TimelineGridView extends Pane {
             currentY += trackH;
         }
 
-        // 3. Periodisches Takt- und Beat-Raster (ab x=0, da TranslateX das Modulo abbildet)
-        for (double x = 0; x <= patternW; x += BEAT_WIDTH) {
-            boolean isBarLine = Math.abs(x % BAR_WIDTH) < 0.1;
-            if (isBarLine) {
-                gc.setStroke(Color.web("#2A2A2A"));
+        // 3. Periodisches Zeit- und Sekunden-Raster (ab x=0, da TranslateX das Modulo abbildet)
+        TimelineGridSnap snap = service.getGridSnap();
+        long majorMs = (snap != null && snap.getIntervalMs() > 0L) ? snap.getIntervalMs() : 5000L;
+        long minorMs = majorMs >= 30_000L ? 5000L : (majorMs >= 10_000L ? 2000L : (majorMs >= 5000L ? 1000L : 500L));
+
+        double majorStepPx = Math.max(10.0, (majorMs / 1000.0) * pixelsPerSecond);
+        double minorStepPx = Math.max(2.0, (minorMs / 1000.0) * pixelsPerSecond);
+
+        for (double x = 0; x <= patternW; x += minorStepPx) {
+            boolean isMajor = Math.abs(x % majorStepPx) < (minorStepPx * 0.45)
+                    || Math.abs((x % majorStepPx) - majorStepPx) < (minorStepPx * 0.45);
+            if (isMajor) {
+                gc.setStroke(Color.web("#2E2E2E"));
                 gc.setLineWidth(1.0);
             } else {
-                gc.setStroke(Color.web("#1B1B1B"));
+                gc.setStroke(Color.web("#1A1A1A"));
                 gc.setLineWidth(0.5);
             }
             gc.strokeLine(x + 0.5, 0, x + 0.5, viewH);
@@ -1150,9 +1263,9 @@ public class TimelineGridView extends Pane {
                     }
                 }
             } else if (track.hasScene() && screenY + trackH > -100 && screenY < viewH + 100) {
-                long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 2000L;
+                long durationMs = track.getDurationMs() > 0 ? track.getDurationMs() : 5000L;
                 double clipWorldX = millisToX(track.getStartTimeMs());
-                double clipW = Math.max(80.0, millisToX(durationMs));
+                double clipW = Math.max(16.0, millisToX(durationMs));
                 double clipH = trackH - 6;
                 double clipWorldY = currentY + 3;
 
@@ -1212,50 +1325,84 @@ public class TimelineGridView extends Pane {
 
         boolean active = track.isPlaybackActive();
 
-        // 1. Hintergrund-Box (Studio Scene Violett)
+        // 1. Basis-Rechteck: Solides Gelb, dezente Rundung (arcWidth=4.0, arcHeight=4.0), rahmenlos
         Rectangle bg = new Rectangle(clipW, clipH);
-        bg.setFill(active ? Color.web("#2E1C4A") : Color.web("#221838"));
-        bg.setStroke(active ? Color.web("#C4B5FD") : Color.web("#A78BFA"));
-        bg.setStrokeWidth(active ? 2.0 : 1.5);
-        bg.setArcWidth(6.0);
-        bg.setArcHeight(6.0);
+        bg.setFill(active ? Color.web("#FEF08A") : Color.web("#FACC15"));
+        bg.setStroke(null);
+        bg.setStrokeWidth(0.0);
+        bg.setArcWidth(4.0);
+        bg.setArcHeight(4.0);
 
-        // 2. Header-Balken oben
-        double headerH = Math.min(22.0, clipH);
-        Rectangle header = new Rectangle(clipW, headerH);
-        header.setFill(active ? Color.web("#4A2E78") : Color.web("#352357"));
-        header.setArcWidth(6.0);
-        header.setArcHeight(6.0);
+        // 2. Unterer schwarzer Kasten: 60% Deckkraft (Alpha 0.60), Höhe ca. 36% von clipH, dezenter 1.5px Randabstand
+        double padding = 1.5;
+        double infoBoxH = Math.max(14.0, clipH * 0.36);
+        double infoBoxW = Math.max(10.0, clipW - (padding * 2.0));
+        double infoBoxX = padding;
+        double infoBoxY = clipH - infoBoxH - padding;
 
-        // 3. Lucide Bookmark-Icon
-        LucideIcon icon = new LucideIcon("bookmark", 11, active ? Color.web("#FFFFFF") : Color.web("#A78BFA"));
-        icon.setLayoutX(6.0);
-        icon.setLayoutY(5.0);
+        Rectangle infoBox = new Rectangle(infoBoxW, infoBoxH);
+        infoBox.setLayoutX(infoBoxX);
+        infoBox.setLayoutY(infoBoxY);
+        infoBox.setFill(Color.rgb(0, 0, 0, 0.60));
+        infoBox.setArcWidth(2.0);
+        infoBox.setArcHeight(2.0);
 
-        // 4. Szenen-Name
+        // 3. Dauer der Szene im Daslight-Format: "00m08s80" (Minuten, Sekunden, Hundertstelsekunden)
+        long totalMs = track.getDurationMs() > 0 ? track.getDurationMs() : 5000L;
+        String durStr = formatDaslightDuration(totalMs);
+        Text durText = new Text(durStr);
+        durText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10.0));
+        durText.setFill(Color.web("#FFFFFF"));
+        durText.setLayoutX(infoBoxX + 4.0);
+        durText.setLayoutY(infoBoxY + (infoBoxH * 0.5) + 3.5);
+
+        // Textclip für durText bei sehr schmal gezogenen Clips
+        if (durText.getLayoutBounds().getWidth() > infoBoxW - 6.0) {
+            Rectangle durClip = new Rectangle(Math.max(4.0, infoBoxW - 6.0), infoBoxH);
+            durClip.setLayoutX(0);
+            durClip.setLayoutY(-infoBoxH * 0.6);
+            durClip.setArcWidth(0.0);
+            durClip.setArcHeight(0.0);
+            durText.setClip(durClip);
+        }
+
+        // 4. Name der Szene: Obendrüber im gelben Bereich, über der Sekundenzahl, links mittig angeordnet in schwarzer Schrift
         String nameStr = track.getSceneName() != null ? track.getSceneName() : track.getName();
         Text nameText = new Text(nameStr);
-        nameText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 11.0));
-        nameText.setFill(Color.web("#FFFFFF"));
-        nameText.setLayoutX(22.0);
-        nameText.setLayoutY(15.0);
-        if (nameText.getLayoutBounds().getWidth() > clipW - 28.0) {
-            Rectangle textClip = new Rectangle(Math.max(10.0, clipW - 28.0), 18.0);
+        nameText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12.0));
+        nameText.setFill(Color.web("#000000"));
+        nameText.setLayoutX(padding + 4.0);
+
+        // Vertikal zentriert in der oberen gelben Fläche (zwischen 0 und infoBoxY)
+        double upperAreaH = Math.max(12.0, infoBoxY);
+        nameText.setLayoutY((upperAreaH * 0.5) + 4.5);
+
+        // Textclip gegen Überlauf (ohne Rundung)
+        if (nameText.getLayoutBounds().getWidth() > clipW - 14.0) {
+            Rectangle textClip = new Rectangle(Math.max(10.0, clipW - 14.0), upperAreaH);
             textClip.setLayoutX(0);
             textClip.setLayoutY(-12);
+            textClip.setArcWidth(0.0);
+            textClip.setArcHeight(0.0);
             nameText.setClip(textClip);
         }
 
-        // 5. Dauer-Anzeige unten rechts (z. B. "2.0s")
-        double sec = (track.getDurationMs() > 0 ? track.getDurationMs() : 2000L) / 1000.0;
-        String durStr = String.format(java.util.Locale.US, "%.1fs", sec);
-        Text durText = new Text(durStr);
-        durText.setFont(Font.font("Segoe UI", FontWeight.NORMAL, 10.0));
-        durText.setFill(active ? Color.web("#DDD6FE") : Color.web("#A78BFA"));
-        durText.setLayoutX(Math.max(24.0, clipW - 32.0));
-        durText.setLayoutY(clipH - 6.0);
+        // 5. Kanten-Handles für Resizing (dezente Grifffläche links & rechts)
+        Rectangle leftHandle = new Rectangle(2.0, clipH);
+        leftHandle.setLayoutX(0);
+        leftHandle.setLayoutY(0);
+        leftHandle.setFill(Color.rgb(0, 0, 0, 0.12));
+        leftHandle.setArcWidth(2.0);
+        leftHandle.setArcHeight(2.0);
 
-        group.getChildren().addAll(bg, header, icon, nameText, durText);
+        Rectangle rightHandle = new Rectangle(2.0, clipH);
+        rightHandle.setLayoutX(Math.max(0, clipW - 2.0));
+        rightHandle.setLayoutY(0);
+        rightHandle.setFill(Color.rgb(0, 0, 0, 0.12));
+        rightHandle.setArcWidth(2.0);
+        rightHandle.setArcHeight(2.0);
+
+        group.getChildren().addAll(bg, infoBox, durText, nameText, leftHandle, rightHandle);
         return group;
     }
 

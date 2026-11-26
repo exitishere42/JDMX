@@ -23,15 +23,23 @@ class TimelineTrackSceneTest {
     }
 
     @Test
-    @DisplayName("Sollte Szene mit Standarddauer von 2 Sekunden zuweisen können")
+    @DisplayName("Sollte Standardwerte für Szenen-Dauer (5s) und Szenen-Spurhöhe (50px) definieren")
+    void shouldDefineDefaultSceneDurationAndHeight() {
+        assertThat(TimelineTrack.DEFAULT_SCENE_DURATION_MS).isEqualTo(5000L);
+        assertThat(TimelineTrack.DEFAULT_SCENE_TRACK_HEIGHT).isEqualTo(50.0);
+    }
+
+    @Test
+    @DisplayName("Sollte Szene mit Standarddauer von 5 Sekunden zuweisen können")
     void shouldAssignSceneWithDefaultDuration() {
-        TimelineTrack track = new TimelineTrack("track-1", "Track 1");
-        track.setScene("scene-123", "Intro Look", 2000L);
+        TimelineTrack track = new TimelineTrack("track-1", "Track 1", false, TimelineTrack.DEFAULT_SCENE_TRACK_HEIGHT);
+        track.setScene("scene-123", "Intro Look", TimelineTrack.DEFAULT_SCENE_DURATION_MS);
 
         assertThat(track.hasScene()).isTrue();
+        assertThat(track.getHeight()).isEqualTo(50.0);
         assertThat(track.getSceneId()).isEqualTo("scene-123");
         assertThat(track.getSceneName()).isEqualTo("Intro Look");
-        assertThat(track.getDurationMs()).isEqualTo(2000L);
+        assertThat(track.getDurationMs()).isEqualTo(5000L);
     }
 
     @Test
