@@ -61,8 +61,8 @@ public class TimelineService {
     private volatile long clockAnchorMs = 0L;
     private volatile long clockAnchorNanos = 0L;
 
-    /** Aktive Raster- und Snapping-Einstellung für die Timeline (Standard: 5 Sekunden). */
-    private volatile TimelineGridSnap gridSnap = TimelineGridSnap.SEC_5;
+    /** Aktive Raster- und Snapping-Einstellung für die Timeline (Standard: 1 Sekunde). */
+    private volatile TimelineGridSnap gridSnap = TimelineGridSnap.SEC_1;
 
     /** Audioanalyse-Service für Laufzeit- und Wellenform-Berechnungen. */
     private final AudioAnalysisService audioAnalysisService;

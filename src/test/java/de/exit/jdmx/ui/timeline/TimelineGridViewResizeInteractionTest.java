@@ -141,4 +141,13 @@ class TimelineGridViewResizeInteractionTest {
         ));
         assertThat(track.getDurationMs()).isEqualTo(10000L);
     }
+
+    @Test
+    @DisplayName("Sollte Hintergrund-Raster dauerhaft fest auf 1 Sekunde halten und Standard-Snap auf 1s setzen")
+    void shouldKeepBackgroundGridFixedAtOneSecond() {
+        TimelineService service = new TimelineService();
+        assertThat(service.getGridSnap()).isEqualTo(de.exit.jdmx.core.model.TimelineGridSnap.SEC_1);
+        assertThat(TimelineGridView.BACKGROUND_GRID_MAJOR_MS).isEqualTo(1000L);
+        assertThat(TimelineGridView.BACKGROUND_GRID_MINOR_MS).isEqualTo(250L);
+    }
 }

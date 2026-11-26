@@ -124,7 +124,6 @@ public class TimelineGridView extends Pane {
     private double lastBgViewH = -1.0;
     private double lastBgScrollY = Double.NaN;
     private double lastBgZoom = Double.NaN;
-    private TimelineGridSnap lastBgGridSnap = null;
     private boolean bgDirty = true;
     private boolean waveformLayerDirty = true;
     private long gridRedrawCount = 0L;
@@ -149,6 +148,12 @@ public class TimelineGridView extends Pane {
 
     /** Breite der sensitiven Kanten-Zone für Resizing in Pixeln. */
     public static final double EDGE_RESIZE_ZONE_PX = 8.0;
+
+    /** Feste Dauer eines Takt-Blocks für das statische Hintergrundraster in Millisekunden (1 Sekunde = 1000 ms). */
+    public static final long BACKGROUND_GRID_MAJOR_MS = 1000L;
+
+    /** Subtile Unterteilung im Hintergrundraster in Millisekunden (1/4 Sekunde = 250 ms). */
+    public static final long BACKGROUND_GRID_MINOR_MS = 250L;
 
     /** Ob das Frame-Rendering während Playback vom VSync-AnimationTimer gesteuert wird. */
     private boolean vsyncControlled = false;
@@ -1077,10 +1082,8 @@ public class TimelineGridView extends Pane {
         viewportClip.setHeight(viewH);
 
         // Layer 1: Periodisches zeitbasiertes Hintergrund-Muster (nur neu zeichnen wenn nötig!)
-        TimelineGridSnap gridSnap = service.getGridSnap();
-        long majorMs = (gridSnap != null && gridSnap.getIntervalMs() > 0L)
-                ? gridSnap.getIntervalMs()
-                : 5000L;
+        // Der Hintergrund bleibt DAUERHAFT fest auf dem 1-Sekunden-Raster (1000 ms), während das Snapping nur beim Croppen greift.
+        long majorMs = BACKGROUND_GRID_MAJOR_MS;
         double majorStepPx = Math.max(10.0, (majorMs / 1000.0) * pixelsPerSecond);
 
         double patternW = Math.min(MAX_CANVAS_SAFE_DIM, viewW + majorStepPx);
@@ -1088,8 +1091,7 @@ public class TimelineGridView extends Pane {
                 || Math.abs(lastBgViewW - viewW) >= 1.0
                 || Math.abs(lastBgViewH - viewH) >= 1.0
                 || Math.abs(lastBgScrollY - scrollY) >= 0.5
-                || Math.abs(lastBgZoom - pixelsPerSecond) > 0.001
-                || lastBgGridSnap != gridSnap;
+                || Math.abs(lastBgZoom - pixelsPerSecond) > 0.001;
 
         if (needBgRedraw) {
             if (Math.abs(canvas.getWidth() - patternW) >= 1.0 || Math.abs(canvas.getHeight() - viewH) >= 1.0) {
@@ -1101,7 +1103,6 @@ public class TimelineGridView extends Pane {
             lastBgViewH = viewH;
             lastBgScrollY = scrollY;
             lastBgZoom = pixelsPerSecond;
-            lastBgGridSnap = gridSnap;
             bgDirty = false;
             gridRedrawCount++;
         }
@@ -1146,23 +1147,9 @@ public class TimelineGridView extends Pane {
             currentY += trackH;
         }
 
-        // 3. Periodisches Zeit- und Sekunden-Raster (ab x=0, da TranslateX das Modulo abbildet)
-        TimelineGridSnap snap = service.getGridSnap();
-        long majorMs = (snap != null && snap.getIntervalMs() > 0L) ? snap.getIntervalMs() : 5000L;
-        long minorMs;
-        if (majorMs >= 30_000L) {
-            minorMs = 5000L;
-        } else if (majorMs >= 10_000L) {
-            minorMs = 2000L;
-        } else if (majorMs >= 5000L) {
-            minorMs = 1000L;
-        } else if (majorMs >= 1000L) {
-            minorMs = 250L;
-        } else if (majorMs >= 500L) {
-            minorMs = 250L;
-        } else {
-            minorMs = 125L;
-        }
+        // 3. Fester 1-Sekunden-Hintergrund (1000ms Major-Linien, 250ms Minor-Linien)
+        long majorMs = BACKGROUND_GRID_MAJOR_MS;
+        long minorMs = BACKGROUND_GRID_MINOR_MS;
 
         double majorStepPx = Math.max(10.0, (majorMs / 1000.0) * pixelsPerSecond);
         double minorStepPx = Math.max(2.0, (minorMs / 1000.0) * pixelsPerSecond);

@@ -62,8 +62,8 @@ class TimelineMainViewGridSnapTest {
         assertThat(view.getCmbSnap()).isNotNull();
         assertThat(view.getCmbSnap().getStyleClass()).contains("timeline-snap-combo");
         assertThat(view.getCmbSnap().getItems()).containsExactly(TimelineGridSnap.values());
-        assertThat(view.getCmbSnap().getValue()).isEqualTo(TimelineGridSnap.SEC_5);
-        assertThat(service.getGridSnap()).isEqualTo(TimelineGridSnap.SEC_5);
+        assertThat(view.getCmbSnap().getValue()).isEqualTo(TimelineGridSnap.SEC_1);
+        assertThat(service.getGridSnap()).isEqualTo(TimelineGridSnap.SEC_1);
     }
 
     @Test
