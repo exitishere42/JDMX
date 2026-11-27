@@ -243,17 +243,21 @@ public class TimelineColorFlyout extends Popup {
      * Öffnet das Flyout-Untermenü bündig an den angegebenen Bildschirmkoordinaten.
      *
      * @param window        Übergeordnetes Fenster
-     * @param anchorScreenX Ziel-X-Koordinate auf dem Bildschirm (z. B. rechter Rand des Hauptmenüs)
-     * @param anchorScreenY Ziel-Y-Koordinate auf dem Bildschirm (z. B. Oberkante des Farbe-Buttons)
+     * @param anchorScreenX Ziel-X-Koordinate auf dem Bildschirm (sichtbarer rechter Rand des Hauptmenüs)
+     * @param anchorScreenY Ziel-Y-Koordinate auf dem Bildschirm (sichtbare Oberkante des Farbe-Buttons)
      */
     public void showFlyout(Window window, double anchorScreenX, double anchorScreenY) {
         if (window != null && window.isShowing()) {
             root.applyCss();
             root.layout();
 
-            // Minimaler, eleganter Studio-Abstand von 2px direkt neben dem Hauptmenü
-            double targetX = anchorScreenX + 2.0;
-            double targetY = anchorScreenY;
+            // Dropshadow-Kompensation des Flyout-Popup-Fensters (15px X, 7px Y)
+            double shadowOffsetX = 15.0;
+            double shadowOffsetY = 7.0;
+
+            // Minimaler, eleganter Studio-Abstand von exakt 2px direkt neben dem sichtbaren Rand des Hauptmenüs
+            double targetX = (anchorScreenX + 2.0) - shadowOffsetX;
+            double targetY = anchorScreenY - shadowOffsetY;
 
             // Bildschirmgrenzen-Prüfung: Falls rechts kein Platz ist, links neben dem Menü öffnen
             javafx.stage.Screen screen = javafx.stage.Screen.getScreensForRectangle(anchorScreenX, anchorScreenY, 1, 1).stream()
@@ -263,11 +267,11 @@ public class TimelineColorFlyout extends Popup {
                 javafx.geometry.Rectangle2D bounds = screen.getVisualBounds();
                 double flyoutW = 120.0;
                 double flyoutH = 80.0;
-                if (anchorScreenX + flyoutW > bounds.getMaxX()) {
-                    targetX = anchorScreenX - flyoutW - 144.0;
+                if (anchorScreenX + 2.0 + flyoutW > bounds.getMaxX()) {
+                    targetX = anchorScreenX - flyoutW - 144.0 - shadowOffsetX;
                 }
                 if (anchorScreenY + flyoutH > bounds.getMaxY()) {
-                    targetY = anchorScreenY - flyoutH + 30.0;
+                    targetY = anchorScreenY - flyoutH + 30.0 - shadowOffsetY;
                 }
             }
 

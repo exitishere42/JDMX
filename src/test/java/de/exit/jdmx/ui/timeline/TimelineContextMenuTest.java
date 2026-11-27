@@ -132,17 +132,23 @@ class TimelineContextMenuTest {
                 double mouseY = 200.0;
                 menu.showMenu(stage, mouseX, mouseY);
 
-                javafx.geometry.Bounds rootB = menu.getMenuContainer().localToScreen(menu.getMenuContainer().getBoundsInLocal());
+                // Sichtbare Randkoordinaten des Hauptmenüs (ohne Dropshadow-Erweiterung)
+                javafx.geometry.Bounds visibleRootBounds = menu.getMenuContainer().localToScreen(
+                        menu.getMenuContainer().getLayoutBounds());
 
                 Button btnColor = menu.getItemButton("color");
-                javafx.geometry.Bounds btnB = btnColor.localToScreen(btnColor.getBoundsInLocal());
-                menu.getColorFlyout().showFlyout(stage, rootB.getMaxX(), btnB.getMinY());
+                javafx.geometry.Bounds visibleBtnBounds = btnColor.localToScreen(btnColor.getLayoutBounds());
+                menu.getColorFlyout().showFlyout(stage, visibleRootBounds.getMaxX(), visibleBtnBounds.getMinY());
 
-                javafx.geometry.Bounds flyoutRootB = menu.getColorFlyout().getMenuContainer().localToScreen(
-                        menu.getColorFlyout().getMenuContainer().getBoundsInLocal());
-                double gapBetweenMenus = flyoutRootB.getMinX() - rootB.getMaxX();
-                // Minimaler, perfekter Studio-Abstand von exakt 2px
-                assertThat(gapBetweenMenus).isCloseTo(2.0, org.assertj.core.data.Offset.offset(0.5));
+                // Sichtbare Randkoordinaten des Flyout-Untermenüs (ohne Dropshadow-Erweiterung)
+                javafx.geometry.Bounds visibleFlyoutBounds = menu.getColorFlyout().getMenuContainer().localToScreen(
+                        menu.getColorFlyout().getMenuContainer().getLayoutBounds());
+
+                double visibleGap = visibleFlyoutBounds.getMinX() - visibleRootBounds.getMaxX();
+                // Exakt 2px sichtbarer Studio-Abstand zwischen den Menü-Außenrahmen
+                assertThat(visibleGap).isCloseTo(2.0, org.assertj.core.data.Offset.offset(0.5));
+                // Oberkante des Flyouts schließt bündig mit der Oberkante des Farbe-Buttons ab
+                assertThat(visibleFlyoutBounds.getMinY()).isCloseTo(visibleBtnBounds.getMinY(), org.assertj.core.data.Offset.offset(0.5));
                 menu.getColorFlyout().hide();
 
                 double visibleLeftCornerX = menu.getX() + 15.0;

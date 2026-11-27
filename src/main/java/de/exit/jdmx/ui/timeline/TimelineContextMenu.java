@@ -140,8 +140,8 @@ public class TimelineContextMenu extends Popup {
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 
         btn.setOnAction(e -> {
-            Bounds rootBounds = root.localToScreen(root.getBoundsInLocal());
-            Bounds btnBounds = btn.localToScreen(btn.getBoundsInLocal());
+            Bounds rootBounds = root.localToScreen(root.getLayoutBounds());
+            Bounds btnBounds = btn.localToScreen(btn.getLayoutBounds());
             if (rootBounds != null && btnBounds != null && getOwnerWindow() != null) {
                 colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX(), btnBounds.getMinY());
             }
@@ -150,8 +150,8 @@ public class TimelineContextMenu extends Popup {
         btn.setOnMouseEntered(e -> {
             lbl.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 13px;");
             chevron.setColor(Color.web("#F3F4F6"));
-            Bounds rootBounds = root.localToScreen(root.getBoundsInLocal());
-            Bounds btnBounds = btn.localToScreen(btn.getBoundsInLocal());
+            Bounds rootBounds = root.localToScreen(root.getLayoutBounds());
+            Bounds btnBounds = btn.localToScreen(btn.getLayoutBounds());
             if (rootBounds != null && btnBounds != null && getOwnerWindow() != null) {
                 colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX(), btnBounds.getMinY());
             }
