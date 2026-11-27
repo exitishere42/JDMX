@@ -292,6 +292,12 @@ public class LucideIcon extends StackPane {
             case "chevron-down" ->
                 // Lucide chevron-down
                 "m6 9 6 6 6-6";
+            case "chevron-right" ->
+                // Lucide chevron-right
+                "m9 18 6-6-6-6";
+            case "chevron-left" ->
+                // Lucide chevron-left
+                "m15 18-6-6 6-6";
             case "arrow-up-to-line" ->
                 // Lucide arrow-up-to-line
                 "M12 17V3 M6 9l6-6 6 6 M19 21H5";

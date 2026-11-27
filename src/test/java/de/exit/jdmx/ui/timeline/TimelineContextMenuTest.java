@@ -83,6 +83,15 @@ class TimelineContextMenuTest {
                 assertThat(btnColor.getText()).isEqualTo("Farbe");
                 assertThat(btnColor.getStyleClass()).contains("action-menu-item");
 
+                // Icon-Prüfung: Pfeil nach rechts (chevron-right) statt Platzhalter-Kreis
+                assertThat(btnColor.getGraphic()).isNotNull();
+                assertThat(btnColor.getGraphic()).isInstanceOf(javafx.scene.layout.HBox.class);
+                javafx.scene.layout.HBox box = (javafx.scene.layout.HBox) btnColor.getGraphic();
+                LucideIcon chevron = (LucideIcon) box.getChildren().getLast();
+                assertThat(chevron.getName()).isEqualTo("chevron-right");
+                assertThat(LucideIcon.getSvgPathData("chevron-right")).contains("m9 18");
+                assertThat(LucideIcon.getSvgPathData("chevron-right")).doesNotContain("M12 2a10 10");
+
                 assertThat(menu.getColorFlyout()).isNotNull();
                 assertThat(menu.getColorFlyout().getColorSwatches()).hasSize(6);
 
@@ -127,6 +136,11 @@ class TimelineContextMenuTest {
                 double visibleTopCornerY = menu.getY() + 7.0;
                 assertThat(visibleLeftCornerX).isEqualTo(mouseX);
                 assertThat(visibleTopCornerY).isEqualTo(mouseY);
+
+                // Sicherstellen dass die Scene und der Root des Popups transparent sind (kein eckiger Kasten)
+                assertThat(menu.getScene()).isNotNull();
+                assertThat(menu.getScene().getFill()).isEqualTo(javafx.scene.paint.Color.TRANSPARENT);
+                assertThat(menu.getScene().getRoot().getStyle()).contains("-fx-background-color: transparent");
 
                 menu.hide();
                 stage.close();

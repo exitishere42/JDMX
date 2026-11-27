@@ -54,6 +54,8 @@ public class TimelineContextMenu extends Popup {
         setAutoHide(true);
         setHideOnEscape(true);
 
+        setOnShowing(e -> enforceTransparentBackground());
+
         this.root = new VBox(2);
         root.getStyleClass().add("action-menu-popup");
         root.setMinWidth(140);
@@ -138,18 +140,20 @@ public class TimelineContextMenu extends Popup {
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 
         btn.setOnAction(e -> {
-            Bounds bounds = btn.localToScreen(btn.getBoundsInLocal());
-            if (bounds != null && getOwnerWindow() != null) {
-                colorFlyout.showFlyout(getOwnerWindow(), bounds.getMaxX() - 2.0, bounds.getMinY());
+            Bounds rootBounds = root.localToScreen(root.getBoundsInLocal());
+            Bounds btnBounds = btn.localToScreen(btn.getBoundsInLocal());
+            if (rootBounds != null && btnBounds != null && getOwnerWindow() != null) {
+                colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX() + 2.0, btnBounds.getMinY());
             }
         });
 
         btn.setOnMouseEntered(e -> {
             lbl.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 13px;");
             chevron.setColor(Color.web("#F3F4F6"));
-            Bounds bounds = btn.localToScreen(btn.getBoundsInLocal());
-            if (bounds != null && getOwnerWindow() != null) {
-                colorFlyout.showFlyout(getOwnerWindow(), bounds.getMaxX() - 2.0, bounds.getMinY());
+            Bounds rootBounds = root.localToScreen(root.getBoundsInLocal());
+            Bounds btnBounds = btn.localToScreen(btn.getBoundsInLocal());
+            if (rootBounds != null && btnBounds != null && getOwnerWindow() != null) {
+                colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX() + 2.0, btnBounds.getMinY());
             }
         });
 
@@ -298,6 +302,21 @@ public class TimelineContextMenu extends Popup {
             }
 
             show(window, targetX, targetY);
+            enforceTransparentBackground();
+        }
+    }
+
+    /**
+     * Stellt sicher, dass das interne JavaFX-PopupScene-Fenster und dessen Root
+     * vollständig transparent sind, damit Schatten und abgerundete Ecken nicht
+     * durch ein eckiges Fenster-Rechteck überdeckt werden.
+     */
+    private void enforceTransparentBackground() {
+        if (getScene() != null) {
+            getScene().setFill(Color.TRANSPARENT);
+            if (getScene().getRoot() != null) {
+                getScene().getRoot().setStyle("-fx-background-color: transparent !important; -fx-background: transparent !important;");
+            }
         }
     }
 }

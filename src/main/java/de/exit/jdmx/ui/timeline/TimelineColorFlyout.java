@@ -53,6 +53,8 @@ public class TimelineColorFlyout extends Popup {
         setAutoHide(true);
         setHideOnEscape(true);
 
+        setOnShowing(e -> enforceTransparentBackground());
+
         this.root = new VBox(0);
         root.getStyleClass().add("action-menu-popup");
         root.setPadding(new Insets(6));
@@ -263,6 +265,21 @@ public class TimelineColorFlyout extends Popup {
             }
 
             show(window, targetX, targetY);
+            enforceTransparentBackground();
+        }
+    }
+
+    /**
+     * Stellt sicher, dass das interne JavaFX-PopupScene-Fenster und dessen Root
+     * vollständig transparent sind, damit Schatten und abgerundete Ecken nicht
+     * durch ein eckiges Fenster-Rechteck überdeckt werden.
+     */
+    private void enforceTransparentBackground() {
+        if (getScene() != null) {
+            getScene().setFill(Color.TRANSPARENT);
+            if (getScene().getRoot() != null) {
+                getScene().getRoot().setStyle("-fx-background-color: transparent !important; -fx-background: transparent !important;");
+            }
         }
     }
 }

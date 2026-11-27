@@ -112,4 +112,12 @@ class LucideIconTest {
         assertThat(LucideIcon.getSvgPathData("flask-conical")).isNotEqualTo(circleFallback).contains("M10 2v7");
         assertThat(LucideIcon.getSvgPathData("lab")).isNotEqualTo(circleFallback).contains("M10 2v7");
     }
+
+    @Test
+    @DisplayName("Sollte Chevron-Icons (chevron-right, chevron-left) ohne Fallback bereitstellen")
+    void shouldProvideChevronIcons() {
+        String circleFallback = LucideIcon.getSvgPathData("unknown-dummy-name");
+        assertThat(LucideIcon.getSvgPathData("chevron-right")).isNotEqualTo(circleFallback).contains("m9 18");
+        assertThat(LucideIcon.getSvgPathData("chevron-left")).isNotEqualTo(circleFallback).contains("m15 18");
+    }
 }

@@ -75,7 +75,13 @@
     -fx-font-weight: 500;
 }
 
-/* --- Brand Action Dropdown Menü --- */
+/* --- Brand Action Dropdown Menü & Popups --- */
+.popup,
+.popup-root,
+PopupRoot {
+    -fx-background-color: transparent !important;
+    -fx-background: transparent !important;
+}
 .action-menu-popup {
     -fx-background-color: #1E1E1E;
     -fx-border-color: #2E2E2E;
