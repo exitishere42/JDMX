@@ -65,6 +65,15 @@ public class LucideIcon extends StackPane {
     }
 
     /**
+     * Liefert die aktuelle Farbe des Icons.
+     *
+     * @return die {@link Color} des Vektor-Pfads
+     */
+    public Color getColor() {
+        return (Color) svgPath.getStroke();
+    }
+
+    /**
      * Ändert Icon-Name und Farbe.
      *
      * @param name  Neuer Icon-Name

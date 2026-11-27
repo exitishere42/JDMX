@@ -25,6 +25,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.StrokeType;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -1337,15 +1338,21 @@ public class TimelineGridView extends Pane {
 
         boolean active = track.isPlaybackActive();
 
-        // 1. Basis-Rechteck: Solide Farbe, dezente Rundung (arcWidth=4.0, arcHeight=4.0), rahmenlos
+        // 1. Basis-Rechteck: Solide Farbe, dezente Rundung (arcWidth=4.0, arcHeight=4.0)
+        // Bei aktivem Playback: 100% unverfälschte Basisfarbe + gestochen scharfer 1.5px weißer Rahmen (wie Daslight 5)
         String baseHex = track.getColorHex() != null ? track.getColorHex() : "#FACC15";
         Color baseColor = Color.web(baseHex);
-        Color activeColor = baseColor.brighter();
 
         Rectangle bg = new Rectangle(clipW, clipH);
-        bg.setFill(active ? activeColor : baseColor);
-        bg.setStroke(null);
-        bg.setStrokeWidth(0.0);
+        bg.setFill(baseColor);
+        if (active) {
+            bg.setStroke(Color.web("#FFFFFF"));
+            bg.setStrokeWidth(1.5);
+            bg.setStrokeType(StrokeType.INSIDE);
+        } else {
+            bg.setStroke(null);
+            bg.setStrokeWidth(0.0);
+        }
         bg.setArcWidth(4.0);
         bg.setArcHeight(4.0);
 
@@ -1364,17 +1371,28 @@ public class TimelineGridView extends Pane {
         infoBox.setArcHeight(2.0);
 
         // 3. Dauer der Szene im Daslight-Format: "00m08s80" (Minuten, Sekunden, Hundertstelsekunden)
+        // Bei aktivem Playback: Grünes Play-Icon (Lucide 'play', 9px, #10B981) links vor der Zeit
         long totalMs = track.getDurationMs() > 0 ? track.getDurationMs() : 5000L;
         String durStr = formatDaslightDuration(totalMs);
         Text durText = new Text(durStr);
         durText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10.0));
         durText.setFill(Color.web("#FFFFFF"));
-        durText.setLayoutX(infoBoxX + 4.0);
+
+        LucideIcon playIcon = null;
+        double textOffset = 4.0;
+        if (active && clipW >= 32.0) {
+            playIcon = new LucideIcon("play", 9, Color.web("#10B981"));
+            playIcon.setLayoutX(infoBoxX + 4.0);
+            playIcon.setLayoutY(infoBoxY + (infoBoxH * 0.5) - 4.5);
+            textOffset = 16.0;
+        }
+
+        durText.setLayoutX(infoBoxX + textOffset);
         durText.setLayoutY(infoBoxY + (infoBoxH * 0.5) + 3.5);
 
         // Textclip für durText bei sehr schmal gezogenen Clips
-        if (durText.getLayoutBounds().getWidth() > infoBoxW - 6.0) {
-            Rectangle durClip = new Rectangle(Math.max(4.0, infoBoxW - 6.0), infoBoxH);
+        if (durText.getLayoutBounds().getWidth() > infoBoxW - textOffset - 2.0) {
+            Rectangle durClip = new Rectangle(Math.max(4.0, infoBoxW - textOffset - 2.0), infoBoxH);
             durClip.setLayoutX(0);
             durClip.setLayoutY(-infoBoxH * 0.6);
             durClip.setArcWidth(0.0);
@@ -1419,8 +1437,24 @@ public class TimelineGridView extends Pane {
         rightHandle.setArcWidth(2.0);
         rightHandle.setArcHeight(2.0);
 
-        group.getChildren().addAll(bg, infoBox, durText, nameText, leftHandle, rightHandle);
+        if (playIcon != null) {
+            group.getChildren().addAll(bg, infoBox, playIcon, durText, nameText, leftHandle, rightHandle);
+        } else {
+            group.getChildren().addAll(bg, infoBox, durText, nameText, leftHandle, rightHandle);
+        }
         return group;
+    }
+
+    /**
+     * Liefert den gerenderten Szenen-Clip-Knoten für Tests.
+     *
+     * @param track Szenen-Spur
+     * @param clipW Breite des Clips
+     * @param clipH Höhe des Clips
+     * @return die {@link Group} des Szenen-Clips
+     */
+    Group createSceneClipNodeForTest(TimelineTrack track, double clipW, double clipH) {
+        return createSceneClipNode(track, clipW, clipH);
     }
 
     private Image getOrRenderWaveformTile(TimelineTrack track, int totalClipPx, int clipHeightPx, int tileIdx, int tileW) {
