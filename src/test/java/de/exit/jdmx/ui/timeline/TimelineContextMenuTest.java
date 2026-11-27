@@ -132,6 +132,19 @@ class TimelineContextMenuTest {
                 double mouseY = 200.0;
                 menu.showMenu(stage, mouseX, mouseY);
 
+                javafx.geometry.Bounds rootB = menu.getMenuContainer().localToScreen(menu.getMenuContainer().getBoundsInLocal());
+
+                Button btnColor = menu.getItemButton("color");
+                javafx.geometry.Bounds btnB = btnColor.localToScreen(btnColor.getBoundsInLocal());
+                menu.getColorFlyout().showFlyout(stage, rootB.getMaxX(), btnB.getMinY());
+
+                javafx.geometry.Bounds flyoutRootB = menu.getColorFlyout().getMenuContainer().localToScreen(
+                        menu.getColorFlyout().getMenuContainer().getBoundsInLocal());
+                double gapBetweenMenus = flyoutRootB.getMinX() - rootB.getMaxX();
+                // Minimaler, perfekter Studio-Abstand von exakt 2px
+                assertThat(gapBetweenMenus).isCloseTo(2.0, org.assertj.core.data.Offset.offset(0.5));
+                menu.getColorFlyout().hide();
+
                 double visibleLeftCornerX = menu.getX() + 15.0;
                 double visibleTopCornerY = menu.getY() + 7.0;
                 assertThat(visibleLeftCornerX).isEqualTo(mouseX);

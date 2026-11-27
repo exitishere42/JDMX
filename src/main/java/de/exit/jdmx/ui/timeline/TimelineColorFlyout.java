@@ -150,6 +150,15 @@ public class TimelineColorFlyout extends Popup {
     }
 
     /**
+     * Liefert den Haupt-Container des Flyouts.
+     *
+     * @return die {@link VBox}-Wurzel
+     */
+    public VBox getMenuContainer() {
+        return root;
+    }
+
+    /**
      * Ermittelt anhand der WCAG-Relativluminanz, ob eine Farbe hell ist.
      * <p>
      * Helle Farben (wie Gelb oder Cyan) erfordern schwarzen Text für optimalen Kontrast,
@@ -242,11 +251,9 @@ public class TimelineColorFlyout extends Popup {
             root.applyCss();
             root.layout();
 
-            double shadowOffsetX = 15.0;
-            double shadowOffsetY = 7.0;
-
-            double targetX = anchorScreenX - shadowOffsetX;
-            double targetY = anchorScreenY - shadowOffsetY;
+            // Minimaler, eleganter Studio-Abstand von 2px direkt neben dem Hauptmenü
+            double targetX = anchorScreenX + 2.0;
+            double targetY = anchorScreenY;
 
             // Bildschirmgrenzen-Prüfung: Falls rechts kein Platz ist, links neben dem Menü öffnen
             javafx.stage.Screen screen = javafx.stage.Screen.getScreensForRectangle(anchorScreenX, anchorScreenY, 1, 1).stream()
@@ -257,10 +264,10 @@ public class TimelineColorFlyout extends Popup {
                 double flyoutW = 120.0;
                 double flyoutH = 80.0;
                 if (anchorScreenX + flyoutW > bounds.getMaxX()) {
-                    targetX = anchorScreenX - flyoutW - 140.0 + shadowOffsetX;
+                    targetX = anchorScreenX - flyoutW - 144.0;
                 }
                 if (anchorScreenY + flyoutH > bounds.getMaxY()) {
-                    targetY = anchorScreenY - flyoutH + shadowOffsetY;
+                    targetY = anchorScreenY - flyoutH + 30.0;
                 }
             }
 

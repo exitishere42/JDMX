@@ -143,7 +143,7 @@ public class TimelineContextMenu extends Popup {
             Bounds rootBounds = root.localToScreen(root.getBoundsInLocal());
             Bounds btnBounds = btn.localToScreen(btn.getBoundsInLocal());
             if (rootBounds != null && btnBounds != null && getOwnerWindow() != null) {
-                colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX() + 2.0, btnBounds.getMinY());
+                colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX(), btnBounds.getMinY());
             }
         });
 
@@ -153,7 +153,7 @@ public class TimelineContextMenu extends Popup {
             Bounds rootBounds = root.localToScreen(root.getBoundsInLocal());
             Bounds btnBounds = btn.localToScreen(btn.getBoundsInLocal());
             if (rootBounds != null && btnBounds != null && getOwnerWindow() != null) {
-                colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX() + 2.0, btnBounds.getMinY());
+                colorFlyout.showFlyout(getOwnerWindow(), rootBounds.getMaxX(), btnBounds.getMinY());
             }
         });
 
@@ -220,6 +220,15 @@ public class TimelineContextMenu extends Popup {
      */
     public void setOnAction(String key, Runnable action) {
         this.actions.put(key, action);
+    }
+
+    /**
+     * Liefert den Haupt-Container des Kontextmenüs.
+     *
+     * @return die {@link VBox}-Wurzel
+     */
+    public VBox getMenuContainer() {
+        return root;
     }
 
     /**
