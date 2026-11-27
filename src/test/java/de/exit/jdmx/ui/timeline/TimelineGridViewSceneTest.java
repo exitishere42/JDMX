@@ -84,4 +84,17 @@ class TimelineGridViewSceneTest {
         assertThat(TimelineGridView.formatDaslightDuration(0L)).isEqualTo("00m00s00");
         assertThat(TimelineGridView.formatDaslightDuration(-500L)).isEqualTo("00m00s00");
     }
+
+    @Test
+    @DisplayName("Sollte Szenen-Clips mit benutzerdefinierter Farbe rendern")
+    void shouldRenderSceneClipWithCustomColor() {
+        TimelineService service = new TimelineService();
+        TimelineGridView grid = new TimelineGridView(service);
+
+        TimelineTrack track = service.addSceneTrack("scene-color", "Color Test", 0L, 5000L);
+        track.setColorHex("#38BDF8");
+
+        grid.redraw();
+        assertThat(track.getColorHex()).isEqualTo("#38BDF8");
+    }
 }

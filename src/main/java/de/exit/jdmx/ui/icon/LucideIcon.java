@@ -370,6 +370,9 @@ public class LucideIcon extends StackPane {
             case "send" ->
                 // Lucide send
                 "m22 2-7 20-4-9-9-4ZM22 2 11 13";
+            case "flask", "flask-conical", "lab", "test-tube" ->
+                // Lucide flask-conical
+                "M10 2v7.31L4.75 20.5A2 2 0 0 0 6.5 23h11a2 2 0 0 0 1.75-2.5L14 9.31V2 M8.5 2h7 M14 9.3a6.5 6.5 0 0 0-4 0";
             case "circle" ->
                 // Lucide circle
                 "M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z";

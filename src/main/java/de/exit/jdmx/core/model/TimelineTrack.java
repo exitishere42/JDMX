@@ -75,6 +75,9 @@ public class TimelineTrack {
     /** Ob diese Spur aktuell aktiv vom Playhead befeuert wird. */
     private boolean playbackActive = false;
 
+    /** Benutzerdefinierte Farbe des Clips als Hex-Code (z. B. "#38BDF8"), oder {@code null} für Standard. */
+    private String colorHex;
+
     /**
      * Erstellt einen neuen ungemuteten Timeline-Track mit Standardhöhe.
      *
@@ -431,6 +434,24 @@ public class TimelineTrack {
      */
     public void setPlaybackActive(boolean playbackActive) {
         this.playbackActive = playbackActive;
+    }
+
+    /**
+     * Liefert die benutzerdefinierte Farbe des Clips als Hex-Code.
+     *
+     * @return Hex-Farbcode (z. B. "#38BDF8") oder {@code null} für Standardfarbe
+     */
+    public String getColorHex() {
+        return colorHex;
+    }
+
+    /**
+     * Setzt die benutzerdefinierte Farbe des Clips als Hex-Code.
+     *
+     * @param colorHex Hex-Farbcode (z. B. "#38BDF8") oder {@code null} zum Zurücksetzen
+     */
+    public void setColorHex(String colorHex) {
+        this.colorHex = colorHex;
     }
 
     @Override

@@ -75,6 +75,19 @@ class TimelineTrackTest {
     }
 
     @Test
+    @DisplayName("Sollte Clip-Farbe speichern und abrufen")
+    void shouldManageClipColor() {
+        TimelineTrack track = new TimelineTrack("track-1", "Track 1");
+        assertThat(track.getColorHex()).isNull();
+
+        track.setColorHex("#38BDF8");
+        assertThat(track.getColorHex()).isEqualTo("#38BDF8");
+
+        track.setColorHex(null);
+        assertThat(track.getColorHex()).isNull();
+    }
+
+    @Test
     @DisplayName("Sollte equals und hashCode basierend auf ID vergleichen")
     void shouldCompareEqualsAndHashCodeById() {
         TimelineTrack track1 = new TimelineTrack("track-1", "Track 1");

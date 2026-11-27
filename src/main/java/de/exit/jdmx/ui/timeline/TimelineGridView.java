@@ -13,8 +13,6 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -133,6 +131,9 @@ public class TimelineGridView extends Pane {
 
     /** Optionale geglättete Playhead-Position (ms) für VSync-Rendering ohne 20ms-Stufen. */
     private long activeRenderPositionMs = -1L;
+
+    /** Benutzerdefiniertes Studio-Kontextmenü für die Timeline. */
+    private final TimelineContextMenu timelineContextMenu = new TimelineContextMenu();
 
     /** Interaktions-Modus beim Ziehen von Clips mit der Maus. */
     public enum ClipDragMode {
@@ -641,31 +642,43 @@ public class TimelineGridView extends Pane {
         applyGpuFrame(smoothedPositionMs);
     }
 
+    /**
+     * Richtet das benutzerdefinierte Timeline-Kontextmenü ein.
+     */
     private void setupContextMenu() {
-        ContextMenu contextMenu = new ContextMenu();
-
-        MenuItem itemAssign = new MenuItem("Song zuweisen...");
-        MenuItem itemAddTrack = new MenuItem("Track hinzufügen");
-
-        contextMenu.getItems().addAll(itemAssign, itemAddTrack);
+        timelineContextMenu.setOnAction("test", () -> {
+            AppLogger.info("[TIMELINE] Test-Aktion aus benutzerdefiniertem Kontextmenü ausgelöst.");
+        });
 
         setOnContextMenuRequested(e -> {
-            int trackIdx = getTrackIndexAtY(e.getY());
-            List<TimelineTrack> tracks = service.getTracks();
-            if (trackIdx >= 0 && trackIdx < tracks.size()) {
-                TimelineTrack targetTrack = tracks.get(trackIdx);
-                itemAssign.setText("Song zuweisen zu '" + targetTrack.getName() + "'...");
-                itemAssign.setOnAction(ev -> handleAssignSongViaChooser(targetTrack));
-            } else {
-                itemAssign.setText("Song zuweisen...");
-                itemAssign.setOnAction(ev -> {
-                    TimelineTrack newTrack = service.addTrack();
-                    handleAssignSongViaChooser(newTrack);
-                });
+            if (getScene() != null && getScene().getWindow() != null) {
+                double worldX = toWorldX(e.getX());
+                double worldY = toWorldY(e.getY());
+                TimelineTrack hitTrack = findClipTrackAt(worldX, worldY);
+                boolean isSceneClip = hitTrack != null && hitTrack.hasScene();
+                timelineContextMenu.setSceneActionsVisible(isSceneClip);
+
+                if (isSceneClip) {
+                    timelineContextMenu.setCurrentColorHex(hitTrack.getColorHex());
+                    timelineContextMenu.setOnColorSelected(selectedColor -> {
+                        service.setTrackClipColor(hitTrack.getId(), selectedColor);
+                        waveformLayerDirty = true;
+                        redraw();
+                    });
+                }
+
+                timelineContextMenu.showMenu(getScene().getWindow(), e.getScreenX(), e.getScreenY());
             }
-            itemAddTrack.setOnAction(ev -> service.addTrack());
-            contextMenu.show(this, e.getScreenX(), e.getScreenY());
         });
+    }
+
+    /**
+     * Liefert das benutzerdefinierte Kontextmenü der Timeline.
+     *
+     * @return die {@link TimelineContextMenu}-Instanz
+     */
+    public TimelineContextMenu getTimelineContextMenu() {
+        return timelineContextMenu;
     }
 
     private void handleAssignSongViaChooser(TimelineTrack targetTrack) {
@@ -1324,9 +1337,13 @@ public class TimelineGridView extends Pane {
 
         boolean active = track.isPlaybackActive();
 
-        // 1. Basis-Rechteck: Solides Gelb, dezente Rundung (arcWidth=4.0, arcHeight=4.0), rahmenlos
+        // 1. Basis-Rechteck: Solide Farbe, dezente Rundung (arcWidth=4.0, arcHeight=4.0), rahmenlos
+        String baseHex = track.getColorHex() != null ? track.getColorHex() : "#FACC15";
+        Color baseColor = Color.web(baseHex);
+        Color activeColor = baseColor.brighter();
+
         Rectangle bg = new Rectangle(clipW, clipH);
-        bg.setFill(active ? Color.web("#FEF08A") : Color.web("#FACC15"));
+        bg.setFill(active ? activeColor : baseColor);
         bg.setStroke(null);
         bg.setStrokeWidth(0.0);
         bg.setArcWidth(4.0);
@@ -1365,11 +1382,12 @@ public class TimelineGridView extends Pane {
             durText.setClip(durClip);
         }
 
-        // 4. Name der Szene: Obendrüber im gelben Bereich, über der Sekundenzahl, links mittig angeordnet in schwarzer Schrift
+        // 4. Name der Szene: Obendrüber im farbigen Bereich, über der Sekundenzahl, links mittig angeordnet
         String nameStr = track.getSceneName() != null ? track.getSceneName() : track.getName();
         Text nameText = new Text(nameStr);
         nameText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12.0));
-        nameText.setFill(Color.web("#000000"));
+        boolean isBright = TimelineColorFlyout.isBrightColor(baseHex);
+        nameText.setFill(isBright ? Color.web("#000000") : Color.web("#FFFFFF"));
         nameText.setLayoutX(padding + 4.0);
 
         // Vertikal zentriert in der oberen gelben Fläche (zwischen 0 und infoBoxY)

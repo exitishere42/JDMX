@@ -103,4 +103,13 @@ class LucideIconTest {
         LucideIcon pauseIcon = new LucideIcon("pause", 14, Color.web("#F59E0B"));
         assertThat(pauseIcon.getSvgPath().getFill()).isEqualTo(Color.web("#F59E0B"));
     }
+
+    @Test
+    @DisplayName("Sollte Labor-Icon (flask, lab) ohne Fallback bereitstellen")
+    void shouldProvideFlaskLabIcon() {
+        String circleFallback = LucideIcon.getSvgPathData("unknown-dummy-name");
+        assertThat(LucideIcon.getSvgPathData("flask")).isNotEqualTo(circleFallback).contains("M10 2v7");
+        assertThat(LucideIcon.getSvgPathData("flask-conical")).isNotEqualTo(circleFallback).contains("M10 2v7");
+        assertThat(LucideIcon.getSvgPathData("lab")).isNotEqualTo(circleFallback).contains("M10 2v7");
+    }
 }

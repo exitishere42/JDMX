@@ -660,6 +660,23 @@ public class TimelineService {
     }
 
     /**
+     * Ändert die Hintergrundfarbe eines Timeline-Clips.
+     *
+     * @param trackId  ID der Zielspur
+     * @param colorHex Hex-Farbcode (z. B. "#38BDF8") oder {@code null} zum Zurücksetzen
+     * @return {@code true}, wenn die Spur gefunden und aktualisiert wurde; sonst {@code false}
+     */
+    public boolean setTrackClipColor(String trackId, String colorHex) {
+        Optional<TimelineTrack> trackOpt = findTrackById(trackId);
+        if (trackOpt.isPresent()) {
+            trackOpt.get().setColorHex(colorHex);
+            notifyChange();
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Verlängert oder verkürzt einen Clip an der rechten Kante (Endzeitpunkt).
      *
      * @param trackId      ID der Zielspur

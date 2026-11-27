@@ -230,4 +230,23 @@ class TimelineServiceTest {
         // Sofortiger Resync bei Stop
         assertThatCode(() -> service.resyncTrackImmediate(track1.getId())).doesNotThrowAnyException();
     }
+
+    @Test
+    @DisplayName("Sollte Track-Clip-Farbe setzen und Listener benachrichtigen")
+    void shouldSetTrackClipColorAndNotifyListeners() {
+        TimelineService service = new TimelineService();
+        TimelineTrack track1 = service.getTracks().get(0);
+
+        final boolean[] notified = new boolean[]{false};
+        service.addChangeListener(() -> notified[0] = true);
+
+        boolean updated = service.setTrackClipColor(track1.getId(), "#38BDF8");
+        assertThat(updated).isTrue();
+        assertThat(track1.getColorHex()).isEqualTo("#38BDF8");
+        assertThat(notified[0]).isTrue();
+
+        // Ungültige ID
+        boolean notFound = service.setTrackClipColor("unknown-id", "#EF4444");
+        assertThat(notFound).isFalse();
+    }
 }

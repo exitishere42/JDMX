@@ -1,0 +1,140 @@
+package de.exit.jdmx.ui.timeline;
+
+import de.exit.jdmx.ui.icon.LucideIcon;
+import javafx.application.Platform;
+import javafx.scene.control.Button;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * TDD Unit-Tests für das benutzerdefinierte Timeline-Kontextmenü {@link TimelineContextMenu}.
+ * <p>
+ * Überprüft das Vorhandensein des Test-Buttons mit Labor-Icon ("flask")
+ * sowie das Schließen und Ausführen von Aktionen.
+ * </p>
+ */
+class TimelineContextMenuTest {
+
+    @BeforeAll
+    static void initJavaFx() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        try {
+            Platform.startup(() -> {
+                Platform.setImplicitExit(false);
+                latch.countDown();
+            });
+        } catch (IllegalStateException e) {
+            Platform.setImplicitExit(false);
+            latch.countDown();
+        }
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte Test-Button mit Labor-Icon (flask) initialisieren und Klickaktion ausführen")
+    void shouldInitializeTestButtonWithLabIconAndTriggerAction() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                TimelineContextMenu menu = new TimelineContextMenu();
+
+                Button btnTest = menu.getItemButton("test");
+                assertThat(btnTest).isNotNull();
+                assertThat(btnTest.getText()).isEqualTo("Test");
+                assertThat(btnTest.getStyleClass()).contains("action-menu-item");
+
+                assertThat(btnTest.getGraphic()).isInstanceOf(LucideIcon.class);
+                LucideIcon icon = (LucideIcon) btnTest.getGraphic();
+                assertThat(icon.getName()).isEqualTo("flask");
+
+                AtomicBoolean actionExecuted = new AtomicBoolean(false);
+                menu.setOnAction("test", () -> actionExecuted.set(true));
+
+                btnTest.fire();
+                assertThat(actionExecuted.get()).isTrue();
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte Farbe-Button mit Palette- und Chevron-Icon initialisieren und Flyout bereitstellen")
+    void shouldInitializeColorButtonWithPaletteAndFlyout() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                TimelineContextMenu menu = new TimelineContextMenu();
+
+                Button btnColor = menu.getItemButton("color");
+                assertThat(btnColor).isNotNull();
+                assertThat(btnColor.getText()).isEqualTo("Farbe");
+                assertThat(btnColor.getStyleClass()).contains("action-menu-item");
+
+                assertThat(menu.getColorFlyout()).isNotNull();
+                assertThat(menu.getColorFlyout().getColorSwatches()).hasSize(6);
+
+                AtomicReference<String> pickedColor = new AtomicReference<>();
+                menu.setOnColorSelected(pickedColor::set);
+
+                // Klick auf das zweite Farbfeld im Flyout (Cyan)
+                menu.getColorFlyout().getColorSwatches().get(1).fire();
+                assertThat(pickedColor.get()).isEqualTo("#38BDF8");
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Sollte TimelineContextMenu in TimelineGridView bereitstellen und linke obere Ecke am Mauszeiger positionieren")
+    void shouldProvideTimelineContextMenuInGridViewAndPositionAtCursor() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            try {
+                de.exit.jdmx.service.TimelineService service = new de.exit.jdmx.service.TimelineService();
+                TimelineGridView gridView = new TimelineGridView(service);
+                assertThat(gridView.getTimelineContextMenu()).isNotNull();
+                assertThat(gridView.getTimelineContextMenu().getItemButton("test")).isNotNull();
+
+                javafx.stage.Stage stage = new javafx.stage.Stage();
+                javafx.scene.Scene scene = new javafx.scene.Scene(gridView, 400, 300);
+                scene.getStylesheets().add(getClass().getResource("/de/exit/jdmx/styles/studio-dark.css").toExternalForm());
+                stage.setScene(scene);
+                stage.show();
+
+                TimelineContextMenu menu = gridView.getTimelineContextMenu();
+                double mouseX = 150.0;
+                double mouseY = 200.0;
+                menu.showMenu(stage, mouseX, mouseY);
+
+                double visibleLeftCornerX = menu.getX() + 15.0;
+                double visibleTopCornerY = menu.getY() + 7.0;
+                assertThat(visibleLeftCornerX).isEqualTo(mouseX);
+                assertThat(visibleTopCornerY).isEqualTo(mouseY);
+
+                menu.hide();
+                stage.close();
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+    }
+}
