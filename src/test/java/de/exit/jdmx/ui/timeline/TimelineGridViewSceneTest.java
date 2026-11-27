@@ -104,7 +104,7 @@ class TimelineGridViewSceneTest {
     }
 
     @Test
-    @DisplayName("Sollte inaktiven Szenen-Clip ohne Rahmen und ohne Play-Icon rendern")
+    @DisplayName("Sollte inaktiven Szenen-Clip mit 4px Rundung (arc=8), eckiger Infobox und ohne Rahmen rendern")
     void shouldRenderInactiveSceneClipWithoutBorderAndWithoutPlayIcon() {
         TimelineService service = new TimelineService();
         TimelineGridView grid = new TimelineGridView(service);
@@ -120,14 +120,22 @@ class TimelineGridViewSceneTest {
         assertThat(bg.getFill()).isEqualTo(Color.web("#EC4899"));
         assertThat(bg.getStroke()).isNull();
         assertThat(bg.getStrokeWidth()).isEqualTo(0.0);
+        // r = 4px Rundung (arc = 8.0)
+        assertThat(bg.getArcWidth()).isEqualTo(8.0);
+        assertThat(bg.getArcHeight()).isEqualTo(8.0);
+
+        // Eckige transparente Infobox ohne Abrundung
+        Rectangle infoBox = (Rectangle) node.getChildren().get(1);
+        assertThat(infoBox.getArcWidth()).isEqualTo(0.0);
+        assertThat(infoBox.getArcHeight()).isEqualTo(0.0);
 
         boolean hasPlayIcon = node.getChildren().stream().anyMatch(c -> c instanceof LucideIcon);
         assertThat(hasPlayIcon).isFalse();
     }
 
     @Test
-    @DisplayName("Sollte aktiven Szenen-Clip mit weißem 1.5px Rahmen, unverfälschter Farbe und grünem Play-Icon rendern")
-    void shouldRenderActiveSceneClipWithWhiteBorderAndPlayIcon() {
+    @DisplayName("Sollte aktiven Szenen-Clip mit 4px Rundung (arc=8), weißem 1.5px Rahmen, eckiger Infobox und ohne Play-Icon rendern")
+    void shouldRenderActiveSceneClipWithWhiteBorderAndCleanInfoBox() {
         TimelineService service = new TimelineService();
         TimelineGridView grid = new TimelineGridView(service);
 
@@ -141,20 +149,20 @@ class TimelineGridViewSceneTest {
         Rectangle bg = (Rectangle) node.getChildren().get(0);
         // Originalfarbe muss 100% unverfälscht erhalten bleiben (kein Aufhellen)
         assertThat(bg.getFill()).isEqualTo(Color.web("#38BDF8"));
-        // Gestochen scharfer weißer Rahmen
+        // Gestochen scharfer weißer Rahmen mit 4px Rundung
         assertThat(bg.getStroke()).isEqualTo(Color.web("#FFFFFF"));
         assertThat(bg.getStrokeWidth()).isEqualTo(1.5);
         assertThat(bg.getStrokeType()).isEqualTo(StrokeType.INSIDE);
+        assertThat(bg.getArcWidth()).isEqualTo(8.0);
+        assertThat(bg.getArcHeight()).isEqualTo(8.0);
 
-        // Grünes Play-Icon in der Statusleiste
-        LucideIcon playIcon = node.getChildren().stream()
-                .filter(c -> c instanceof LucideIcon)
-                .map(c -> (LucideIcon) c)
-                .findFirst()
-                .orElse(null);
+        // Eckige transparente Infobox ohne Abrundung
+        Rectangle infoBox = (Rectangle) node.getChildren().get(1);
+        assertThat(infoBox.getArcWidth()).isEqualTo(0.0);
+        assertThat(infoBox.getArcHeight()).isEqualTo(0.0);
 
-        assertThat(playIcon).isNotNull();
-        assertThat(playIcon.getName()).isEqualTo("play");
-        assertThat(playIcon.getColor()).isEqualTo(Color.web("#10B981"));
+        // Kein Play-Icon mehr (ruhiges, cleanes Schriftbild)
+        boolean hasPlayIcon = node.getChildren().stream().anyMatch(c -> c instanceof LucideIcon);
+        assertThat(hasPlayIcon).isFalse();
     }
 }

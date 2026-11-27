@@ -1338,8 +1338,8 @@ public class TimelineGridView extends Pane {
 
         boolean active = track.isPlaybackActive();
 
-        // 1. Basis-Rechteck: Solide Farbe, dezente Rundung (arcWidth=4.0, arcHeight=4.0)
-        // Bei aktivem Playback: 100% unverfälschte Basisfarbe + gestochen scharfer 1.5px weißer Rahmen (wie Daslight 5)
+        // 1. Basis-Rechteck: Solide Farbe, organische 4px Rundung (arcWidth=8.0, arcHeight=8.0)
+        // Bei aktivem Playback: 100% unverfälschte Basisfarbe + gestochen scharfer 1.5px weißer Rahmen
         String baseHex = track.getColorHex() != null ? track.getColorHex() : "#FACC15";
         Color baseColor = Color.web(baseHex);
 
@@ -1353,10 +1353,11 @@ public class TimelineGridView extends Pane {
             bg.setStroke(null);
             bg.setStrokeWidth(0.0);
         }
-        bg.setArcWidth(4.0);
-        bg.setArcHeight(4.0);
+        bg.setArcWidth(8.0);
+        bg.setArcHeight(8.0);
 
         // 2. Unterer schwarzer Kasten: 60% Deckkraft (Alpha 0.60), Höhe ca. 36% von clipH, dezenter 1.5px Randabstand
+        // Bewusst eckig ohne Abrundung (arc=0.0) für ein sauberes, technisches Layout
         double padding = 1.5;
         double infoBoxH = Math.max(14.0, clipH * 0.36);
         double infoBoxW = Math.max(10.0, clipW - (padding * 2.0));
@@ -1367,32 +1368,21 @@ public class TimelineGridView extends Pane {
         infoBox.setLayoutX(infoBoxX);
         infoBox.setLayoutY(infoBoxY);
         infoBox.setFill(Color.rgb(0, 0, 0, 0.60));
-        infoBox.setArcWidth(2.0);
-        infoBox.setArcHeight(2.0);
+        infoBox.setArcWidth(0.0);
+        infoBox.setArcHeight(0.0);
 
         // 3. Dauer der Szene im Daslight-Format: "00m08s80" (Minuten, Sekunden, Hundertstelsekunden)
-        // Bei aktivem Playback: Grünes Play-Icon (Lucide 'play', 9px, #10B981) links vor der Zeit
         long totalMs = track.getDurationMs() > 0 ? track.getDurationMs() : 5000L;
         String durStr = formatDaslightDuration(totalMs);
         Text durText = new Text(durStr);
         durText.setFont(Font.font("Segoe UI", FontWeight.BOLD, 10.0));
         durText.setFill(Color.web("#FFFFFF"));
-
-        LucideIcon playIcon = null;
-        double textOffset = 4.0;
-        if (active && clipW >= 32.0) {
-            playIcon = new LucideIcon("play", 9, Color.web("#10B981"));
-            playIcon.setLayoutX(infoBoxX + 4.0);
-            playIcon.setLayoutY(infoBoxY + (infoBoxH * 0.5) - 4.5);
-            textOffset = 16.0;
-        }
-
-        durText.setLayoutX(infoBoxX + textOffset);
+        durText.setLayoutX(infoBoxX + 4.0);
         durText.setLayoutY(infoBoxY + (infoBoxH * 0.5) + 3.5);
 
         // Textclip für durText bei sehr schmal gezogenen Clips
-        if (durText.getLayoutBounds().getWidth() > infoBoxW - textOffset - 2.0) {
-            Rectangle durClip = new Rectangle(Math.max(4.0, infoBoxW - textOffset - 2.0), infoBoxH);
+        if (durText.getLayoutBounds().getWidth() > infoBoxW - 6.0) {
+            Rectangle durClip = new Rectangle(Math.max(4.0, infoBoxW - 6.0), infoBoxH);
             durClip.setLayoutX(0);
             durClip.setLayoutY(-infoBoxH * 0.6);
             durClip.setArcWidth(0.0);
@@ -1437,11 +1427,7 @@ public class TimelineGridView extends Pane {
         rightHandle.setArcWidth(2.0);
         rightHandle.setArcHeight(2.0);
 
-        if (playIcon != null) {
-            group.getChildren().addAll(bg, infoBox, playIcon, durText, nameText, leftHandle, rightHandle);
-        } else {
-            group.getChildren().addAll(bg, infoBox, durText, nameText, leftHandle, rightHandle);
-        }
+        group.getChildren().addAll(bg, infoBox, durText, nameText, leftHandle, rightHandle);
         return group;
     }
 
