@@ -66,6 +66,10 @@ class UpdateServiceTest {
         // Wenn remote neuer ist als lokal -> true
         assertThat(UpdateService.isSnapshotNewer(newerTimestamp, olderTimestamp, "0.36.0-SNAPSHOT")).isTrue();
 
+        // Wenn remote und lokal derselbe Build sind (z. B. 30s Verzögerung bei GitHub Publish) -> false
+        String sameBuildTimestamp = "2026-11-28T10:00:30Z";
+        assertThat(UpdateService.isSnapshotNewer(sameBuildTimestamp, olderTimestamp, "0.36.0-SNAPSHOT")).isFalse();
+
         // Wenn remote älter ist als lokal -> false
         assertThat(UpdateService.isSnapshotNewer(olderTimestamp, newerTimestamp, "0.36.0-SNAPSHOT")).isFalse();
 

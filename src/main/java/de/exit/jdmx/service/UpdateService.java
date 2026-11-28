@@ -264,7 +264,8 @@ public class UpdateService {
         try {
             Instant remoteTime = Instant.parse(publishedAt);
             Instant localTime = Instant.parse(localTimestamp);
-            return remoteTime.isAfter(localTime);
+            long secondsDiff = Duration.between(localTime, remoteTime).toSeconds();
+            return secondsDiff > 300;
         } catch (Exception e) {
             return false;
         }
@@ -395,6 +396,8 @@ public class UpdateService {
                 if (!isWindows) {
                     // Linux / macOS: Direktes Ersetzen möglich
                     statusCallback.accept("Wende Update an...");
+                    Files.copy(tempJar.toPath(), new File(installDir, "jdmx.jar").toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(tempJar.toPath(), new File(installDir, "jdmx-snapshot-all.jar").toPath(), StandardCopyOption.REPLACE_EXISTING);
                     Files.move(tempJar.toPath(), targetJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
                     File runSh = new File(installDir, "run.sh");
@@ -402,7 +405,7 @@ public class UpdateService {
                         String runScriptContent = "#!/usr/bin/env bash\n" +
                                 "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n" +
                                 "cd \"$SCRIPT_DIR\"\n" +
-                                "exec java -jar \"$SCRIPT_DIR/" + targetJar.getName() + "\" \"$@\"\n";
+                                "exec java -jar \"$SCRIPT_DIR/jdmx.jar\" \"$@\"\n";
                         Files.writeString(runSh.toPath(), runScriptContent);
                         runSh.setExecutable(true);
                         statusCallback.accept("Starte jdmx neu...");
@@ -415,22 +418,26 @@ public class UpdateService {
                 } else {
                     // Windows: Bypassen der Dateisperre über update-runner.bat
                     statusCallback.accept("Bereite Neustart vor...");
-                    String runningJar = (codeSource != null && codeSource.isFile()) ? codeSource.getName() : "jdmx-*.jar";
+                    String runningJar = (codeSource != null && codeSource.isFile()) ? codeSource.getName() : "jdmx.jar";
                     File updateBat = new File(installDir, "update-runner.bat");
                     String batContent = "@echo off\r\n" +
                             "chcp 65001 >nul 2>&1\r\n" +
                             "timeout /t 1 /nobreak >nul\r\n" +
                             ":wait\r\n" +
-                            "del \"%~dp0jdmx-*-all.jar\" >nul 2>&1\r\n" +
+                            "del /f /q \"%~dp0" + runningJar + "\" >nul 2>&1\r\n" +
                             "if exist \"%~dp0" + runningJar + "\" (\r\n" +
                             "    timeout /t 1 /nobreak >nul\r\n" +
                             "    goto wait\r\n" +
                             ")\r\n" +
+                            "del /f /q \"%~dp0jdmx.jar\" >nul 2>&1\r\n" +
+                            "del /f /q \"%~dp0jdmx-*-all.jar\" >nul 2>&1\r\n" +
+                            "copy /y \"%~dp0jdmx-update.jar\" \"%~dp0jdmx.jar\" >nul 2>&1\r\n" +
+                            "copy /y \"%~dp0jdmx-update.jar\" \"%~dp0jdmx-snapshot-all.jar\" >nul 2>&1\r\n" +
                             "move /y \"%~dp0jdmx-update.jar\" \"%~dp0" + targetJar.getName() + "\" >nul 2>&1\r\n" +
                             "if exist \"%~dp0run.bat\" (\r\n" +
                             "    start \"\" \"%~dp0run.bat\"\r\n" +
                             ") else (\r\n" +
-                            "    start \"\" javaw -jar \"%~dp0" + targetJar.getName() + "\"\r\n" +
+                            "    start \"\" javaw -jar \"%~dp0jdmx.jar\"\r\n" +
                             ")\r\n" +
                             "del \"%~f0\"\r\n";
 
