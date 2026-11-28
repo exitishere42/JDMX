@@ -47,14 +47,14 @@ class UpdateServiceTest {
     }
 
     @Test
-    @DisplayName("Sollte Version 0.36.0-SNAPSHOT präzise mit Releases vergleichen")
+    @DisplayName("Sollte Version mit SNAPSHOT-Endung präzise mit Releases vergleichen")
     void shouldNotConsiderSameOrOlderVersionAsNewer() {
-        assertThat(UpdateService.isVersionNewer("v0.35.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v0.34.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v0.36.0", UpdateService.CURRENT_VERSION)).isFalse();
-        assertThat(UpdateService.isVersionNewer("v0.36.1", UpdateService.CURRENT_VERSION)).isTrue();
-        assertThat(UpdateService.isVersionNewer("v0.37.0", UpdateService.CURRENT_VERSION)).isTrue();
-        assertThat(UpdateService.isVersionNewer("v1.0.0", UpdateService.CURRENT_VERSION)).isTrue();
+        assertThat(UpdateService.isVersionNewer("v0.35.0", "0.36.0-SNAPSHOT")).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.34.0", "0.36.0-SNAPSHOT")).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.36.0", "0.36.0-SNAPSHOT")).isFalse();
+        assertThat(UpdateService.isVersionNewer("v0.36.1", "0.36.0-SNAPSHOT")).isTrue();
+        assertThat(UpdateService.isVersionNewer("v0.37.0", "0.36.0-SNAPSHOT")).isTrue();
+        assertThat(UpdateService.isVersionNewer("v1.0.0", "0.36.0-SNAPSHOT")).isTrue();
     }
 
     @Test
