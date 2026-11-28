@@ -1299,6 +1299,15 @@ PopupRoot {
     -fx-padding: 18px 24px;
 }
 
+.io-hardware-card {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: #2E2E2E;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 16px 18px;
+}
+
 .io-docks-split {
     -fx-background-color: transparent;
     -fx-padding: 0;

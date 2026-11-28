@@ -206,8 +206,8 @@ public class LucideIcon extends StackPane {
                 // Lucide cable
                 "M4 12v6 M16 12v6 M8 12v2 M12 12v2 M3 18h18 M18 6h-4a2 2 0 0 0-2 2v4 M6 6h4a2 2 0 0 1 2 2v4";
             case "usb" ->
-                // Lucide usb
-                "M12 2v10 M12 12l4-4 M12 12l-4-4 M5 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M19 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M12 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M7 8h3 M14 8h3 M12 14v4";
+                // Offizielles Lucide USB Vektor-Icon
+                "M4.7 19.3L19 5 M21 3l-3 1 2 2Z M9.26 7.68L5 12l2 5 M10 14l5 2 3.5-3.5 M18 12l1-1 1 1-1 1Z M10 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z M4 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z";
             case "cpu", "microchip" ->
                 // Lucide cpu
                 "M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M9 9h6v6H9z M9 1v3 M15 1v3 M9 20v3 M15 20v3 M20 9h3 M20 14h3 M1 9h3 M1 14h3";

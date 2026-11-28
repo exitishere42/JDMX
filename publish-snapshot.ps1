@@ -14,40 +14,26 @@ Copy-Item $jar.FullName ".\jdmx-snapshot-all.jar" -Force
 
 Write-Host "[*] Aktualisiere GitHub Snapshot Release..." -ForegroundColor Cyan
 
-# Pruefen ob Snapshot-Release bereits existiert
-$releaseExists = $false
+Write-Host "[*] Bereite GitHub Snapshot Release vor (Cache-Refresh)..." -ForegroundColor Cyan
 try {
-    gh release view snapshot >$null 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        $releaseExists = $true
-    }
+    gh release delete snapshot -y 2>$null
+    git tag -d snapshot 2>$null
+    git push origin :refs/tags/snapshot 2>$null
 } catch {}
 
-if ($releaseExists) {
-    gh release upload snapshot `
-        ".\jdmx-snapshot-all.jar" `
-        $jar.FullName `
-        "install.bat" `
-        "install.sh" `
-        "uninstall.bat" `
-        "uninstall.sh" `
-        "update-snapshot.bat" `
-        "update-snapshot.sh" `
-        --clobber
-} else {
-    gh release create snapshot `
-        ".\jdmx-snapshot-all.jar" `
-        $jar.FullName `
-        "install.bat" `
-        "install.sh" `
-        "uninstall.bat" `
-        "uninstall.sh" `
-        "update-snapshot.bat" `
-        "update-snapshot.sh" `
-        --title "JDMX Continuous Snapshot" `
-        --notes "Automated rolling development snapshot for stage and testing devices." `
-        --prerelease
-}
+Write-Host "[*] Erstelle neues GitHub Snapshot Release..." -ForegroundColor Cyan
+gh release create snapshot `
+    ".\jdmx-snapshot-all.jar" `
+    $jar.FullName `
+    "install.bat" `
+    "install.sh" `
+    "uninstall.bat" `
+    "uninstall.sh" `
+    "update-snapshot.bat" `
+    "update-snapshot.sh" `
+    --title "JDMX Continuous Snapshot" `
+    --notes "Automated rolling development snapshot for stage and testing devices." `
+    --prerelease
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "[OK] Snapshot Release erfolgreich aktualisiert!" -ForegroundColor Green
