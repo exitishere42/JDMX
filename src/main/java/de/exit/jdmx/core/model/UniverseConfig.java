@@ -5,7 +5,7 @@ import java.util.Objects;
 /**
  * Unveränderliches Datenmodell für die Konfiguration eines DMX-Universums.
  * <p>
- * Beinhaltet Routing-Ziele, Art-Net 4 Netzwerkparameter (IP, Port, Subnet, Universe)
+ * Beinhaltet Routing-Ziele, Merging-Verhalten, Art-Net 4 Netzwerkparameter (IP, Port, Subnet, Universe)
  * sowie Hardware-Timing.
  * </p>
  *
@@ -20,6 +20,7 @@ import java.util.Objects;
  * @param refreshRateHz  DMX Frame-Rate in Hertz (Standard 40 Hz)
  * @param inputSource    Aktuell gewählte Eingangsquelle
  * @param outputTarget   Aktuell gewähltes Ausgabeziel
+ * @param mergeMode      Signal-Zusammenführung (HTP, LTP, Override)
  */
 public record UniverseConfig(
         int universeIndex,
@@ -32,13 +33,36 @@ public record UniverseConfig(
         boolean isBroadcast,
         int refreshRateHz,
         String inputSource,
-        String outputTarget
+        String outputTarget,
+        MergeMode mergeMode
 ) {
 
     public UniverseConfig {
         Objects.requireNonNull(artNetIp, "artNetIp darf nicht null sein");
         Objects.requireNonNull(inputSource, "inputSource darf nicht null sein");
         Objects.requireNonNull(outputTarget, "outputTarget darf nicht null sein");
+        if (mergeMode == null) {
+            mergeMode = MergeMode.HTP;
+        }
+    }
+
+    /**
+     * Abwärtskompatibler Konstruktor mit Standard-MergeMode HTP.
+     */
+    public UniverseConfig(
+            int universeIndex,
+            int universeNumber,
+            String artNetIp,
+            int artNetPort,
+            int artNetNet,
+            int artNetSubnet,
+            int artNetUniverse,
+            boolean isBroadcast,
+            int refreshRateHz,
+            String inputSource,
+            String outputTarget
+    ) {
+        this(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget, MergeMode.HTP);
     }
 
     /**
@@ -64,39 +88,44 @@ public record UniverseConfig(
                 false,
                 40,
                 "Kein Input",
-                defaultOutput
+                defaultOutput,
+                MergeMode.HTP
         );
     }
 
     public UniverseConfig withArtNetIp(String ip) {
-        return new UniverseConfig(universeIndex, universeNumber, ip, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, ip, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget, mergeMode);
     }
 
     public UniverseConfig withArtNetPort(int port) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, port, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, port, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget, mergeMode);
     }
 
     public UniverseConfig withArtNetSubnet(int subnet) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, subnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, subnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget, mergeMode);
     }
 
     public UniverseConfig withArtNetUniverse(int universe) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, universe, isBroadcast, refreshRateHz, inputSource, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, universe, isBroadcast, refreshRateHz, inputSource, outputTarget, mergeMode);
     }
 
     public UniverseConfig withBroadcast(boolean broadcast) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, broadcast, refreshRateHz, inputSource, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, broadcast, refreshRateHz, inputSource, outputTarget, mergeMode);
     }
 
     public UniverseConfig withRefreshRateHz(int hz) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, hz, inputSource, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, hz, inputSource, outputTarget, mergeMode);
     }
 
     public UniverseConfig withInputSource(String input) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, input, outputTarget);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, input, outputTarget, mergeMode);
     }
 
     public UniverseConfig withOutputTarget(String output) {
-        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, output);
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, output, mergeMode);
+    }
+
+    public UniverseConfig withMergeMode(MergeMode mode) {
+        return new UniverseConfig(universeIndex, universeNumber, artNetIp, artNetPort, artNetNet, artNetSubnet, artNetUniverse, isBroadcast, refreshRateHz, inputSource, outputTarget, mode);
     }
 }

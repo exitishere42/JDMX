@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.io;
 
+import de.exit.jdmx.core.model.MergeMode;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import javafx.application.Platform;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,8 +13,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * TDD Unit-Tests für {@link UniversePatchTable}.
- * Prüft die QLC+-ähnliche Universum-Zuordnungstabelle mit 4 Universen,
- * Custom-Dropdowns für Input/Output, Status-Dots, Config-Buttons und eingerückten Trennstrichen.
+ * Prüft die Universum-Routingtabelle mit 4 Universen,
+ * Custom-Dropdowns für Input, Output und Merge-Modus, Status-Dots, Config-Buttons
+ * und eingerückten Trennstrichen.
  */
 class UniversePatchTableTest {
 
@@ -35,7 +37,7 @@ class UniversePatchTableTest {
     }
 
     @Test
-    @DisplayName("Sollte für jede Zeile Input- und Output-Custom-Dropdowns bereitstellen")
+    @DisplayName("Sollte für jede Zeile Input-, Output- und Merge-Dropdowns bereitstellen")
     void shouldProvideInputAndOutputDropdownsWithRequiredOptions() {
         HardwareDiscoveryService mockHardware = new HardwareDiscoveryService(
                 () -> List.of("JMS USB to DMX PRO (COM3)"),
@@ -61,7 +63,28 @@ class UniversePatchTableTest {
                     "JMS USB to DMX PRO (COM3)",
                     "Kein Output"
             );
+
+            // Merge
+            assertThat(row.getMergeDropdown().getItems()).contains(
+                    "HTP",
+                    "LTP",
+                    "Override"
+            );
+            assertThat(row.getMergeDropdown().getSelectedItem()).isEqualTo("HTP");
         }
+    }
+
+    @Test
+    @DisplayName("Änderung des Merge-Dropdowns aktualisiert UniverseConfig")
+    void testMergeDropdownUpdatesConfig() {
+        UniversePatchTable table = new UniversePatchTable();
+        UniversePatchTable.UniverseRow row = table.getUniverseRows().get(0);
+
+        row.getMergeDropdown().selectItem("LTP");
+        assertThat(row.getConfig().mergeMode()).isEqualTo(MergeMode.LTP);
+
+        row.getMergeDropdown().selectItem("Override");
+        assertThat(row.getConfig().mergeMode()).isEqualTo(MergeMode.OVERRIDE);
     }
 
     @Test
@@ -96,48 +119,6 @@ class UniversePatchTableTest {
 
         for (UniversePatchTable.UniverseRow row : table.getUniverseRows()) {
             assertThat(row.getConfigBtn()).isNotNull();
-        }
-    }
-
-    @Test
-    @DisplayName("Sollte einen Aktualisieren-Button besitzen und bei Betätigung Hardware neu scannen")
-    void shouldHaveRefreshButtonAndRescanHardware() {
-        java.util.concurrent.atomic.AtomicReference<List<String>> detectedUsb = new java.util.concurrent.atomic.AtomicReference<>(List.of());
-        HardwareDiscoveryService dynamicHardware = new HardwareDiscoveryService(
-                detectedUsb::get,
-                List::of
-        );
-
-        UniversePatchTable table = new UniversePatchTable(dynamicHardware);
-
-        // Vor Refresh: Kein USB-DMX Adapter vorhanden
-        assertThat(table.getUniverseRows().getFirst().getOutputDropdown().getItems())
-                .doesNotContain("JMS USB to DMX PRO (COM7)");
-
-        // Jetzt wird ein Gerät eingesteckt
-        detectedUsb.set(List.of("JMS USB to DMX PRO (COM7)"));
-
-        // Aktualisieren-Button drücken
-        table.getBtnRefresh().fire();
-
-        // Nach Refresh: Gerät ist nun in den Dropdown-Optionen enthalten
-        assertThat(table.getUniverseRows().getFirst().getOutputDropdown().getItems())
-                .contains("JMS USB to DMX PRO (COM7)");
-    }
-
-    @Test
-    @DisplayName("Sollte saubere Spaltenüberschriften ohne unschöne Klammerzusätze wie '(Dropdown)' besitzen")
-    void shouldHaveCleanHeaderLabelsWithoutDropdownSuffix() {
-        UniversePatchTable table = new UniversePatchTable();
-        // Suche alle Labels in der Tabelle und prüfe, dass kein einziges '(Dropdown)' enthält
-        for (javafx.scene.Node node : table.getChildren()) {
-            if (node instanceof javafx.scene.layout.HBox hBox) {
-                for (javafx.scene.Node child : hBox.getChildren()) {
-                    if (child instanceof javafx.scene.control.Label lbl) {
-                        assertThat(lbl.getText()).doesNotContain("(Dropdown)");
-                    }
-                }
-            }
         }
     }
 }

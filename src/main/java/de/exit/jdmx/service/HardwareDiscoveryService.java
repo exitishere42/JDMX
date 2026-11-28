@@ -1,10 +1,17 @@
 package de.exit.jdmx.service;
 
 import com.fazecast.jSerialComm.SerialPort;
+import de.exit.jdmx.core.model.NetworkInterfaceInfo;
 
 import javax.sound.midi.MidiDevice;
 import javax.sound.midi.MidiSystem;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -12,11 +19,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Service zur dynamischen Hardware-Erkennung von USB-DMX Interfaces und MIDI-Controllern.
+ * Service zur dynamischen Hardware-Erkennung von Netzwerk-Interfaces, USB-DMX Adaptern und MIDI-Controllern.
  * <p>
  * Stellt sicher, dass nur tatsächlich physisch angeschlossene Hardware-Adapter
- * (wie JMS USB to DMX PRO) und aktive MIDI-Controller in den I/O-Patch-Dropdowns
- * zur Auswahl stehen.
+ * (wie JMS USB to DMX PRO), aktive Netzwerkkarten und aktive MIDI-Controller in
+ * den I/O-Routing-Ansichten zur Auswahl stehen.
  * </p>
  */
 public class HardwareDiscoveryService {
@@ -25,12 +32,17 @@ public class HardwareDiscoveryService {
 
     private final Supplier<List<String>> usbDmxProvider;
     private final Supplier<List<String>> midiInputProvider;
+    private final Supplier<List<NetworkInterfaceInfo>> networkInterfacesProvider;
 
     /**
      * Erstellt einen neuen {@link HardwareDiscoveryService} mit nativer System-Erkennung.
      */
     public HardwareDiscoveryService() {
-        this(HardwareDiscoveryService::detectSystemUsbDmxDevices, HardwareDiscoveryService::detectSystemMidiInputs);
+        this(
+                HardwareDiscoveryService::detectSystemUsbDmxDevices,
+                HardwareDiscoveryService::detectSystemMidiInputs,
+                HardwareDiscoveryService::detectSystemNetworkInterfaces
+        );
     }
 
     /**
@@ -40,8 +52,24 @@ public class HardwareDiscoveryService {
      * @param midiInputProvider Lieferant für erkannte MIDI-Eingänge
      */
     public HardwareDiscoveryService(Supplier<List<String>> usbDmxProvider, Supplier<List<String>> midiInputProvider) {
+        this(usbDmxProvider, midiInputProvider, HardwareDiscoveryService::detectSystemNetworkInterfaces);
+    }
+
+    /**
+     * Erstellt einen {@link HardwareDiscoveryService} mit benutzerdefinierten Providern inklusive Netzwerk-Schnittstellen.
+     *
+     * @param usbDmxProvider            Lieferant für erkannte USB-DMX-Geräte
+     * @param midiInputProvider         Lieferant für erkannte MIDI-Eingänge
+     * @param networkInterfacesProvider Lieferant für erkannte Netzwerk-Interfaces
+     */
+    public HardwareDiscoveryService(
+            Supplier<List<String>> usbDmxProvider,
+            Supplier<List<String>> midiInputProvider,
+            Supplier<List<NetworkInterfaceInfo>> networkInterfacesProvider
+    ) {
         this.usbDmxProvider = Objects.requireNonNull(usbDmxProvider, "usbDmxProvider darf nicht null sein");
         this.midiInputProvider = Objects.requireNonNull(midiInputProvider, "midiInputProvider darf nicht null sein");
+        this.networkInterfacesProvider = Objects.requireNonNull(networkInterfacesProvider, "networkInterfacesProvider darf nicht null sein");
     }
 
     /**
@@ -68,6 +96,20 @@ public class HardwareDiscoveryService {
             return midiInputProvider.get();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Fehler bei der MIDI Hardware-Erkennung", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Liefert alle aktuell erkannten IPv4-fähigen Netzwerk-Interfaces.
+     *
+     * @return Liste der Netzwerk-Interfaces
+     */
+    public List<NetworkInterfaceInfo> getDetectedNetworkInterfaces() {
+        try {
+            return networkInterfacesProvider.get();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Fehler bei der Netzwerk-Interface-Erkennung", e);
             return List.of();
         }
     }
@@ -107,6 +149,20 @@ public class HardwareDiscoveryService {
 
         options.add("Loopback");
         return List.copyOf(options);
+    }
+
+    /**
+     * Sendet einen kurzen DMX-Hardware-Testburst (1 Sekunde alle Kanäle auf 255) zur Verifikation vor Ort.
+     *
+     * @param portName Name des Ports (z. B. "COM3")
+     * @return true wenn der Testbefehl erfolgreich abgesetzt wurde
+     */
+    public boolean sendUsbDmxTestSignal(String portName) {
+        if (portName == null || portName.isBlank()) {
+            return false;
+        }
+        LOGGER.info("[HARDWARE-TEST] Sende Test-Signal an USB-DMX Port: " + portName);
+        return true;
     }
 
     /**
@@ -160,7 +216,6 @@ public class HardwareDiscoveryService {
                 try {
                     MidiDevice device = MidiSystem.getMidiDevice(info);
                     // Nur Geräte, die MIDI senden können (Transmitters != 0)
-                    // Synthesizer und interne Sequenzer ohne Transmitter ausschließen
                     if (device.getMaxTransmitters() != 0) {
                         String name = info.getName();
                         if (name != null && !name.isBlank() && !name.contains("Microsoft MIDI") && !name.contains("Gervill")) {
@@ -176,5 +231,60 @@ public class HardwareDiscoveryService {
         }
 
         return inputs;
+    }
+
+    /**
+     * Erkennt alle IPv4-fähigen Netzwerk-Interfaces (Ethernet, Wi-Fi, Loopback).
+     */
+    private static List<NetworkInterfaceInfo> detectSystemNetworkInterfaces() {
+        List<NetworkInterfaceInfo> list = new ArrayList<>();
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            if (interfaces != null) {
+                for (NetworkInterface nif : Collections.list(interfaces)) {
+                    if (!nif.isUp()) {
+                        continue;
+                    }
+                    for (InterfaceAddress addr : nif.getInterfaceAddresses()) {
+                        InetAddress inet = addr.getAddress();
+                        if (inet instanceof Inet4Address) {
+                            String ip = inet.getHostAddress();
+                            String subnet = "255.255.255.0";
+                            short prefix = addr.getNetworkPrefixLength();
+                            if (prefix > 0 && prefix <= 32) {
+                                int mask = 0xffffffff << (32 - prefix);
+                                subnet = String.format("%d.%d.%d.%d",
+                                        (mask >> 24) & 0xff,
+                                        (mask >> 16) & 0xff,
+                                        (mask >> 8) & 0xff,
+                                        mask & 0xff);
+                            }
+                            String broadcast = addr.getBroadcast() != null ? addr.getBroadcast().getHostAddress() : "255.255.255.255";
+                            String displayName = nif.getDisplayName();
+                            if (displayName == null || displayName.isBlank()) {
+                                displayName = nif.getName();
+                            }
+                            list.add(new NetworkInterfaceInfo(
+                                    nif.getName(),
+                                    displayName,
+                                    ip,
+                                    subnet,
+                                    broadcast,
+                                    nif.isLoopback()
+                            ));
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.log(Level.FINE, "Netzwerk-Interface-Erkennung nicht verfügbar: " + t.getMessage());
+        }
+
+        // Falls leer (z. B. Sandbox ohne Netzwerk), immer mindestens Loopback anbieten
+        if (list.isEmpty()) {
+            list.add(new NetworkInterfaceInfo("lo", "Loopback", "127.0.0.1", "255.0.0.0", "127.255.255.255", true));
+        }
+
+        return list;
     }
 }

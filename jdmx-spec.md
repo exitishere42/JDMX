@@ -430,11 +430,20 @@ Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** 
 
 ---
 
-### Tab 5: Input/Output & Diagnostik
+### Tab 5: Input/Output & Routing-Zentrale
 
-- **DMX-Ausgänge:** Art-Net UDP (Port 6454), DMX2USB (`jSerialComm`), Virtuelle Simulation.
-- **MIDI-Eingänge:** Native Java MIDI (`javax.sound.midi`), Device-Scanning, Mapping-Tabelle.
-- **Diagnostik:** DMX-Traffic Balkendiagramm (FPS, Paketrate, Bus-Last).
+- **Reines I/O Routing & Interface-Management:** 100% fokussiert auf Hardware-Schnittstellen, Protokolle und Routing (ohne störende Kanalmatrizen).
+- **1. Universum-Routing-Haupttabelle:**
+  - Verwaltet Universen 1 bis 4 mit pixelgenauer Spaltenausrichtung und Studio-Dark Styling.
+  - **Eingang (Input):** Dynamisch erkannte MIDI-Controller, Art-Net In, Deaktiviert.
+  - **Ausgang (Output):** Art-Net 4 (Broadcast / Unicast mit Ziel-IP), USB-DMX (Enttec Pro, OpenDMX, FTDI), Virtuelle Simulation, Deaktiviert.
+  - **Merge-Modus:** HTP (Highest Takes Precedence), LTP (Latest Takes Precedence), Override.
+  - **Live-Status:** Reaktive Status-Pill mit Verbindungs-Indikator und Paketrate.
+  - **In-App Config-Modal (`⚙`):** Art-Net Netzwerkparameter (Ziel-IP, Port, Net, Subnet, Universe, Broadcast) und DMX-Framerate (25–44 Hz).
+- **2. Hardware- & Schnittstellen-Manager (Drei modulare Studio-Karten):**
+  - **Art-Net & Netzwerk-Manager:** Automatische Erkennung aller Netzwerkkarten (LAN, WLAN, Loopback), IP/Subnetz-Anzeige, Port 6454, Paket- und Frameraten-Statistik.
+  - **USB-DMX Hardware-Manager:** Erkennung serieller USB-DMX Interfaces (`jSerialComm`), Verbindungszustand, Baudrate (250 kBaud), integrierter Hardware-Test ("Test-Signal senden").
+  - **MIDI Controller & Signal-Monitor:** Erkennung physischer MIDI-Geräte (`javax.sound.midi`), Live-Signal-LED bei ankommenden Nachrichten und Live-Monitorzeile (CC, Note On/Off, Werte).
 
 ---
 
@@ -463,6 +472,7 @@ Beim Rechtsklick auf ein Lied in der Timeline → **„Exportieren mit Beats"** 
 
 | Datum | Komponente / Anforderung | Änderung / Spezifikation |
 | :--- | :--- | :--- |
+| **2026-11-28** | **Tab 5: Neukonzeption als reine I/O Routing- & Interface-Zentrale (v0.35.0)** | Vollständige Neuausrichtung von Tab 5 auf 100% I/O-Routing und Hardware-Management (keine DMX-Kanalmatrix). Erweiterung der Universum-Routing-Tabelle um Merging-Modus (HTP, LTP, Override) sowie Integration des Hardware- und Schnittstellen-Managers mit drei modularen Studio-Karten: (1) Art-Net & Netzwerk-Manager mit Adapter-Erkennung (LAN, WLAN, Loopback), IP/Subnetz-Anzeige und Traffic-Statistik, (2) USB-DMX Interface Manager mit Port-Erkennung via `jSerialComm`, Baudrate (250 kBaud) und 1-Klick Hardware-Test-Signal, (3) MIDI Controller Manager mit Geräte-Erkennung via `javax.sound.midi`, Live-Signal-Indikator und Monitor für eingehende CC- und Note-Events. |
 | **2026-11-25** | **Tab 4: Vollständige Anzeige aller angelegten Szenen im Timeline Project Explorer (v0.29.0)** | Integration eines dedizierten Standard-Ordners `Szenen` im Project Explorer der Show-Timeline (`ShowTimelineExplorerView`): Zeigt 100 % aller im Projekt je angelegten Lichtszenen synchron aus `SceneService` und `ProjectExplorerService` mit violettem Studio-Icon (`#A78BFA`, `bookmark`). Volle reaktive Aktualisierung bei Erstellen, Umbenennen oder Löschen von Szenen über `SceneService.addChangeListener`. Doppelklick auf eine Szene in der Timeline aktiviert diese sofort im DMX-Output, Rechtsklick bietet ein Kontextmenü („Szene aktivieren"). 464 Tests zu 100% grün. |
 | **2026-11-25** | **Tab 4: Nahtlose Project-Explorer Breiten- und Splitter-Synchronisation mit dem Stage-Tab (v0.28.3)** | Vollständige und reaktionsschnelle Synchronisation der Breite und Divider-Position des Project Explorers zwischen Stage-Tab (Tab 0) und Show-Timeline-Tab (Tab 3): Exakte Ausrichtung von `DEFAULT_MIN_WIDTH` (300px) und `DEFAULT_PREF_WIDTH` (300px), deterministische Divider-Ermittlung via `lastExpandedRatio` in `ShowTimelineWorkspaceView` und `StageWorkspaceView`, Eliminierung rekursiver Tab-Wechsel-Feedbackschleifen in `HeaderBar.setActiveTab` und Bereinigung asynchroner Race-Conditions. 461 Tests zu 100% grün. |
 | **2026-11-04** | **Tab 1: Steuerungsdock (DMXControl-Stil)** | Unteres 24/7 Dock auf feste Mindesthöhe von 135px verankert. Modul 1: `Intensität` horizontal auf feste 300px entkoppelt mit großzügigem Randabstand zur Farbkante, Tasten komplett eckig mit 1px Umrandung im Hardware-Look. Modul 2 & 3: `Farbe` und `Position` teilen sich im dynamischen SplitPane stabil 50/50 den restlichen Raum ohne Jitter/Wander-Effekt. |

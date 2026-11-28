@@ -1,7 +1,8 @@
 package de.exit.jdmx.ui.io;
 
-import de.exit.jdmx.core.model.UniverseConfig;
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.MergeMode;
+import de.exit.jdmx.core.model.UniverseConfig;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.component.CustomDropdownButton;
@@ -28,20 +29,21 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Universum-Zuordnungstabelle im QLC+-Stil, angepasst an das Studio-Dark-Design.
+ * Universum-Routing-Tabelle im Studio-Dark-Design.
  * <p>
- * Verwaltet 4 DMX-Universen mit dynamisch erkannten Ein- und Ausgängen,
- * kompakten Custom-Dropdowns, exakter Spaltenausrichtung und dezenten,
- * eingerückten Trennstrichen.
+ * Verwaltet DMX-Universen 1 bis 4 mit dynamisch erkannten Ein- und Ausgängen,
+ * konfigurierbarem Merging-Modus (HTP, LTP, Override), Live-Statusanzeige
+ * und 1-Klick Art-Net Detail-Konfiguration.
  * </p>
  */
 public class UniversePatchTable extends VBox {
 
-    private static final int COL_WIDTH_UNIVERSE = 110;
-    private static final int COL_WIDTH_DROPDOWN = 210;
-    private static final int COL_WIDTH_STATUS = 85;
+    private static final int COL_WIDTH_UNIVERSE = 105;
+    private static final int COL_WIDTH_DROPDOWN = 190;
+    private static final int COL_WIDTH_MERGE = 80;
+    private static final int COL_WIDTH_STATUS = 80;
     private static final int COL_WIDTH_CONFIG = 36;
-    private static final int COL_SPACING = 16;
+    private static final int COL_SPACING = 14;
 
     private final HardwareDiscoveryService hardwareService;
     private final List<UniverseRow> universeRows = new ArrayList<>();
@@ -51,19 +53,20 @@ public class UniversePatchTable extends VBox {
     private Label lblUni;
     private Label lblIn;
     private Label lblOut;
+    private Label lblMerge;
     private Label lblStatus;
     private MainWindow mainWindow;
     private Runnable onConfigChanged;
 
     /**
-     * Erstellt die Universum-Patch-Tabelle mit Standard-Hardwareerkennung.
+     * Erstellt die Universum-Routing-Tabelle mit Standard-Hardwareerkennung.
      */
     public UniversePatchTable() {
         this(new HardwareDiscoveryService(), null);
     }
 
     /**
-     * Erstellt die Universum-Patch-Tabelle mit einem bereitgestellten {@link HardwareDiscoveryService}.
+     * Erstellt die Universum-Routing-Tabelle mit einem bereitgestellten {@link HardwareDiscoveryService}.
      *
      * @param hardwareService Service zur Hardware-Erkennung
      */
@@ -72,7 +75,7 @@ public class UniversePatchTable extends VBox {
     }
 
     /**
-     * Erstellt die Universum-Patch-Tabelle mit {@link HardwareDiscoveryService} und Referenz auf {@link MainWindow}.
+     * Erstellt die Universum-Routing-Tabelle mit {@link HardwareDiscoveryService} und Referenz auf {@link MainWindow}.
      *
      * @param hardwareService Service zur Hardware-Erkennung
      * @param mainWindow      Hauptfenster für In-App Overlays
@@ -82,9 +85,8 @@ public class UniversePatchTable extends VBox {
         this.hardwareService = Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
         this.mainWindow = mainWindow;
 
-        // Styling als elegante Studio-Dark Karte (12px Ecken-Rundung)
         getStyleClass().add("universe-patch-table");
-        setMaxWidth(760);
+        setMaxWidth(800);
 
         // 1. Top-Toolbar mit Titel und Aktualisieren-Button
         HBox topBar = new HBox();
@@ -136,7 +138,6 @@ public class UniversePatchTable extends VBox {
             universeRows.add(row);
             getChildren().add(row);
 
-            // Unter jeder Zeile ein kleiner, eingerückter Trennstrich (ca. 2cm / 45px Rand)
             if (i < 3) {
                 HBox divider = createIndentedDivider();
                 dividers.add(divider);
@@ -154,27 +155,14 @@ public class UniversePatchTable extends VBox {
         });
     }
 
-    /**
-     * Setzt die Referenz auf das übergeordnete Hauptfenster für Modal-Overlays.
-     *
-     * @param mainWindow Hauptfenster
-     */
     public void setMainWindow(MainWindow mainWindow) {
         this.mainWindow = mainWindow;
     }
 
-    /**
-     * Liefert das verknüpfte Hauptfenster.
-     *
-     * @return Hauptfenster oder null
-     */
     public MainWindow getMainWindow() {
         return mainWindow;
     }
 
-    /**
-     * Erzeugt die Header-Zeile mit exakt identischen Spaltenbreiten wie die Datenzeilen.
-     */
     private HBox createHeaderRow() {
         HBox header = new HBox(COL_SPACING);
         header.setAlignment(Pos.CENTER_LEFT);
@@ -183,22 +171,21 @@ public class UniversePatchTable extends VBox {
         this.lblUni = createHeaderLabel(I18n.get("io.col.universe"), COL_WIDTH_UNIVERSE, Pos.CENTER_LEFT);
         this.lblIn = createHeaderLabel(I18n.get("io.col.input"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
         this.lblOut = createHeaderLabel(I18n.get("io.col.output"), COL_WIDTH_DROPDOWN, Pos.CENTER_LEFT);
+        this.lblMerge = createHeaderLabel(I18n.get("io.col.merge"), COL_WIDTH_MERGE, Pos.CENTER_LEFT);
         this.lblStatus = createHeaderLabel(I18n.get("io.col.status"), COL_WIDTH_STATUS, Pos.CENTER_LEFT);
         Label lblCfg = createHeaderLabel("", COL_WIDTH_CONFIG, Pos.CENTER);
 
-        header.getChildren().addAll(lblUni, lblIn, lblOut, lblStatus, lblCfg);
+        header.getChildren().addAll(lblUni, lblIn, lblOut, lblMerge, lblStatus, lblCfg);
         return header;
     }
 
-    /**
-     * Aktualisiert alle lokalisierten Texte bei einem Sprachwechsel.
-     */
     public void updateLocalization() {
         titleLabel.setText(I18n.get("io.table.title"));
         btnRefresh.setText(I18n.get("io.refresh"));
         if (lblUni != null) lblUni.setText(I18n.get("io.col.universe"));
         if (lblIn != null) lblIn.setText(I18n.get("io.col.input"));
         if (lblOut != null) lblOut.setText(I18n.get("io.col.output"));
+        if (lblMerge != null) lblMerge.setText(I18n.get("io.col.merge"));
         if (lblStatus != null) lblStatus.setText(I18n.get("io.col.status"));
         for (UniverseRow row : universeRows) {
             row.updateLocalization();
@@ -215,13 +202,10 @@ public class UniversePatchTable extends VBox {
         return lbl;
     }
 
-    /**
-     * Erzeugt einen feinen Trennstrich, der ca. 45px (~2 cm) von links und rechts eingerückt ist.
-     */
     private HBox createIndentedDivider() {
         HBox wrapper = new HBox();
         wrapper.setAlignment(Pos.CENTER);
-        wrapper.setPadding(new Insets(2, 45, 2, 45)); // 45px Randabstand links & rechts
+        wrapper.setPadding(new Insets(2, 45, 2, 45));
 
         Region line = new Region();
         line.setMinHeight(1);
@@ -242,18 +226,10 @@ public class UniversePatchTable extends VBox {
         return List.copyOf(dividers);
     }
 
-    /**
-     * Liefert den Aktualisieren-Button für Hardware-Geräte.
-     *
-     * @return Button
-     */
     public Button getBtnRefresh() {
         return btnRefresh;
     }
 
-    /**
-     * Aktualisiert die verfügbare Hardware für alle Universumszeilen.
-     */
     public void refreshHardware() {
         for (UniverseRow row : universeRows) {
             row.refreshOptions(hardwareService);
@@ -282,6 +258,7 @@ public class UniversePatchTable extends VBox {
         private final Label uniLabel;
         private final CustomDropdownButton inputDropdown;
         private final CustomDropdownButton outputDropdown;
+        private final CustomDropdownButton mergeDropdown;
         private final Circle statusDot;
         private final Label statusText;
         private final Button configBtn;
@@ -317,7 +294,7 @@ public class UniversePatchTable extends VBox {
             inputDropdown.setPrefWidth(COL_WIDTH_DROPDOWN);
             inputDropdown.setMaxWidth(COL_WIDTH_DROPDOWN);
 
-            // Spalte 3: Output Dropdown (Universum 1 hat Art-Net default)
+            // Spalte 3: Output Dropdown
             List<String> outputOptions = hardwareService.getAvailableOutputOptions(universeIndex);
             String defaultOutput = (universeIndex == 0)
                     ? "Art-Net (127.0.0.1, Uni 0)"
@@ -327,7 +304,13 @@ public class UniversePatchTable extends VBox {
             outputDropdown.setPrefWidth(COL_WIDTH_DROPDOWN);
             outputDropdown.setMaxWidth(COL_WIDTH_DROPDOWN);
 
-            // Spalte 4: Live-Status (Dot + Text)
+            // Spalte 4: Merge Dropdown (HTP, LTP, Override)
+            mergeDropdown = new CustomDropdownButton(config.mergeMode().getDisplayName(), List.of("HTP", "LTP", "Override"));
+            mergeDropdown.setMinWidth(COL_WIDTH_MERGE);
+            mergeDropdown.setPrefWidth(COL_WIDTH_MERGE);
+            mergeDropdown.setMaxWidth(COL_WIDTH_MERGE);
+
+            // Spalte 5: Live-Status (Dot + Text)
             HBox statusBox = new HBox(6);
             statusBox.setAlignment(Pos.CENTER_LEFT);
             statusBox.setMinWidth(COL_WIDTH_STATUS);
@@ -362,9 +345,20 @@ public class UniversePatchTable extends VBox {
                     changeNotifier.run();
                 }
             });
+            mergeDropdown.selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+                MergeMode mode = MergeMode.fromString(newVal);
+                this.config = this.config.withMergeMode(mode);
+                MainWindow mw = mainWindowSupplier != null ? mainWindowSupplier.get() : null;
+                if (mw != null && mw.getDmxService() != null) {
+                    mw.getDmxService().setUniverseConfig(this.universeIndex, this.config);
+                }
+                if (changeNotifier != null) {
+                    changeNotifier.run();
+                }
+            });
             updateStatus();
 
-            // Spalte 5: Detail-Config Button (Fenster-im-Fenster Modal)
+            // Spalte 6: Detail-Config Button
             configBtn = new Button();
             configBtn.setGraphic(new LucideIcon("settings", 15, StudioTheme.COLOR_PRIMARY_GRAY));
             configBtn.setCursor(Cursor.HAND);
@@ -376,7 +370,7 @@ public class UniversePatchTable extends VBox {
                     "-fx-border-radius: 4px; -fx-background-radius: 4px; -fx-padding: 5px;"));
             configBtn.setOnAction(e -> showConfigDialog());
 
-            getChildren().addAll(uniLabel, inputDropdown, outputDropdown, statusBox, configBtn);
+            getChildren().addAll(uniLabel, inputDropdown, outputDropdown, mergeDropdown, statusBox, configBtn);
         }
 
         private void updateStatus() {
@@ -392,27 +386,21 @@ public class UniversePatchTable extends VBox {
             active.set(isActive);
 
             if (isActive) {
-                statusDot.setFill(Color.web("#10B981")); // Grün
+                statusDot.setFill(Color.web("#10B981"));
                 statusText.setText(I18n.get("io.status.active"));
                 statusText.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: 600;");
             } else {
-                statusDot.setFill(Color.web("#6B7280")); // Grau
+                statusDot.setFill(Color.web("#6B7280"));
                 statusText.setText(I18n.get("io.status.inactive"));
                 statusText.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 12px; -fx-font-weight: 500;");
             }
         }
 
-        /**
-         * Aktualisiert die Zeilen-Texte bei einem Sprachwechsel.
-         */
         public void updateLocalization() {
             uniLabel.setText(I18n.get("fixture.universe_n", universeNumber));
             updateStatus();
         }
 
-        /**
-         * Öffnet den In-App Modal Dialog ("Fenster im Fenster") zur Art-Net- und Universum-Konfiguration.
-         */
         public void showConfigDialog() {
             MainWindow mw = mainWindowSupplier != null ? mainWindowSupplier.get() : null;
             if (mw != null) {
@@ -452,6 +440,9 @@ public class UniversePatchTable extends VBox {
 
         public void setConfig(UniverseConfig config) {
             this.config = Objects.requireNonNull(config, "config darf nicht null sein");
+            if (mergeDropdown != null && config.mergeMode() != null) {
+                mergeDropdown.selectItem(config.mergeMode().getDisplayName());
+            }
         }
 
         public CustomDropdownButton getInputDropdown() {
@@ -460,6 +451,10 @@ public class UniversePatchTable extends VBox {
 
         public CustomDropdownButton getOutputDropdown() {
             return outputDropdown;
+        }
+
+        public CustomDropdownButton getMergeDropdown() {
+            return mergeDropdown;
         }
 
         public boolean isActive() {
@@ -474,12 +469,6 @@ public class UniversePatchTable extends VBox {
             return configBtn;
         }
 
-        /**
-         * Aktualisiert die Dropdown-Optionen basierend auf der aktuell erkannten Hardware.
-         * Behält die vorherige Auswahl bei, falls sie weiterhin gültig ist.
-         *
-         * @param hardwareService Service zur Hardware-Erkennung
-         */
         public void refreshOptions(HardwareDiscoveryService hardwareService) {
             String currentInput = inputDropdown.getSelectedItem();
             List<String> newInputOptions = hardwareService.getAvailableInputOptions(universeIndex);
