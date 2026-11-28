@@ -92,7 +92,7 @@ public class UsbDmxRoutingCard extends VBox {
         this.lblBaudTitle = createFormLabel(I18n.get("io.usb.baudrate"));
         this.lblStatusTitle = createFormLabel(I18n.get("io.col.status") + ":");
 
-        this.baudLabel = createValueLabel("250.000 Baud (DMX512)");
+        this.baudLabel = createValueLabel("250.000 Baud");
         this.statusLabel = createValueLabel(I18n.get("io.status.inactive"));
 
         grid.add(lblPortTitle, 0, 0);
