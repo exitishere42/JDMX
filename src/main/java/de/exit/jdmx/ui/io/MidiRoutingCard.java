@@ -4,6 +4,7 @@ import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.ui.component.CustomDropdownButton;
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -24,14 +25,15 @@ import java.util.Objects;
 /**
  * Modulare Hardware-Karte für MIDI-Controller im I/O-Routing Workspace.
  * <p>
- * Zeigt angeschlossene MIDI-Geräte, den Empfangsstatus, eine Live-Signal-LED
- * sowie den aktuellen Event-Monitor (CC, Note, Pitch) an.
+ * Harmonisch abgestimmt auf das Studio-Dark Design (identischer Rahmen #2E2E2E,
+ * 4px Eckenradius, einheitliches Teal-Header-Icon und dezenter Status-Punkt).
  * </p>
  */
 public class MidiRoutingCard extends VBox {
 
     private final HardwareDiscoveryService hardwareService;
     private final Label titleLabel;
+    private final Circle statusDot;
     private final Label badgeLabel;
     private final CustomDropdownButton midiDropdown;
 
@@ -48,35 +50,39 @@ public class MidiRoutingCard extends VBox {
         this.hardwareService = Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
 
         getStyleClass().add("io-hardware-card");
-        setStyle("-fx-background-color: #1A1A1E; -fx-border-color: #2D2D32; -fx-border-width: 1px; " +
-                "-fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 12 14;");
+        setStyle("-fx-background-color: #1A1A1A; -fx-border-color: #2E2E2E; -fx-border-width: 1px; " +
+                "-fx-border-radius: 4px; -fx-background-radius: 4px; -fx-padding: 14 16;");
         setMinWidth(240);
         setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(this, Priority.ALWAYS);
 
-        // 1. Header
+        // 1. Header (Teal-Icon, einheitlich zum I/O-Tab)
         HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        LucideIcon icon = new LucideIcon("sliders", 15, Color.web("#A78BFA"));
+        LucideIcon icon = new LucideIcon("sliders", 15, StudioTheme.COLOR_ICON_IO);
         this.titleLabel = new Label(I18n.get("io.card.midi"));
         titleLabel.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px; -fx-font-weight: 700;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        // Dezenter Status-Indikator (Punkt + Text wie in UniversePatchTable)
+        HBox statusBox = new HBox(6);
+        statusBox.setAlignment(Pos.CENTER_LEFT);
+        this.statusDot = new Circle(4.5, Color.web("#10B981"));
         this.badgeLabel = new Label(I18n.get("io.midi.status"));
-        badgeLabel.setStyle("-fx-background-color: rgba(167, 139, 250, 0.15); -fx-text-fill: #A78BFA; " +
-                "-fx-font-size: 10px; -fx-font-weight: 600; -fx-padding: 2 6; -fx-background-radius: 3px; -fx-border-color: #6D28D9; -fx-border-radius: 3px;");
+        badgeLabel.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: 600;");
+        statusBox.getChildren().addAll(statusDot, badgeLabel);
 
-        header.getChildren().addAll(icon, titleLabel, spacer, badgeLabel);
+        header.getChildren().addAll(icon, titleLabel, spacer, statusBox);
 
         // 2. Dropdown & Details
         this.midiDropdown = new CustomDropdownButton(I18n.get("io.midi.no_device"), List.of());
         midiDropdown.setMaxWidth(Double.MAX_VALUE);
 
         GridPane grid = new GridPane();
-        grid.setHgap(8);
+        grid.setHgap(10);
         grid.setVgap(6);
         grid.setPadding(new Insets(4, 0, 0, 0));
 
@@ -122,15 +128,16 @@ public class MidiRoutingCard extends VBox {
 
         if (!devices.isEmpty()) {
             midiDropdown.selectItem(devices.get(0));
+            statusDot.setFill(Color.web("#10B981"));
             badgeLabel.setText(I18n.get("io.midi.status"));
-            badgeLabel.setStyle("-fx-background-color: rgba(167, 139, 250, 0.15); -fx-text-fill: #A78BFA; " +
-                    "-fx-font-size: 10px; -fx-font-weight: 600; -fx-padding: 2 6; -fx-background-radius: 3px; -fx-border-color: #6D28D9; -fx-border-radius: 3px;");
+            badgeLabel.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: 600;");
             statusLabel.setText(I18n.get("io.midi.status"));
-            statusLabel.setStyle("-fx-text-fill: #A78BFA; -fx-font-size: 11px; -fx-font-weight: 600;");
+            statusLabel.setStyle("-fx-text-fill: #10B981; -fx-font-size: 11px; -fx-font-weight: 600;");
         } else {
             midiDropdown.selectItem(I18n.get("io.midi.no_device"));
+            statusDot.setFill(Color.web("#6B7280"));
             badgeLabel.setText(I18n.get("io.status.inactive"));
-            badgeLabel.setStyle("-fx-background-color: #242424; -fx-text-fill: #71717A; -fx-font-size: 10px; -fx-padding: 2 6; -fx-border-color: #333333; -fx-border-radius: 3px; -fx-background-radius: 3px;");
+            badgeLabel.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 12px; -fx-font-weight: 500;");
             statusLabel.setText(I18n.get("io.midi.no_device"));
             statusLabel.setStyle("-fx-text-fill: #71717A; -fx-font-size: 11px; -fx-font-weight: 500;");
         }
@@ -147,13 +154,13 @@ public class MidiRoutingCard extends VBox {
             return;
         }
 
-        signalLed.setFill(Color.web("#10B981")); // Grün aufleuchten
+        signalLed.setFill(Color.web("#10B981"));
         lastSignalLabel.setText(eventText);
-        lastSignalLabel.setStyle("-fx-text-fill: #34D399; -fx-font-size: 11px; -fx-font-weight: 600;");
+        lastSignalLabel.setStyle("-fx-text-fill: #10B981; -fx-font-size: 11px; -fx-font-weight: 600;");
 
         PauseTransition pause = new PauseTransition(Duration.millis(250));
         pause.setOnFinished(ev -> {
-            signalLed.setFill(Color.web("#4B5563")); // Zurück zu grau
+            signalLed.setFill(Color.web("#4B5563"));
             lastSignalLabel.setStyle("-fx-text-fill: #E5E7EB; -fx-font-size: 11px; -fx-font-weight: 500;");
         });
         pause.play();

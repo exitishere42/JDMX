@@ -5,6 +5,7 @@ import de.exit.jdmx.core.model.NetworkInterfaceInfo;
 import de.exit.jdmx.service.HardwareDiscoveryService;
 import de.exit.jdmx.ui.component.CustomDropdownButton;
 import de.exit.jdmx.ui.icon.LucideIcon;
+import de.exit.jdmx.ui.theme.StudioTheme;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -15,6 +16,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,14 +25,15 @@ import java.util.Objects;
 /**
  * Modulare Hardware-Karte für Netzwerk- und Art-Net-Schnittstellen im I/O-Routing Workspace.
  * <p>
- * Zeigt alle erkannten Netzwerkadapter (Ethernet, Wi-Fi, Loopback), IP-Adresse,
- * Subnetzmaske, Broadcast-Adresse sowie Art-Net UDP-Port und Sendedatenrate an.
+ * Harmonisch abgestimmt auf das Studio-Dark Design (identischer Rahmen #2E2E2E,
+ * 4px Eckenradius und dezenter Status-Punkt wie in der Universen-Tabelle).
  * </p>
  */
 public class NetworkRoutingCard extends VBox {
 
     private final HardwareDiscoveryService hardwareService;
     private final Label titleLabel;
+    private final Circle statusDot;
     private final Label badgeLabel;
     private final CustomDropdownButton interfaceDropdown;
 
@@ -54,35 +57,39 @@ public class NetworkRoutingCard extends VBox {
         this.hardwareService = Objects.requireNonNull(hardwareService, "hardwareService darf nicht null sein");
 
         getStyleClass().add("io-hardware-card");
-        setStyle("-fx-background-color: #1A1A1E; -fx-border-color: #2D2D32; -fx-border-width: 1px; " +
-                "-fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 12 14;");
+        setStyle("-fx-background-color: #1A1A1A; -fx-border-color: #2E2E2E; -fx-border-width: 1px; " +
+                "-fx-border-radius: 4px; -fx-background-radius: 4px; -fx-padding: 14 16;");
         setMinWidth(240);
         setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(this, Priority.ALWAYS);
 
-        // 1. Header
+        // 1. Header (Teal-Icon, einheitlich zum I/O-Tab)
         HBox header = new HBox(8);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        LucideIcon icon = new LucideIcon("network", 15, Color.web("#38BDF8"));
+        LucideIcon icon = new LucideIcon("network", 15, StudioTheme.COLOR_ICON_IO);
         this.titleLabel = new Label(I18n.get("io.card.network"));
         titleLabel.setStyle("-fx-text-fill: #F3F4F6; -fx-font-size: 12px; -fx-font-weight: 700;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        // Dezenter Status-Indikator (Punkt + Text wie in UniversePatchTable)
+        HBox statusBox = new HBox(6);
+        statusBox.setAlignment(Pos.CENTER_LEFT);
+        this.statusDot = new Circle(4.5, Color.web("#10B981"));
         this.badgeLabel = new Label(I18n.get("io.status.active"));
-        badgeLabel.setStyle("-fx-background-color: rgba(16, 185, 129, 0.15); -fx-text-fill: #10B981; " +
-                "-fx-font-size: 10px; -fx-font-weight: 600; -fx-padding: 2 6; -fx-background-radius: 3px; -fx-border-color: #065F46; -fx-border-radius: 3px;");
+        badgeLabel.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: 600;");
+        statusBox.getChildren().addAll(statusDot, badgeLabel);
 
-        header.getChildren().addAll(icon, titleLabel, spacer, badgeLabel);
+        header.getChildren().addAll(icon, titleLabel, spacer, statusBox);
 
         // 2. Dropdown & Details
         this.interfaceDropdown = new CustomDropdownButton("Schnittstelle wählen", List.of());
         interfaceDropdown.setMaxWidth(Double.MAX_VALUE);
 
         GridPane grid = new GridPane();
-        grid.setHgap(8);
+        grid.setHgap(10);
         grid.setVgap(6);
         grid.setPadding(new Insets(4, 0, 0, 0));
 
@@ -142,7 +149,6 @@ public class NetworkRoutingCard extends VBox {
         interfaceDropdown.setItems(items);
 
         if (!items.isEmpty()) {
-            // Erstes nicht-Loopback wählen, falls vorhanden
             String selected = items.get(0);
             for (int i = 0; i < interfaces.size(); i++) {
                 if (!interfaces.get(i).isLoopback()) {
@@ -152,11 +158,17 @@ public class NetworkRoutingCard extends VBox {
             }
             interfaceDropdown.selectItem(selected);
             updateSelectedInterface(selected);
+            statusDot.setFill(Color.web("#10B981"));
+            badgeLabel.setText(I18n.get("io.status.active"));
+            badgeLabel.setStyle("-fx-text-fill: #10B981; -fx-font-size: 12px; -fx-font-weight: 600;");
         } else {
             interfaceDropdown.selectItem("Kein Netzwerk");
             ipLabel.setText("-");
             subnetLabel.setText("-");
             broadcastLabel.setText("-");
+            statusDot.setFill(Color.web("#6B7280"));
+            badgeLabel.setText(I18n.get("io.status.inactive"));
+            badgeLabel.setStyle("-fx-text-fill: #6B7280; -fx-font-size: 12px; -fx-font-weight: 500;");
         }
     }
 

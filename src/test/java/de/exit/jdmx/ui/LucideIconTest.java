@@ -55,6 +55,8 @@ class LucideIconTest {
         assertThat(LucideIcon.getSvgPathData("sun-dim")).isNotEqualTo(circleFallback);
         assertThat(LucideIcon.getSvgPathData("chevron-up")).isNotEqualTo(circleFallback);
         assertThat(LucideIcon.getSvgPathData("chevron-down")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("usb")).isNotEqualTo(circleFallback);
+        assertThat(LucideIcon.getSvgPathData("cpu")).isNotEqualTo(circleFallback);
     }
 
     @Test

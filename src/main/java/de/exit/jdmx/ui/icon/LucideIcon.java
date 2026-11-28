@@ -205,6 +205,12 @@ public class LucideIcon extends StackPane {
             case "cable", "network" ->
                 // Lucide cable
                 "M4 12v6 M16 12v6 M8 12v2 M12 12v2 M3 18h18 M18 6h-4a2 2 0 0 0-2 2v4 M6 6h4a2 2 0 0 1 2 2v4";
+            case "usb" ->
+                // Lucide usb
+                "M12 2v10 M12 12l4-4 M12 12l-4-4 M5 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M19 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M12 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M7 8h3 M14 8h3 M12 14v4";
+            case "cpu", "microchip" ->
+                // Lucide cpu
+                "M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M9 9h6v6H9z M9 1v3 M15 1v3 M9 20v3 M15 20v3 M20 9h3 M20 14h3 M1 9h3 M1 14h3";
             case "activity", "traffic" ->
                 // Lucide activity pulse
                 "M22 12h-4l-3 9L9 3l-3 9H2";
