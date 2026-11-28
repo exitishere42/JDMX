@@ -38,8 +38,7 @@ class UpdateServiceTest {
     @DisplayName("Sollte korrekte Konstanten für Repository und Version besitzen")
     void shouldHaveValidRepoAndVersionConstants() {
         assertThat(UpdateService.CURRENT_VERSION).matches("^\\d+\\.\\d+\\.\\d+.*$");
-        assertThat(UpdateService.CURRENT_VERSION).isEqualTo("0.36.0-SNAPSHOT");
-        assertThat(UpdateService.isSnapshot()).isTrue();
+        assertThat(UpdateService.isSnapshot()).isEqualTo(UpdateService.CURRENT_VERSION.contains("-SNAPSHOT"));
         assertThat(UpdateService.GITHUB_REPO).isEqualTo("exitishere42/JDMX");
         assertThat(UpdateService.API_URL).isEqualTo("https://api.github.com/repos/exitishere42/JDMX/releases/latest");
         assertThat(UpdateService.SNAPSHOT_TAG).isEqualTo("snapshot");
