@@ -92,10 +92,14 @@ download_file "$RELEASE_BASE_URL/$JAR_NAME" "$INSTALL_DIR/$JAR_NAME"
 download_file "$RELEASE_BASE_URL/$APPIMAGE_NAME" "$INSTALL_DIR/$APPIMAGE_NAME" || true
 download_file "$RAW_BASE_URL/jdmx.png" "$INSTALL_DIR/jdmx.png"
 download_file "$RAW_BASE_URL/jdmx.svg" "$INSTALL_DIR/jdmx.svg"
+download_file "$RAW_BASE_URL/update-snapshot.sh" "$INSTALL_DIR/update-snapshot.sh" || true
 download_file "$RAW_BASE_URL/uninstall.sh" "$INSTALL_DIR/uninstall.sh" || true
 
 if [ -f "$INSTALL_DIR/$APPIMAGE_NAME" ]; then
     chmod +x "$INSTALL_DIR/$APPIMAGE_NAME"
+fi
+if [ -f "$INSTALL_DIR/update-snapshot.sh" ]; then
+    chmod +x "$INSTALL_DIR/update-snapshot.sh"
 fi
 if [ -f "$INSTALL_DIR/uninstall.sh" ]; then
     chmod +x "$INSTALL_DIR/uninstall.sh"

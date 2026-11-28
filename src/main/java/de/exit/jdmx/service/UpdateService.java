@@ -3,6 +3,7 @@ package de.exit.jdmx.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.exit.jdmx.Main;
+import de.exit.jdmx.core.model.UpdateChannel;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,6 +15,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -31,10 +33,42 @@ public class UpdateService {
     private static final Logger LOGGER = Logger.getLogger(UpdateService.class.getName());
 
     /** Feste Fallback-Version für Entwicklungsumgebungen. */
-    public static final String FALLBACK_VERSION = "0.35.0";
+    public static final String FALLBACK_VERSION = "0.36.0-SNAPSHOT";
 
     /** Aktuelle Anwendungsversion (dynamisch ermittelt aus version.properties). */
     public static final String CURRENT_VERSION = resolveCurrentVersion();
+
+    /** Build-Zeitstempel (dynamisch ermittelt aus version.properties). */
+    public static final String BUILD_TIMESTAMP = resolveBuildTimestamp();
+
+    /**
+     * Ermittelt den Build-Zeitstempel aus der gefilterten version.properties-Ressource.
+     *
+     * @return ISO-8601 Zeitstempel oder leerer String
+     */
+    private static String resolveBuildTimestamp() {
+        try (InputStream is = UpdateService.class.getResourceAsStream("/de/exit/jdmx/version.properties")) {
+            if (is != null) {
+                java.util.Properties props = new java.util.Properties();
+                props.load(is);
+                String ts = props.getProperty("build.timestamp");
+                if (ts != null && !ts.isBlank() && !ts.startsWith("${")) {
+                    return ts.trim();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
+    /**
+     * Prüft, ob die aktuell laufende Anwendung ein Entwicklungs-Snapshot ist.
+     *
+     * @return True, wenn die Version "-SNAPSHOT" enthält
+     */
+    public static boolean isSnapshot() {
+        return CURRENT_VERSION != null && CURRENT_VERSION.toUpperCase().contains("SNAPSHOT");
+    }
 
     /**
      * Ermittelt die aktuelle Versionsnummer der Anwendung aus der gefilterten
@@ -66,8 +100,14 @@ public class UpdateService {
     /** GitHub Repository-Bezeichnung. */
     public static final String GITHUB_REPO = "exitishere42/JDMX";
 
-    /** GitHub Releases API Endpunkt. */
+    /** GitHub Releases API Endpunkt für stabile Releases. */
     public static final String API_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/latest";
+
+    /** GitHub Release Tag für kontinuierliche Snapshots. */
+    public static final String SNAPSHOT_TAG = "snapshot";
+
+    /** GitHub Releases API Endpunkt für kontinuierliche Snapshots. */
+    public static final String SNAPSHOT_API_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases/tags/" + SNAPSHOT_TAG;
 
     /** Web-URL des Repositories. */
     public static final String REPO_URL = "https://github.com/" + GITHUB_REPO;
@@ -86,15 +126,37 @@ public class UpdateService {
             long jarSize,
             String appImageDownloadUrl,
             String appImageFileName,
-            long appImageSize
-    ) {}
+            long appImageSize,
+            String publishedAt,
+            UpdateChannel channel
+    ) {
+        public ReleaseInfo(String tagName, String name, String body, String htmlUrl, boolean isNewer,
+                           String jarDownloadUrl, String jarFileName, long jarSize,
+                           String appImageDownloadUrl, String appImageFileName, long appImageSize) {
+            this(tagName, name, body, htmlUrl, isNewer, jarDownloadUrl, jarFileName, jarSize,
+                 appImageDownloadUrl, appImageFileName, appImageSize, "", UpdateChannel.RELEASE);
+        }
+    }
 
     /**
-     * Prüft asynchron das neueste Release auf GitHub.
+     * Prüft asynchron das neueste Release auf GitHub anhand des Standard-Kanals.
      *
      * @return CompletableFuture mit den Release-Informationen
      */
     public static CompletableFuture<ReleaseInfo> checkLatestRelease() {
+        return checkLatestRelease(isSnapshot() ? UpdateChannel.SNAPSHOT : UpdateChannel.RELEASE);
+    }
+
+    /**
+     * Prüft asynchron ein Release oder Snapshot auf GitHub für den angegebenen Kanal.
+     *
+     * @param channel Der abzufragende Update-Kanal (RELEASE oder SNAPSHOT)
+     * @return CompletableFuture mit den Release-Informationen
+     */
+    public static CompletableFuture<ReleaseInfo> checkLatestRelease(UpdateChannel channel) {
+        final UpdateChannel targetChannel = channel != null ? channel : UpdateChannel.RELEASE;
+        final String endpoint = targetChannel == UpdateChannel.SNAPSHOT ? SNAPSHOT_API_URL : API_URL;
+
         return CompletableFuture.supplyAsync(() -> {
             try {
                 HttpClient client = HttpClient.newBuilder()
@@ -103,7 +165,7 @@ public class UpdateService {
                         .build();
 
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(API_URL))
+                        .uri(URI.create(endpoint))
                         .timeout(Duration.ofSeconds(10))
                         .header("User-Agent", "jdmx-updater/" + CURRENT_VERSION)
                         .header("Accept", "application/vnd.github.v3+json")
@@ -112,7 +174,7 @@ public class UpdateService {
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() != 200) {
-                    throw new IllegalStateException("GitHub API Fehler: HTTP " + response.statusCode());
+                    throw new IllegalStateException("GitHub API Fehler (" + targetChannel + "): HTTP " + response.statusCode());
                 }
 
                 ObjectMapper mapper = new ObjectMapper();
@@ -122,6 +184,7 @@ public class UpdateService {
                 String name = root.path("name").asText(tagName);
                 String body = root.path("body").asText("");
                 String htmlUrl = root.path("html_url").asText(REPO_URL);
+                String publishedAt = root.path("published_at").asText("");
 
                 String jarUrl = null;
                 String jarName = null;
@@ -150,7 +213,12 @@ public class UpdateService {
                     }
                 }
 
-                boolean isNewer = isVersionNewer(tagName, CURRENT_VERSION);
+                boolean isNewer;
+                if (targetChannel == UpdateChannel.SNAPSHOT) {
+                    isNewer = isSnapshotNewer(publishedAt, BUILD_TIMESTAMP, CURRENT_VERSION);
+                } else {
+                    isNewer = isReleaseNewer(tagName, CURRENT_VERSION);
+                }
 
                 return new ReleaseInfo(
                         tagName,
@@ -163,13 +231,62 @@ public class UpdateService {
                         jarSize,
                         appImageUrl,
                         appImageName,
-                        appImageSize
+                        appImageSize,
+                        publishedAt,
+                        targetChannel
                 );
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Konnte GitHub Releases nicht abrufen: " + e.getMessage());
+                LOGGER.log(Level.WARNING, "Konnte GitHub Releases für Kanal " + targetChannel + " nicht abrufen: " + e.getMessage());
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    /**
+     * Prüft, ob ein Remote-Snapshot neuer ist als die installierte Version.
+     *
+     * @param publishedAt    Veröffentlichungszeitpunkt auf GitHub (ISO-8601)
+     * @param localTimestamp Lokaler Build-Zeitstempel (ISO-8601)
+     * @param currentVersion Aktuell installierte Version
+     * @return True, wenn ein Wechsel auf den Snapshot empfohlen wird
+     */
+    public static boolean isSnapshotNewer(String publishedAt, String localTimestamp, String currentVersion) {
+        if (currentVersion != null && !currentVersion.toUpperCase().contains("SNAPSHOT")) {
+            // Wer ein stabiles Release installiert hat und den Snapshot-Kanal prüft,
+            // soll den Snapshot immer als Update/Wechsel installieren können.
+            return true;
+        }
+
+        if (publishedAt == null || publishedAt.isBlank() || localTimestamp == null || localTimestamp.isBlank()) {
+            return false;
+        }
+
+        try {
+            Instant remoteTime = Instant.parse(publishedAt);
+            Instant localTime = Instant.parse(localTimestamp);
+            return remoteTime.isAfter(localTime);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Prüft, ob ein stabiles Release für die installierte Version ein Update oder ein sinnvoller Wechsel ist.
+     *
+     * @param latestTag      Neuestes Tag auf GitHub (z. B. "v0.35.0")
+     * @param currentVersion Aktuell installierte Version
+     * @return True, wenn das Release neuer ist oder ein Wechsel vom Snapshot auf ein stabiles Release möglich ist
+     */
+    public static boolean isReleaseNewer(String latestTag, String currentVersion) {
+        if (latestTag == null || latestTag.isBlank()) {
+            return false;
+        }
+        if (currentVersion != null && currentVersion.toUpperCase().contains("SNAPSHOT")) {
+            // Wenn man einen Snapshot nutzt und im Release-Kanal nachsieht,
+            // ist die stabile Version immer als Rollback-Wechsel verfügbar!
+            return true;
+        }
+        return isVersionNewer(latestTag, currentVersion);
     }
 
     /**

@@ -55,6 +55,7 @@ powershell -NoProfile -Command ^
     "}; " ^
     "Invoke-WebRequest -Uri '%RAW_URL%/jdmx.ico' -OutFile '%INSTALL_DIR%\jdmx.ico'; " ^
     "Invoke-WebRequest -Uri '%RAW_URL%/jdmx.png' -OutFile '%INSTALL_DIR%\jdmx.png'; " ^
+    "Invoke-WebRequest -Uri '%RAW_URL%/update-snapshot.bat' -OutFile '%INSTALL_DIR%\update-snapshot.bat'; " ^
     "Invoke-WebRequest -Uri '%RAW_URL%/uninstall.bat' -OutFile '%INSTALL_DIR%\uninstall.bat'"
 
 if not exist "%INSTALL_DIR%\jdmx.jar" (

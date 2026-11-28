@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.UpdateChannel;
 import de.exit.jdmx.core.project.model.SettingsDataDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +45,10 @@ public class SettingsService {
     private String defaultFolder = System.getProperty("user.home") + File.separator + "jdmx-shows";
     private String discordBotToken = System.getProperty("jdmx.discord.bot_token", System.getenv().getOrDefault("JDMX_DISCORD_BOT_TOKEN", ""));
     private String discordRecipientUserId = System.getProperty("jdmx.discord.user_id", System.getenv().getOrDefault("JDMX_DISCORD_USER_ID", ""));
+    private UpdateChannel updateChannel = UpdateChannel.defaultForVersion(UpdateService.CURRENT_VERSION);
 
     private final List<Consumer<Double>> uiScaleListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<UpdateChannel>> updateChannelListeners = new CopyOnWriteArrayList<>();
 
     /**
      * Erstellt eine neue Instanz des {@link SettingsService} mit der standardmäßigen Konfigurationsdatei.
@@ -152,7 +155,8 @@ public class SettingsService {
                 shortcutService != null ? shortcutService.exportShortcuts() : java.util.Map.of(),
                 uiScale,
                 discordBotToken,
-                discordRecipientUserId
+                discordRecipientUserId,
+                updateChannel
         );
     }
 
@@ -186,6 +190,9 @@ public class SettingsService {
         }
         if (dto.discordRecipientUserId() != null && !dto.discordRecipientUserId().isBlank()) {
             this.discordRecipientUserId = dto.discordRecipientUserId();
+        }
+        if (dto.updateChannel() != null) {
+            setUpdateChannel(dto.updateChannel());
         }
         if (shortcutService != null && dto.shortcuts() != null) {
             shortcutService.importShortcuts(dto.shortcuts());
@@ -298,6 +305,30 @@ public class SettingsService {
 
     public void setDiscordRecipientUserId(String discordRecipientUserId) {
         this.discordRecipientUserId = discordRecipientUserId != null ? discordRecipientUserId.trim() : "";
+    }
+
+    public UpdateChannel getUpdateChannel() {
+        return updateChannel != null ? updateChannel : UpdateChannel.RELEASE;
+    }
+
+    public void setUpdateChannel(UpdateChannel updateChannel) {
+        UpdateChannel newChannel = updateChannel != null ? updateChannel : UpdateChannel.RELEASE;
+        if (this.updateChannel != newChannel) {
+            this.updateChannel = newChannel;
+            for (Consumer<UpdateChannel> listener : updateChannelListeners) {
+                try {
+                    listener.accept(newChannel);
+                } catch (Exception e) {
+                    log.error("Fehler im UpdateChannel-Listener", e);
+                }
+            }
+        }
+    }
+
+    public void addUpdateChannelListener(Consumer<UpdateChannel> listener) {
+        if (listener != null) {
+            updateChannelListeners.add(listener);
+        }
     }
 
     public File getGlobalConfigFile() {

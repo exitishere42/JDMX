@@ -2,6 +2,7 @@ package de.exit.jdmx.ui;
 
 import de.exit.jdmx.core.i18n.I18n;
 import de.exit.jdmx.core.model.UniverseConfig;
+import de.exit.jdmx.core.model.UpdateChannel;
 import de.exit.jdmx.ui.dialog.AboutUpdateDialog;
 import de.exit.jdmx.ui.dialog.UniverseConfigDialog;
 import de.exit.jdmx.ui.io.InputDockView;
@@ -179,7 +180,8 @@ class UIReactiveLocalizationTest {
 
             AboutUpdateDialog updateDialog = new AboutUpdateDialog(null);
             assertThat(updateDialog.getLblCurTitle().getText()).isEqualTo("Installierte Version");
-            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo("Neueste Version");
+            String expectedLatTitleDe = updateDialog.getCurrentChannel() == UpdateChannel.SNAPSHOT ? "Neuester Snapshot" : "Neueste Version";
+            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo(expectedLatTitleDe);
 
             UniverseConfig config = UniverseConfig.defaultFor(0);
             UniverseConfigDialog uniDialog = new UniverseConfigDialog(null, config, updated -> {});
@@ -190,7 +192,8 @@ class UIReactiveLocalizationTest {
             // Wechsel zu Englisch
             I18n.setLanguage("en");
             assertThat(updateDialog.getLblCurTitle().getText()).isEqualTo("Installed Version");
-            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo("Latest Version");
+            String expectedLatTitleEn = updateDialog.getCurrentChannel() == UpdateChannel.SNAPSHOT ? "Latest Snapshot" : "Latest Version";
+            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo(expectedLatTitleEn);
 
             assertThat(uniDialog.getTitleLabel().getText()).isEqualTo("Universe 1 Configuration");
             assertThat(uniDialog.getLblTargetIp().getText()).isEqualTo("Target IP Address:");
@@ -199,7 +202,8 @@ class UIReactiveLocalizationTest {
             // Wechsel zu Russisch
             I18n.setLanguage("ru");
             assertThat(updateDialog.getLblCurTitle().getText()).isEqualTo("Установленная версия");
-            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo("Последняя версия");
+            String expectedLatTitleRu = updateDialog.getCurrentChannel() == UpdateChannel.SNAPSHOT ? "Последний снимок" : "Последняя версия";
+            assertThat(updateDialog.getLblLatTitle().getText()).isEqualTo(expectedLatTitleRu);
 
             assertThat(uniDialog.getTitleLabel().getText()).isEqualTo("Конфигурация Вселенной 1");
         });

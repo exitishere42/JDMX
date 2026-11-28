@@ -7,7 +7,7 @@
 
     <groupId>de.exit</groupId>
     <artifactId>jdmx</artifactId>
-    <version>0.35.0</version>
+    <version>0.36.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>jdmx</name>
@@ -20,6 +20,7 @@
         <javafx.version>21.0.5</javafx.version>
         <jackson.version>2.18.2</jackson.version>
         <main.class>de.exit.jdmx.Main</main.class>
+        <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
     </properties>
 
     <dependencies>

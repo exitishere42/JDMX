@@ -1,7 +1,7 @@
 package de.exit.jdmx.ui.dialog;
 
 import de.exit.jdmx.core.i18n.I18n;
-import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.UpdateChannel;
 import de.exit.jdmx.service.UpdateService;
 import de.exit.jdmx.ui.MainWindow;
 import de.exit.jdmx.ui.component.MarkdownView;
@@ -22,6 +22,9 @@ import javafx.scene.paint.Color;
 
 import java.awt.Desktop;
 import java.net.URI;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,8 +32,10 @@ import java.util.logging.Logger;
 /**
  * In-App Modal Dialog für das Prüfen und Einspielen von Software-Updates.
  * <p>
- * Zeigt die aktuell installierte Version, ruft asynchron die neuesten Releases
- * von GitHub ab und erlaubt ein nahtloses In-App-Update ohne manuellen Installer.
+ * Zeigt die aktuell installierte Version, erlaubt das Umschalten zwischen
+ * stabilen Releases und kontinuierlichen Entwicklungs-Snapshots,
+ * ruft asynchron die Daten von GitHub ab und erlaubt ein nahtloses In-App-Update
+ * ohne manuellen Installer.
  * </p>
  */
 public class AboutUpdateDialog {
@@ -40,7 +45,11 @@ public class AboutUpdateDialog {
     private final MainWindow mainWindow;
     private final VBox card;
 
+    private UpdateChannel currentChannel;
     private Label lblTitle;
+    private Label lblChannel;
+    private Button btnChannelRelease;
+    private Button btnChannelSnapshot;
     private Label lblCurTitle;
     private Label lblLatTitle;
     private Label lblCurrentVersion;
@@ -73,6 +82,11 @@ public class AboutUpdateDialog {
 
     public AboutUpdateDialog(MainWindow mainWindow) {
         this.mainWindow = mainWindow;
+        if (mainWindow != null && mainWindow.getSettingsService() != null) {
+            this.currentChannel = mainWindow.getSettingsService().getUpdateChannel();
+        } else {
+            this.currentChannel = UpdateService.isSnapshot() ? UpdateChannel.SNAPSHOT : UpdateChannel.RELEASE;
+        }
 
         this.card = new VBox(14);
         card.getStyleClass().add("settings-dialog-card");
@@ -90,16 +104,19 @@ public class AboutUpdateDialog {
         // 1. Header (Icon, Titel, roter Schließen-Button)
         HBox header = buildHeader();
 
-        // 2. Versions-Kachel (Installiert vs. Neueste Version)
+        // 2. Kanal-Umschalter (Release vs. Snapshot)
+        HBox channelCard = buildChannelCard();
+
+        // 3. Versions-Kachel (Installiert vs. Neueste Version)
         HBox versionCard = buildVersionCard();
 
-        // 3. Status & Update-Bereich
+        // 4. Status & Update-Bereich
         VBox statusCard = buildStatusCard();
 
-        // 4. Footer (GitHub Link & Schließen)
+        // 5. Footer (GitHub Link & Schließen)
         HBox footer = buildFooter();
 
-        card.getChildren().addAll(header, versionCard, statusCard, footer);
+        card.getChildren().addAll(header, channelCard, versionCard, statusCard, footer);
         updateTexts();
     }
 
@@ -125,6 +142,65 @@ public class AboutUpdateDialog {
         return header;
     }
 
+    private HBox buildChannelCard() {
+        HBox channelCard = new HBox(12);
+        channelCard.setAlignment(Pos.CENTER_LEFT);
+        channelCard.setPadding(new Insets(10, 16, 10, 16));
+        channelCard.setStyle("-fx-background-color: #18181B; -fx-border-color: #27272A; -fx-border-width: 1px; -fx-background-radius: 4px; -fx-border-radius: 4px;");
+
+        this.lblChannel = new Label(I18n.get("update.channel"));
+        lblChannel.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox toggleGroup = new HBox(0);
+        toggleGroup.setAlignment(Pos.CENTER_RIGHT);
+
+        this.btnChannelRelease = new Button(I18n.get("update.channel.release"));
+        this.btnChannelSnapshot = new Button(I18n.get("update.channel.snapshot"));
+
+        btnChannelRelease.setOnAction(e -> selectChannel(UpdateChannel.RELEASE));
+        btnChannelSnapshot.setOnAction(e -> selectChannel(UpdateChannel.SNAPSHOT));
+
+        toggleGroup.getChildren().addAll(btnChannelRelease, btnChannelSnapshot);
+        updateChannelToggleStyles();
+
+        channelCard.getChildren().addAll(lblChannel, spacer, toggleGroup);
+        return channelCard;
+    }
+
+    private void updateChannelToggleStyles() {
+        String activeLeft = "-fx-background-color: #38BDF8; -fx-text-fill: #0F172A; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4px 0 0 4px; -fx-border-color: #38BDF8; -fx-border-radius: 4px 0 0 4px; -fx-padding: 5 14; -fx-cursor: hand;";
+        String inactiveLeft = "-fx-background-color: #27272A; -fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-background-radius: 4px 0 0 4px; -fx-border-color: #3F3F46; -fx-border-radius: 4px 0 0 4px; -fx-padding: 5 14; -fx-cursor: hand;";
+
+        String activeRight = "-fx-background-color: #38BDF8; -fx-text-fill: #0F172A; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 0 4px 4px 0; -fx-border-color: #38BDF8; -fx-border-radius: 0 4px 4px 0; -fx-padding: 5 14; -fx-cursor: hand;";
+        String inactiveRight = "-fx-background-color: #27272A; -fx-text-fill: #9CA3AF; -fx-font-size: 11px; -fx-background-radius: 0 4px 4px 0; -fx-border-color: #3F3F46; -fx-border-radius: 0 4px 4px 0; -fx-padding: 5 14; -fx-cursor: hand;";
+
+        if (currentChannel == UpdateChannel.RELEASE) {
+            btnChannelRelease.setStyle(activeLeft);
+            btnChannelSnapshot.setStyle(inactiveRight);
+        } else {
+            btnChannelRelease.setStyle(inactiveLeft);
+            btnChannelSnapshot.setStyle(activeRight);
+        }
+    }
+
+    private void selectChannel(UpdateChannel newChannel) {
+        if (newChannel == null || newChannel == this.currentChannel) {
+            return;
+        }
+        this.currentChannel = newChannel;
+        updateChannelToggleStyles();
+
+        if (mainWindow != null && mainWindow.getSettingsService() != null) {
+            mainWindow.getSettingsService().setUpdateChannel(newChannel);
+            mainWindow.getSettingsService().saveGlobalSettings(null);
+        }
+
+        checkForUpdates();
+    }
+
     private HBox buildVersionCard() {
         HBox versionCard = new HBox(16);
         versionCard.setAlignment(Pos.CENTER_LEFT);
@@ -145,7 +221,7 @@ public class AboutUpdateDialog {
         // Neueste Version auf GitHub
         VBox latBox = new VBox(2);
         latBox.setAlignment(Pos.CENTER_RIGHT);
-        this.lblLatTitle = new Label(I18n.get("update.latest_version"));
+        this.lblLatTitle = new Label(currentChannel == UpdateChannel.SNAPSHOT ? I18n.get("update.latest_snapshot") : I18n.get("update.latest_release"));
         lblLatTitle.setStyle("-fx-text-fill: #9CA3AF; -fx-font-size: 10px; -fx-font-weight: bold;");
         this.lblLatestVersion = new Label(I18n.get("update.checking"));
         lblLatestVersion.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 14px; -fx-font-weight: bold;");
@@ -223,8 +299,13 @@ public class AboutUpdateDialog {
 
     private void updateTexts() {
         if (lblTitle != null) lblTitle.setText(I18n.get("update.title"));
+        if (lblChannel != null) lblChannel.setText(I18n.get("update.channel"));
+        if (btnChannelRelease != null) btnChannelRelease.setText(I18n.get("update.channel.release"));
+        if (btnChannelSnapshot != null) btnChannelSnapshot.setText(I18n.get("update.channel.snapshot"));
         if (lblCurTitle != null) lblCurTitle.setText(I18n.get("update.installed_version"));
-        if (lblLatTitle != null) lblLatTitle.setText(I18n.get("update.latest_version"));
+        if (lblLatTitle != null) {
+            lblLatTitle.setText(currentChannel == UpdateChannel.SNAPSHOT ? I18n.get("update.latest_snapshot") : I18n.get("update.latest_release"));
+        }
         if (btnCloseFooter != null) btnCloseFooter.setText(I18n.get("action.close"));
 
         if (isChecking) {
@@ -235,17 +316,31 @@ public class AboutUpdateDialog {
             if (lblStatus != null) lblStatus.setText(I18n.get("update.error"));
         } else if (lastRelease != null) {
             if (lastRelease.isNewer()) {
-                if (lblStatus != null) lblStatus.setText(I18n.get("update.available", lastRelease.tagName()));
+                if (lastRelease.channel() == UpdateChannel.RELEASE && UpdateService.isSnapshot()) {
+                    if (lblStatus != null) lblStatus.setText(I18n.get("update.switch_to_release") + ": " + lastRelease.tagName());
+                } else if (lastRelease.channel() == UpdateChannel.SNAPSHOT && !UpdateService.isSnapshot()) {
+                    if (lblStatus != null) lblStatus.setText(I18n.get("update.switch_to_snapshot"));
+                } else {
+                    if (lblStatus != null) lblStatus.setText(I18n.get("update.available", lastRelease.tagName()));
+                }
             } else {
                 if (lblStatus != null) lblStatus.setText(I18n.get("update.up_to_date"));
             }
         }
-        if (btnUpdate != null) btnUpdate.setText(I18n.get("update.btn_update"));
+        if (btnUpdate != null && lastRelease != null) {
+            if (lastRelease.channel() == UpdateChannel.RELEASE && UpdateService.isSnapshot()) {
+                btnUpdate.setText(I18n.get("update.switch_to_release"));
+            } else if (lastRelease.channel() == UpdateChannel.SNAPSHOT && !UpdateService.isSnapshot()) {
+                btnUpdate.setText(I18n.get("update.switch_to_snapshot"));
+            } else {
+                btnUpdate.setText(I18n.get("update.btn_update"));
+            }
+        }
         if (btnRetry != null) btnRetry.setText(I18n.get("update.btn_retry"));
     }
 
     /**
-     * Startet die asynchrone Prüfung gegen die GitHub Releases API.
+     * Startet die asynchrone Prüfung gegen die GitHub Releases API für den aktiven Kanal.
      */
     public void checkForUpdates() {
         this.isChecking = true;
@@ -263,7 +358,7 @@ public class AboutUpdateDialog {
         lblProgressDetail.setManaged(false);
         actionButtonBox.getChildren().clear();
 
-        UpdateService.checkLatestRelease()
+        UpdateService.checkLatestRelease(currentChannel)
                 .thenAccept(release -> Platform.runLater(() -> applyReleaseResult(release)))
                 .exceptionally(ex -> {
                     Platform.runLater(() -> applyErrorResult(ex.getMessage()));
@@ -277,10 +372,24 @@ public class AboutUpdateDialog {
         this.lastRelease = release;
         spinner.setVisible(false);
         spinner.setManaged(false);
-        lblLatestVersion.setText(release.tagName());
+
+        if (release.channel() == UpdateChannel.SNAPSHOT) {
+            String ts = formatTimestamp(release.publishedAt());
+            lblLatestVersion.setText("Snapshot" + (ts.isEmpty() ? "" : " (" + ts + ")"));
+            lblLatTitle.setText(I18n.get("update.latest_snapshot"));
+        } else {
+            lblLatestVersion.setText(release.tagName());
+            lblLatTitle.setText(I18n.get("update.latest_release"));
+        }
 
         if (release.isNewer()) {
-            lblStatus.setText(I18n.get("update.available", release.tagName()));
+            if (release.channel() == UpdateChannel.RELEASE && UpdateService.isSnapshot()) {
+                lblStatus.setText(I18n.get("update.switch_to_release") + ": " + release.tagName());
+            } else if (release.channel() == UpdateChannel.SNAPSHOT && !UpdateService.isSnapshot()) {
+                lblStatus.setText(I18n.get("update.switch_to_snapshot"));
+            } else {
+                lblStatus.setText(I18n.get("update.available", release.tagName()));
+            }
             lblStatus.setStyle("-fx-text-fill: #38BDF8; -fx-font-size: 12px; -fx-font-weight: bold;");
 
             if (release.body() != null && !release.body().isBlank()) {
@@ -289,8 +398,16 @@ public class AboutUpdateDialog {
                 markdownChangelog.setManaged(true);
             }
 
-            this.btnUpdate = new Button(I18n.get("update.btn_update"));
-            btnUpdate.setStyle("-fx-background-color: #38BDF8; -fx-text-fill: #0F172A; -fx-font-weight: bold; -fx-background-radius: 4px; -fx-padding: 6 12;");
+            String btnText;
+            if (release.channel() == UpdateChannel.RELEASE && UpdateService.isSnapshot()) {
+                btnText = I18n.get("update.switch_to_release");
+            } else if (release.channel() == UpdateChannel.SNAPSHOT && !UpdateService.isSnapshot()) {
+                btnText = I18n.get("update.switch_to_snapshot");
+            } else {
+                btnText = I18n.get("update.btn_update");
+            }
+            this.btnUpdate = new Button(btnText);
+            btnUpdate.setStyle("-fx-background-color: #38BDF8; -fx-text-fill: #0F172A; -fx-font-weight: bold; -fx-background-radius: 4px; -fx-padding: 6 12; -fx-cursor: hand;");
             btnUpdate.setGraphic(new LucideIcon("download", 14, Color.web("#0F172A")));
 
             btnUpdate.setOnAction(e -> {
@@ -351,6 +468,19 @@ public class AboutUpdateDialog {
         actionButtonBox.getChildren().setAll(btnRetry);
     }
 
+    private String formatTimestamp(String iso) {
+        if (iso == null || iso.isBlank()) return "";
+        try {
+            Instant instant = Instant.parse(iso);
+            DateTimeFormatter dtf = DateTimeFormatter
+                    .ofPattern("dd.MM.yyyy HH:mm")
+                    .withZone(ZoneId.systemDefault());
+            return dtf.format(instant);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private void openUrl(String url) {
         try {
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
@@ -391,6 +521,26 @@ public class AboutUpdateDialog {
 
     public Label getLblStatus() {
         return lblStatus;
+    }
+
+    public Button getBtnUpdate() {
+        return btnUpdate;
+    }
+
+    public Button getBtnRetry() {
+        return btnRetry;
+    }
+
+    public UpdateChannel getCurrentChannel() {
+        return currentChannel;
+    }
+
+    public Button getBtnChannelRelease() {
+        return btnChannelRelease;
+    }
+
+    public Button getBtnChannelSnapshot() {
+        return btnChannelSnapshot;
     }
 
     public Button getBtnClose() {

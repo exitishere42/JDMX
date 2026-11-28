@@ -1,6 +1,7 @@
 package de.exit.jdmx.core.project.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import de.exit.jdmx.core.model.UpdateChannel;
 
 import java.io.File;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.Map;
  * @param uiScale          Skalierungsfaktor der Benutzeroberfläche (z. B. 0.8, 1.0, 1.25)
  * @param discordBotToken  Optionaler Discord-Bot-Token für direkten Support- und Feedback-Versand
  * @param discordRecipientUserId Optionale Discord-Benutzer-ID des Empfängers für Direktnachrichten
+ * @param updateChannel    Aktiver Update-Kanal (RELEASE oder SNAPSHOT)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SettingsDataDto(
@@ -28,7 +30,8 @@ public record SettingsDataDto(
         Map<String, String> shortcuts,
         double uiScale,
         String discordBotToken,
-        String discordRecipientUserId
+        String discordRecipientUserId,
+        UpdateChannel updateChannel
 ) {
     /** Standardmäßige Skalierung (100%). */
     public static final double DEFAULT_UI_SCALE = 1.0;
@@ -46,20 +49,30 @@ public record SettingsDataDto(
         if (discordRecipientUserId == null) {
             discordRecipientUserId = "";
         }
+        if (updateChannel == null) {
+            updateChannel = UpdateChannel.RELEASE;
+        }
+    }
+
+    /**
+     * Überladener Konstruktor für Abwärtskompatibilität ohne updateChannel.
+     */
+    public SettingsDataDto(String language, boolean fullscreen, boolean confirmExit, String autoSaveInterval, String defaultFolder, Map<String, String> shortcuts, double uiScale, String discordBotToken, String discordRecipientUserId) {
+        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, uiScale, discordBotToken, discordRecipientUserId, UpdateChannel.RELEASE);
     }
 
     /**
      * Überladener Konstruktor für Abwärtskompatibilität mit uiScale ohne Discord-Felder.
      */
     public SettingsDataDto(String language, boolean fullscreen, boolean confirmExit, String autoSaveInterval, String defaultFolder, Map<String, String> shortcuts, double uiScale) {
-        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, uiScale, "", "");
+        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, uiScale, "", "", UpdateChannel.RELEASE);
     }
 
     /**
      * Überladener Konstruktor für Abwärtskompatibilität ohne expliziten uiScale.
      */
     public SettingsDataDto(String language, boolean fullscreen, boolean confirmExit, String autoSaveInterval, String defaultFolder, Map<String, String> shortcuts) {
-        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, DEFAULT_UI_SCALE, "", "");
+        this(language, fullscreen, confirmExit, autoSaveInterval, defaultFolder, shortcuts, DEFAULT_UI_SCALE, "", "", UpdateChannel.RELEASE);
     }
 
     /**
@@ -75,7 +88,8 @@ public record SettingsDataDto(
                 Map.of(),
                 DEFAULT_UI_SCALE,
                 "",
-                ""
+                "",
+                UpdateChannel.RELEASE
         );
     }
 }

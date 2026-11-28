@@ -1,0 +1,58 @@
+name: Continuous Snapshot Build
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build Fat JAR
+        run: mvn clean package -DskipTests
+
+      - name: Prepare Snapshot Artifacts & Build AppImage
+        run: |
+          JAR_SRC=$(ls -t target/jdmx-*-all.jar | head -n 1)
+          cp "$JAR_SRC" ./jdmx-snapshot-all.jar
+          chmod +x build-appimage.sh
+          sudo apt-get update -y && sudo apt-get install -y squashfs-tools
+          ./build-appimage.sh || true
+
+      - name: Publish or Update Rolling Snapshot Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: snapshot
+          name: "JDMX Continuous Snapshot"
+          prerelease: true
+          make_latest: false
+          body: |
+            ## Continuous Snapshot Build
+            Automated development snapshot built directly from branch `main`.
+
+            - **Commit:** `${{ github.sha }}`
+            - **Commit Message:** `${{ github.event.head_commit.message }}`
+          files: |
+            jdmx-snapshot-all.jar
+            target/jdmx-*-all.jar
+            jdmx-x86_64.AppImage
+            install.bat
+            install.sh
+            uninstall.bat
+            uninstall.sh
+            update-snapshot.bat
+            update-snapshot.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

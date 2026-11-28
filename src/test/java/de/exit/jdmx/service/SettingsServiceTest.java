@@ -1,6 +1,7 @@
 package de.exit.jdmx.service;
 
 import de.exit.jdmx.core.i18n.I18n;
+import de.exit.jdmx.core.model.UpdateChannel;
 import de.exit.jdmx.core.project.model.SettingsDataDto;
 import javafx.application.Platform;
 import javafx.scene.input.KeyCode;
@@ -180,5 +181,24 @@ class SettingsServiceTest {
         SettingsService restoredService = new SettingsService(configFile);
         assertThat(restoredService.getDiscordBotToken()).isEqualTo("test-bot-token-xyz");
         assertThat(restoredService.getDiscordRecipientUserId()).isEqualTo("987654321098765432");
+    }
+
+    @Test
+    @DisplayName("Sollte UpdateChannel setzen, Listener benachrichtigen und in globaler Config speichern")
+    void shouldPersistAndNotifyUpdateChannel(@TempDir Path tempDir) {
+        File configFile = tempDir.resolve("settings.json").toFile();
+        SettingsService service = new SettingsService(configFile);
+
+        AtomicReference<UpdateChannel> notified = new AtomicReference<>();
+        service.addUpdateChannelListener(notified::set);
+
+        UpdateChannel target = service.getUpdateChannel() == UpdateChannel.SNAPSHOT ? UpdateChannel.RELEASE : UpdateChannel.SNAPSHOT;
+        service.setUpdateChannel(target);
+        assertThat(notified.get()).isEqualTo(target);
+
+        service.saveGlobalSettings(null);
+
+        SettingsService loadedService = new SettingsService(configFile);
+        assertThat(loadedService.getUpdateChannel()).isEqualTo(target);
     }
 }

@@ -1,5 +1,6 @@
 package de.exit.jdmx.ui.dialog;
 
+import de.exit.jdmx.core.model.UpdateChannel;
 import de.exit.jdmx.service.UpdateService;
 import de.exit.jdmx.ui.MainWindow;
 import javafx.application.Platform;
@@ -41,6 +42,26 @@ class AboutUpdateDialogTest {
         assertThat(dialog.getLblCurrentVersion().getText()).contains(UpdateService.CURRENT_VERSION);
         assertThat(dialog.getBtnClose()).isNotNull();
         assertThat(dialog.getMarkdownChangelog()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Sollte Kanal-Umschalter (Release / Snapshot) initialisieren und umschalten")
+    void shouldToggleUpdateChannel() {
+        MainWindow mainWindow = new MainWindow();
+        AboutUpdateDialog dialog = new AboutUpdateDialog(mainWindow);
+
+        assertThat(dialog.getBtnChannelRelease()).isNotNull();
+        assertThat(dialog.getBtnChannelSnapshot()).isNotNull();
+
+        // Klick auf Release
+        dialog.getBtnChannelRelease().fire();
+        assertThat(dialog.getCurrentChannel()).isEqualTo(UpdateChannel.RELEASE);
+        assertThat(mainWindow.getSettingsService().getUpdateChannel()).isEqualTo(UpdateChannel.RELEASE);
+
+        // Klick auf Snapshot
+        dialog.getBtnChannelSnapshot().fire();
+        assertThat(dialog.getCurrentChannel()).isEqualTo(UpdateChannel.SNAPSHOT);
+        assertThat(mainWindow.getSettingsService().getUpdateChannel()).isEqualTo(UpdateChannel.SNAPSHOT);
     }
 
     @Test
