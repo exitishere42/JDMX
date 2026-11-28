@@ -110,8 +110,12 @@ cat > "$INSTALL_DIR/run.sh" << 'EOF'
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-JAR_FILE=$(ls -t "$SCRIPT_DIR"/jdmx-*-all.jar "$SCRIPT_DIR"/jdmx.jar 2>/dev/null | head -n 1)
-if [ -z "$JAR_FILE" ]; then
+if [ -f "$SCRIPT_DIR/jdmx.jar" ]; then
+    JAR_FILE="$SCRIPT_DIR/jdmx.jar"
+else
+    JAR_FILE=$(ls -t "$SCRIPT_DIR"/jdmx-*-all.jar 2>/dev/null | head -n 1)
+fi
+if [ -z "$JAR_FILE" ] || [ ! -f "$JAR_FILE" ]; then
     echo "[!] Keine jdmx JAR gefunden in $SCRIPT_DIR" >&2
     exit 1
 fi

@@ -18,7 +18,13 @@ powershell -NoProfile -Command ^
     "$ProgressPreference = 'SilentlyContinue'; " ^
     "try { " ^
     "    Invoke-WebRequest -Uri '%SNAPSHOT_URL%' -OutFile '%INSTALL_DIR%\jdmx-snapshot-temp.jar'; " ^
-    "    Move-Item -Path '%INSTALL_DIR%\jdmx-snapshot-temp.jar' -Destination '%INSTALL_DIR%\jdmx.jar' -Force; " ^
+    "echo [*] Schließe eventuell laufende jdmx-Instanzen...
+taskkill /F /FI "WINDOWTITLE eq jdmx*" /IM javaw.exe >nul 2>&1
+timeout /t 1 /nobreak >nul
+
+del /f /q "%INSTALL_DIR%\jdmx-*-all.jar" >nul 2>&1
+move /y "%INSTALL_DIR%\jdmx-snapshot-temp.jar" "%INSTALL_DIR%\jdmx.jar" >nul
+copy /y "%INSTALL_DIR%\jdmx.jar" "%INSTALL_DIR%\jdmx-snapshot-all.jar" >nul 2>&1 " ^
     "    Write-Host '[OK] Snapshot erfolgreich heruntergeladen und aktualisiert!' -ForegroundColor Green; " ^
     "} catch { " ^
     "    Write-Host ('[!] Fehler beim Herunterladen des Snapshots: ' + $_.Exception.Message) -ForegroundColor Red; " ^

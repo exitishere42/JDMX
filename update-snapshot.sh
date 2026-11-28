@@ -22,7 +22,15 @@ else
     exit 1
 fi
 
+echo "[*] Schließe eventuell laufende jdmx-Instanzen..."
+pkill -f "jdmx" 2>/dev/null || true
+sleep 1
+
+# Alte Versionen entfernen, damit garantiert der neue Snapshot startet
+rm -f "$INSTALL_DIR"/jdmx-*-all.jar
+
 mv "$INSTALL_DIR/jdmx-snapshot-temp.jar" "$INSTALL_DIR/jdmx.jar"
+cp -f "$INSTALL_DIR/jdmx.jar" "$INSTALL_DIR/jdmx-snapshot-all.jar" 2>/dev/null || true
 echo "[OK] Snapshot erfolgreich aktualisiert!"
 
 if command -v java &> /dev/null; then
